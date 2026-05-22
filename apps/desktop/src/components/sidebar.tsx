@@ -28,6 +28,7 @@ import { ConnectionDiagnosticsPanel, type ConnectionDiagnostics } from "@/compon
 import { ErrorNotice } from "@/components/error-notice";
 import { Input } from "@/components/ui/input";
 import { InvestorDemoSidebarCard } from "@/components/investor-demo-panel";
+import { QuickStartOnboardingPanel } from "@/components/onboarding-panel";
 import { ManualSendPanel } from "@/components/manual-send-panel";
 import { PanelContent, PanelHeader, PanelTitle } from "@/components/ui/panel";
 import { ProxyModePanel } from "@/components/proxy-mode-panel";
@@ -43,6 +44,7 @@ import type {
   Connection,
   ConnectionStatus,
   EntityId,
+  FilterState,
   Packet,
   ReplayHistoryItem,
   SendSource,
@@ -58,6 +60,7 @@ import {
   validateWebSocketUrl,
 } from "@/models";
 import { useEnvironmentStore } from "@/store/environment-store";
+import { useSettingsStore } from "@/store/settings-store";
 import type { ComposerMode, CreateToastInput, InvestorDemoState } from "@/store/ui-store";
 
 type ConnectionDraft = {
@@ -85,6 +88,7 @@ type SidebarProps = {
   diagnosticsOpenSignal?: number;
   endpointUrl: string;
   error: string | null;
+  filterState: FilterState;
   isDemoActive: boolean;
   isConnected: boolean;
   investorDemo: InvestorDemoState;
@@ -102,6 +106,7 @@ type SidebarProps = {
   onLoadSessionFile: () => Promise<void>;
   onCopyProxyUrl: () => void;
   onNotifyError: (toast: CreateToastInput) => void;
+  onOpenDocs: () => void;
   onQuickConnectLocalEcho: () => void;
   onReconnectConnection: (connectionId: string) => void;
   onSaveSession: (sessionName: string, options?: SessionFileActionOptions) => Promise<void>;
@@ -145,6 +150,7 @@ export function Sidebar({
   diagnosticsOpenSignal = 0,
   endpointUrl,
   error,
+  filterState,
   isDemoActive,
   isConnected,
   investorDemo,
@@ -162,6 +168,7 @@ export function Sidebar({
   onLoadSessionFile,
   onCopyProxyUrl,
   onNotifyError,
+  onOpenDocs,
   onQuickConnectLocalEcho,
   onReconnectConnection,
   onSaveSession,
@@ -194,6 +201,7 @@ export function Sidebar({
   status,
 }: SidebarProps) {
   const { t } = useTranslation();
+  const onboarding = useSettingsStore((state) => state.settings.onboarding);
   const [captureMode, setCaptureMode] = useState<CaptureMode>("direct");
   const [modalDefaults, setModalDefaults] = useState<Pick<ConnectionDraft, "endpointUrl" | "name"> | null>(null);
   const directConnections = useMemo(
@@ -213,6 +221,7 @@ export function Sidebar({
   const canStartDemo = !isDemoActive && !isConnected && !isBusy;
   const canStartInvestorDemo = !isDemoActive && !isConnected && !isBusy;
   const canConnect = !isDemoActive && !isConnected && !isBusy;
+  const showQuickStartPanel = onboarding.dismissedAt === null;
   const activeDirectPacketCount = activeConnection ? currentSessionPackets.length : 0;
   const annotatedPackets = useMemo(
     () => currentSessionPackets.filter((packet) => hasPacketAnnotations(packet.annotations)),
@@ -251,13 +260,29 @@ export function Sidebar({
       </PanelHeader>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
         <PanelContent className="space-y-2.5">
-          <InvestorDemoSidebarCard
-            canStart={canStartInvestorDemo}
-            investorDemo={investorDemo}
-            packetCount={investorDemoPacketCount}
-            onReset={onResetInvestorDemo}
-            onStart={onStartInvestorDemo}
-          />
+          {showQuickStartPanel ? (
+            <QuickStartOnboardingPanel
+              canConnectEcho={canConnect}
+              canStartDemo={canStartInvestorDemo}
+              filterState={filterState}
+              isDemoActive={isDemoActive}
+              isInvestorDemoActive={investorDemo.isActive}
+              packets={packets}
+              replayHistory={replayHistory}
+              selectedPacket={selectedPacket}
+              onConnectEcho={onQuickConnectLocalEcho}
+              onOpenDocs={onOpenDocs}
+              onStartDemo={onStartInvestorDemo}
+            />
+          ) : (
+            <InvestorDemoSidebarCard
+              canStart={canStartInvestorDemo}
+              investorDemo={investorDemo}
+              packetCount={investorDemoPacketCount}
+              onReset={onResetInvestorDemo}
+              onStart={onStartInvestorDemo}
+            />
+          )}
 
           <div className="rounded-md border border-primary/25 bg-primary/10 p-2.5">
             <div className="mb-2 flex items-center justify-between gap-2">
@@ -302,11 +327,13 @@ export function Sidebar({
             />
           ) : (
             <>
-              <DirectModeQuickStart
-                canQuickConnect={canConnect}
-                onCreateLocalEcho={() => openNewConnectionModal({ endpointUrl: localEchoServerUrl, name: t("sidebar.localEcho") })}
-                onQuickConnectLocalEcho={onQuickConnectLocalEcho}
-              />
+              {!showQuickStartPanel ? (
+                <DirectModeQuickStart
+                  canQuickConnect={canConnect}
+                  onCreateLocalEcho={() => openNewConnectionModal({ endpointUrl: localEchoServerUrl, name: t("sidebar.localEcho") })}
+                  onQuickConnectLocalEcho={onQuickConnectLocalEcho}
+                />
+              ) : null}
 
               <DirectConnectionStatusCard
                 endpointUrl={focusedConnection?.endpointUrl ?? endpointUrl}

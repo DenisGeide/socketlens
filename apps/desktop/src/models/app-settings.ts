@@ -12,7 +12,8 @@ export type AppOnboardingStepId =
   | "connect-echo-server"
   | "send-ping"
   | "observe-pong"
-  | "replay-packet";
+  | "replay-packet"
+  | "filter-events";
 
 export type AppPrivacySettings = {
   persistRecentConnections: boolean;
@@ -76,6 +77,7 @@ export const onboardingStepIds = [
   "send-ping",
   "observe-pong",
   "replay-packet",
+  "filter-events",
 ] as const satisfies AppOnboardingStepId[];
 export const minPacketRetentionLimit = 10_000;
 export const maxPacketRetentionLimit = 100_000;

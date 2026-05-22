@@ -69,7 +69,7 @@ if (existsSync(ruLocalePath)) {
     ["settings.workspace.description", "Держите"],
     ["errors.websocket.empty", "Введите"],
     ["errors.user.invalidUrl.title", "Некорректный"],
-    ["onboarding.title", "Добро пожаловать"],
+    ["onboarding.quickStart.title", "Быстрый старт"],
   ];
 
   for (const [key, expectedFragment] of requiredRussianValues) {

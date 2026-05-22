@@ -19,7 +19,6 @@ import { CommandPalette, type CommandPaletteCommand } from "@/components/command
 import { AppShell } from "@/components/layout/app-shell";
 import { InvestorDemoGuide } from "@/components/investor-demo-panel";
 import { LogPanel } from "@/components/log-panel";
-import { OnboardingPanel } from "@/components/onboarding-panel";
 import { PacketTimeline } from "@/components/packet-timeline";
 import { PayloadInspector } from "@/components/payload-inspector";
 import { SettingsPage } from "@/components/settings-page";
@@ -27,7 +26,7 @@ import { Sidebar } from "@/components/sidebar";
 import { ToastViewport } from "@/components/toast-viewport";
 import { TopBar } from "@/components/top-bar";
 import { appMetadata } from "@/config/app-metadata";
-import { localEchoServerUrl } from "@/config/runtime-defaults";
+import { gettingStartedDocsUrl, localEchoServerUrl } from "@/config/runtime-defaults";
 import { getWebSocketReadyStateLabel } from "@/lib/friendly-errors";
 import { createDemoPayload } from "@/dev/demo-payload";
 import { demoStreamEndpointUrl, startDemoStream, stopDemoStream } from "@/demo/demo-stream";
@@ -59,7 +58,6 @@ import {
   type NativeBackendState,
   type ProxyStatus,
 } from "@/lib/tauri-commands";
-import { getJsonCommand } from "@/lib/json-payload";
 import { analyzePacketFlows } from "@/lib/flow-analysis";
 import { createAsyncApiDraftExport } from "@/lib/asyncapi-export";
 import { buildPacketRelationshipIndex } from "@/lib/packet-relationships";
@@ -205,15 +203,9 @@ export function App() {
     () => (investorDemo.sessionId ? packets.filter((packet) => packet.sessionId === investorDemo.sessionId).length : 0),
     [investorDemo.sessionId, packets],
   );
-  const outgoingPingPacket = useMemo(
-    () => outgoingPackets.find((packet) => getJsonCommand(packet.payload) === "ping") ?? null,
-    [outgoingPackets],
-  );
   const activeDemoEndpointUrl = investorDemo.isActive ? investorDemoEndpointUrl : demoStreamEndpointUrl;
   const showInvestorDemoGuide =
     investorDemo.isActive || (currentSession?.endpointUrl === investorDemoEndpointUrl && investorDemoPacketCount > 0);
-  const showOnboardingPanel =
-    settings.onboarding.dismissedAt === null && !investorDemo.isActive && !demoMode.isActive && !isConnected && status !== "connecting";
   const canStartInvestorDemo = !demoMode.isActive && !isConnected && status !== "connecting";
   const diagnostics = useMemo(
     () => ({
@@ -885,28 +877,13 @@ export function App() {
     }
   }
 
-  function handleSendPing() {
-    sendMessage(JSON.stringify({ command: "ping" }), {
-      clearDraft: false,
-      source: "manual",
-    });
-  }
-
-  function handleReplayPing() {
-    if (!outgoingPingPacket) {
-      return;
-    }
-
-    sendMessage(outgoingPingPacket.payload, {
-      clearDraft: false,
-      source: "replay",
-      sourcePacketId: outgoingPingPacket.id,
-    });
-  }
-
   function handleResetInvestorDemo() {
     setCurrentView("workspace");
     resetInvestorDemo();
+  }
+
+  function handleOpenGettingStartedDocs() {
+    window.open(gettingStartedDocsUrl, "_blank", "noopener,noreferrer");
   }
 
   function handleStopDemo() {
@@ -1391,6 +1368,7 @@ export function App() {
           diagnosticsOpenSignal={diagnosticsOpenSignal}
           endpointUrl={endpointUrl}
           error={error}
+          filterState={filterState}
           isDemoActive={demoMode.isActive}
           isConnected={isConnected}
           investorDemo={investorDemo}
@@ -1415,6 +1393,7 @@ export function App() {
           onLoadSamplePayload={handleLoadSamplePayload}
           onLoadSessionFile={handleLoadSessionFile}
           onNotifyError={addToast}
+          onOpenDocs={handleOpenGettingStartedDocs}
           onCopyProxyUrl={handleCopyProxyUrl}
           onQuickConnectLocalEcho={handleConnectLocalEcho}
           onReconnectConnection={(connectionId) => void reconnect(connectionId)}
@@ -1458,25 +1437,6 @@ export function App() {
         <SettingsPage packetCount={packets.length} />
       ) : (
         <div className="flex h-full min-h-0 flex-col">
-          {showOnboardingPanel ? (
-            <OnboardingPanel
-              activeEndpointUrl={endpointUrl}
-              canConnectEcho={!demoMode.isActive && !investorDemo.isActive && !isConnected}
-              canReplayPing={isConnected && outgoingPingPacket !== null}
-              canSendPing={isConnected}
-              canStartDemo={canStartInvestorDemo}
-              isConnected={isConnected}
-              isDemoActive={demoMode.isActive}
-              isInvestorDemoActive={investorDemo.isActive}
-              packets={packets}
-              replayHistory={replayHistory}
-              selectedPacket={selectedPacket}
-              onConnectEcho={handleConnectLocalEcho}
-              onReplayPing={handleReplayPing}
-              onSendPing={handleSendPing}
-              onStartDemo={handleStartInvestorDemo}
-            />
-          ) : null}
           {showInvestorDemoGuide ? (
             <InvestorDemoGuide
               canStart={canStartInvestorDemo}
