@@ -21,6 +21,11 @@ import {
   stopInvestorDemo,
 } from "@/demo/investor-demo";
 import {
+  createExportFile,
+  socketLensPacketExportAdapter,
+  socketLensSessionExportAdapter,
+} from "@/extensions";
+import {
   loadSocketLensFileFromBrowserFile,
   loadSocketLensFileFromTauriDialog,
   saveSocketLensFile,
@@ -40,13 +45,9 @@ import { getJsonCommand } from "@/lib/json-payload";
 import { filterPackets } from "@/models";
 import {
   createImportedSessionSnapshot,
-  createPacketExportFile,
-  createSessionFile,
   type Packet,
   type Session,
   getSocketLensFileLabel,
-  getSuggestedPacketExportFileName,
-  getSuggestedSessionFileName,
   type SocketLensImportableFile,
   validateWebSocketUrl,
 } from "@/models";
@@ -687,12 +688,12 @@ export function App() {
       ...currentSession,
       name: normalizedSessionName,
     };
-    const file = createSessionFile({
+    const file = createExportFile(socketLensSessionExportAdapter, {
       packets: currentSessionPackets,
       session: sessionForFile,
       sessionName: normalizedSessionName,
     });
-    const result = await saveSocketLensFile(file, getSuggestedSessionFileName(file));
+    const result = await saveSocketLensFile(file, socketLensSessionExportAdapter.getSuggestedFileName(file));
 
     if (result.cancelled) {
       addLog({
@@ -726,7 +727,7 @@ export function App() {
     }
 
     const normalizedSessionName = sessionName.trim() || currentSession.name;
-    const file = createPacketExportFile({
+    const file = createExportFile(socketLensPacketExportAdapter, {
       packets: currentSessionPackets,
       session: {
         ...currentSession,
@@ -734,7 +735,7 @@ export function App() {
       },
       sessionName: normalizedSessionName,
     });
-    const result = await saveSocketLensFile(file, getSuggestedPacketExportFileName(file));
+    const result = await saveSocketLensFile(file, socketLensPacketExportAdapter.getSuggestedFileName(file));
 
     if (result.cancelled) {
       addLog({

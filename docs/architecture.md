@@ -14,6 +14,7 @@ apps/desktop
     config           Stable runtime defaults used across UI, stores, and models
     demo             Demo and investor-demo packet generators
     dev              Explicit development helpers
+    extensions       Contributor-facing extension contracts and built-in adapters
     lib              Runtime helpers, AI, Tauri wrappers, storage
     models           Typed domain model and file schemas
     store            Zustand stores
@@ -35,6 +36,24 @@ SocketLens models WebSocket debugging around five core ideas:
 - **AppSettings**: persisted local preferences for theme, defaults, retention, privacy, and optional AI provider configuration.
 
 The TypeScript model layer lives in `apps/desktop/src/models`. Components should import types from `@/models` instead of inventing local packet or session shapes.
+
+## Boundaries
+
+SocketLens keeps feature code separated by responsibility. New work should fit one of these layers before changing core flows.
+
+| Layer | Location | Owns | Should not own |
+| --- | --- | --- | --- |
+| UI components | `apps/desktop/src/components` | Rendering, user interaction, layout, local component state. | WebSocket lifecycle, file schemas, proxy command details. |
+| Feature modules | `apps/desktop/src/demo`, `apps/desktop/src/extensions`, focused component panels | Demo orchestration, extension contracts, bounded feature workflows. | Global store shape unless the domain model changes. |
+| Domain logic | `apps/desktop/src/models` | `Connection`, `Packet`, `Session`, settings, replay history, session file schemas. | Browser/Tauri APIs or React rendering. |
+| Stores | `apps/desktop/src/store` | Runtime state, batching, persistence calls, lifecycle coordination. | Presentation-only formatting. |
+| Services/helpers | `apps/desktop/src/lib` | Tauri bridge, storage, AI runtime calls, formatting, safe parsing, user-facing errors. | React components. |
+| Tauri bridge | `apps/desktop/src/lib/tauri-commands.ts`, `apps/desktop/src/lib/proxy-events.ts` | Typed frontend boundary to native commands/events. | Native proxy implementation details beyond typed DTOs. |
+| Rust backend | `apps/desktop/src-tauri/src` | Native command handlers, proxy runtime, backend state, user-safe errors. | React/Zustand state. |
+| Protocol decoders | `apps/desktop/src/extensions/packet-decoder.ts` | Turning packet payloads into event names, previews, tags, and decoded data. | UI rendering or store mutation. |
+| Filters | `apps/desktop/src/extensions/filter-engine.ts` | Fast packet matching and search text. | Mutating packets or sessions. |
+| Exporters | `apps/desktop/src/extensions/export-adapter.ts` | Export adapter contract and built-in SocketLens JSON adapters. | Native save dialogs. |
+| AI providers | `apps/desktop/src/extensions/ai-provider.ts`, `apps/desktop/src/lib/ai` | Provider contracts, provider registry, validation, prompts, network calls. | Required app functionality. |
 
 ## Frontend Stores
 
@@ -121,9 +140,42 @@ Payload inspection is intentionally defensive.
 - Invalid JSON falls back to raw text.
 - Large payloads are truncated in the rendered view while copy still uses the full payload.
 - Metadata is derived from typed packet fields.
+- Default packet decoding lives in `extensions/packet-decoder.ts`.
+- Default packet analysis lives in `extensions/packet-analyzer.ts`.
 - Shared JSON payload helpers live in `lib/json-payload.ts`; use them when reading common fields such as `command` or `type`.
 
 Components should not parse arbitrary payloads unless they go through shared helper functions.
+
+## Extension Points
+
+Contributor-facing extension contracts live in `apps/desktop/src/extensions`.
+
+| Extension point | File | Purpose |
+| --- | --- | --- |
+| `PacketDecoder` | `extensions/packet-decoder.ts` | Decode payloads into event names, previews, tags, metadata, and typed data. |
+| `PacketAnalyzer` | `extensions/packet-analyzer.ts` | Classify decoded packets as auth/chat/error/notification/heartbeat/ok. |
+| `FilterEngine` | `extensions/filter-engine.ts` | Apply search/filter state to packet collections. |
+| `ExportAdapter` | `extensions/export-adapter.ts` | Create and serialize export file formats. |
+| `AIProvider` | `extensions/ai-provider.ts` | Register optional AI providers behind a stable interface. |
+| `ReplayStrategy` | `extensions/replay-strategy.ts` | Prepare replay payloads and replay history entries. |
+
+These are explicit TypeScript extension points, not a dynamic plugin loader. New built-in extensions should be added here first, then wired into the relevant store or service.
+
+Detailed guidance: [extension-points.md](extension-points.md).
+
+## Data Flow
+
+```text
+Direct WebSocket / Rust proxy / Demo generator
+  -> createPacket()
+  -> usePacketStore
+  -> defaultFilterEngine
+  -> PacketTimeline
+  -> decodePacket() + defaultPacketAnalyzer
+  -> PayloadInspector / search / filters / AI prompt input
+```
+
+This keeps raw captured traffic immutable while views derive summaries, previews, filters, and explanations from shared extension helpers.
 
 ## Session Persistence
 

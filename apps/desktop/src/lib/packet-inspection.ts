@@ -1,13 +1,10 @@
 import type { Packet } from "@/models";
+import { defaultPacketAnalyzer } from "@/extensions/packet-analyzer";
+import { decodePacket, truncateDecodedPreview } from "@/extensions/packet-decoder";
+import type { PacketSummary } from "@/extensions/types";
 import { parseJsonObject } from "@/lib/json-payload";
 
-export type PacketStatus = "auth" | "chat" | "error" | "notification" | "heartbeat" | "ok";
-
-export type PacketSummary = {
-  eventName: string;
-  preview: string;
-  status: PacketStatus;
-};
+export type { PacketStatus, PacketSummary } from "@/extensions/types";
 
 export type PacketDemoMetadata = {
   highlight: boolean;
@@ -55,31 +52,9 @@ export function getPacketSummary(packet: Packet): PacketSummary {
 }
 
 function createPacketSummary(packet: Packet): PacketSummary {
-  if (packet.payloadKind !== "json") {
-    return {
-      eventName: packet.payloadKind === "binary" ? "binary.frame" : "text.frame",
-      preview: truncatePreview(packet.payload),
-      status: "ok",
-    };
-  }
+  const decodedPacket = decodePacket(packet);
 
-  const parsed = parseJsonObject(packet.payload);
-
-  if (!parsed) {
-    return {
-      eventName: "json.invalid",
-      preview: truncatePreview(packet.payload),
-      status: "error",
-    };
-  }
-
-  const eventName = getPacketEventName(packet) ?? "json.frame";
-
-  return {
-    eventName,
-    preview: getPayloadPreview(parsed),
-    status: getPacketStatus(parsed, eventName),
-  };
+  return defaultPacketAnalyzer.analyze(packet, decodedPacket);
 }
 
 export function isPingPongPacket(packet: Packet) {
@@ -105,17 +80,7 @@ export function getPacketSearchText(packet: Packet) {
 }
 
 export function getPacketEventName(packet: Packet) {
-  if (packet.payloadKind !== "json") {
-    return packet.payloadKind === "binary" ? "binary.frame" : "text.frame";
-  }
-
-  const parsed = parseJsonObject(packet.payload);
-
-  if (!parsed) {
-    return "json.invalid";
-  }
-
-  return getStringField(parsed, "type") ?? getStringField(parsed, "event") ?? getStringField(parsed, "action");
+  return decodePacket(packet).eventName;
 }
 
 export function getPacketDemoMetadata(packet: Packet): PacketDemoMetadata | null {
@@ -179,7 +144,7 @@ export function isErrorPacketFast(packet: Packet) {
 }
 
 export function truncatePreview(value: string, maxLength = 220) {
-  return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
+  return truncateDecodedPreview(value, maxLength);
 }
 
 function createPacketDemoMetadata(packet: Packet): PacketDemoMetadata | null {
@@ -209,64 +174,6 @@ function createPacketDemoMetadata(packet: Packet): PacketDemoMetadata | null {
   };
 }
 
-
-function getPacketStatus(payload: Record<string, unknown>, eventName: string | null): PacketStatus {
-  const normalizedEvent = eventName?.toLowerCase() ?? "";
-  const code = getStringField(payload, "code")?.toLowerCase() ?? "";
-  const severity = getStringField(payload, "severity")?.toLowerCase() ?? "";
-
-  if (normalizedEvent.includes("error") || code.includes("error") || severity === "error" || severity === "warning") {
-    return "error";
-  }
-
-  if (normalizedEvent.includes("auth")) {
-    return "auth";
-  }
-
-  if (normalizedEvent.includes("chat") || normalizedEvent.includes("message")) {
-    return "chat";
-  }
-
-  if (normalizedEvent.includes("notification")) {
-    return "notification";
-  }
-
-  if (normalizedEvent === "ping" || normalizedEvent === "pong" || normalizedEvent.includes("heartbeat")) {
-    return "heartbeat";
-  }
-
-  return "ok";
-}
-
-function getPayloadPreview(payload: Record<string, unknown>) {
-  const text = getStringField(payload, "text");
-  const title = getStringField(payload, "title");
-  const detail = getStringField(payload, "detail");
-  const code = getStringField(payload, "code");
-  const requestId = getStringField(payload, "requestId");
-
-  if (text) {
-    return truncatePreview(text);
-  }
-
-  if (title) {
-    return truncatePreview(title);
-  }
-
-  if (detail) {
-    return truncatePreview(detail);
-  }
-
-  if (code) {
-    return truncatePreview(code);
-  }
-
-  if (requestId) {
-    return `requestId: ${requestId}`;
-  }
-
-  return truncatePreview(JSON.stringify(payload));
-}
 
 function getStringField(payload: Record<string, unknown>, field: string) {
   const value = payload[field];

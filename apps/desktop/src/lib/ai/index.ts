@@ -1,6 +1,5 @@
 import { validateAiProviderConfiguration } from "@/lib/ai/provider-validation";
-import { ollamaProvider } from "@/lib/ai/providers/ollama";
-import { openAiCompatibleProvider } from "@/lib/ai/providers/openai-compatible";
+import { defaultAIProviders } from "@/extensions/ai-provider";
 import type { AiAnalysisInput, AiAnalysisResult, AiProviderResult, AiProviderValidation } from "@/lib/ai/types";
 import type { AppAiProviderSettings } from "@/models";
 
@@ -37,7 +36,17 @@ export async function runAiAnalysis(
     };
   }
 
-  const provider = settings.provider === "openai-compatible" ? openAiCompatibleProvider : ollamaProvider;
+  const provider = defaultAIProviders.find((candidate) => candidate.id === settings.provider);
+
+  if (!provider) {
+    return {
+      error: {
+        code: "invalid_configuration",
+        message: `Unsupported AI provider: ${settings.provider}.`,
+      },
+      ok: false,
+    };
+  }
 
   return provider.analyze(settings, input);
 }

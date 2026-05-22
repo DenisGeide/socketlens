@@ -51,6 +51,7 @@ apps/desktop/src/
   config/
   demo/
   dev/
+  extensions/
   i18n/
   lib/
   models/
@@ -62,6 +63,7 @@ apps/desktop/src/
 - `config/`: shared defaults such as local URLs and commands.
 - `demo/`: simulated demo and investor-demo packet streams.
 - `dev/`: developer/demo helpers.
+- `extensions/`: contributor-facing contracts for packet decoders, analyzers, filters, exporters, AI providers, and replay strategies.
 - `i18n/`: UI localization setup and locale JSON files.
 - `lib/`: shared runtime helpers, Tauri wrappers, AI providers, proxy event mapping, formatting, session storage, user-facing errors, and validation.
 - `models/`: typed domain models and pure helpers for connections, packets, sessions, filters, settings, replay history, and session files.
@@ -130,6 +132,8 @@ Main contributor and user docs:
 - `getting-started.md`: install and first run.
 - `project-structure.md`: this map.
 - `development.md`: contributor workflow.
+- `contributor-guide.md`: where to start when adding focused extensions.
+- `extension-points.md`: supported source-level extension contracts.
 - `manual-qa.md`: release and feature QA checklist.
 - `troubleshooting.md`: common failures and fixes.
 - `release.md`: release process.
