@@ -2,23 +2,29 @@
 
 SocketLens includes optional AI analysis architecture. AI is disabled by default and is not required for the app to work.
 
-## Current AI Action
+## Current AI Actions
 
-The implemented UI action is:
+The implemented UI actions are:
 
 - **Explain selected packet**
+- **Explain selected sequence**
+- **Summarize session**
+- **Explain auth/reconnect flow**
 
-When configured and clicked, SocketLens asks the provider to explain what the selected packet likely does, identify the event type, call out suspicious errors, summarize the payload, and avoid claiming certainty when unsure.
+When configured and clicked, SocketLens sends only the bounded context needed for that action. The prompts ask the provider to explain likely behavior, identify event types or flow phases, call out suspicious errors, summarize payload/session context, and avoid claiming certainty when unsure.
+
+Every AI result is shown as a debugging hint. Raw packets, logs, and the actual server behavior remain the source of truth.
 
 ## Demo AI Explanation
 
-Investor Demo Mode includes an offline AI explanation sample when AI is disabled.
+Investor Demo Mode includes an offline AI explanation sample when AI is disabled. The codebase also includes a deterministic mock provider for tests and offline demo fixtures.
 
 This is clearly marked as:
 
 - demo-only
 - offline
 - no provider called
+- not a real AI result
 
 It is there so first-run users can understand the feature without sending any packet data.
 
@@ -64,14 +70,30 @@ If the model list cannot load, SocketLens should show a friendly error. The usua
 
 ## What Data Is Sent
 
-For **Explain selected packet**, SocketLens sends a bounded packet-focused prompt containing:
+For **Explain selected packet**, SocketLens sends:
 
 - selected packet metadata
 - selected packet payload excerpt
-- small session context where needed
 - instructions to avoid overclaiming certainty
 
-SocketLens does not automatically analyze live traffic.
+For **Explain selected sequence**, SocketLens sends:
+
+- selected packet metadata and payload excerpt
+- a small nearby packet window around the selected packet
+- instructions to label inferred relationships as inferred
+
+For **Summarize session**, SocketLens sends:
+
+- bounded retained packet context for the current session
+- event names, directions, timestamps, payload kinds, sizes, and payload excerpts
+- instructions to keep the summary compact and uncertain where evidence is incomplete
+
+For **Explain auth/reconnect flow**, SocketLens sends:
+
+- packets whose decoded event names look related to auth, session, reconnect, resume, token, challenge, or connection state
+- instructions to call out missing acknowledgements, retry loops, auth failures, and reconnect gaps
+
+SocketLens does not automatically analyze live traffic. All AI actions require an explicit click.
 
 ## What Data Is Not Sent Automatically
 
@@ -120,6 +142,12 @@ See [privacy.md](privacy.md) and [security-model.md](security-model.md).
 ## Developer Notes
 
 AI code lives under `apps/desktop/src/lib/ai`.
+
+The provider abstraction supports:
+
+- OpenAI-compatible chat completions
+- Ollama chat
+- a local mock provider for tests/offline demos
 
 Add new actions by updating:
 

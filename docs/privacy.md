@@ -111,9 +111,20 @@ When disabled:
 - no provider endpoint is contacted
 - SocketLens remains fully usable
 
-When enabled, AI actions are explicit. For **Explain selected packet**, SocketLens sends a bounded prompt containing selected packet metadata and a payload excerpt only after you click **Explain**.
+When enabled, AI actions are explicit. SocketLens sends data only after you click a specific AI action.
+
+Current AI actions can send bounded excerpts for:
+
+- the selected packet
+- a small packet sequence around the selected packet
+- a session summary context
+- auth/reconnect-related packet context
 
 SocketLens does not automatically analyze live traffic or stream captures to AI providers.
+
+AI responses are treated as debugging hints, not facts. The UI reminds users that AI may be wrong and that raw packet data is the source of truth.
+
+The internal mock provider used by tests and offline demo fixtures does not contact a network provider.
 
 Do not enable AI for captures containing secrets, personal data, customer content, regulated data, production credentials, or private tokens unless your configured provider is approved for that data.
 

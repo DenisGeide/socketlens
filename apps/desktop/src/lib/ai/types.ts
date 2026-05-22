@@ -1,6 +1,12 @@
 import type { AppAiProvider, AppAiProviderSettings, Packet, Session } from "@/models";
 
-export type AiAction = "explain-packet" | "summarize-session" | "detect-event-flow";
+export type AiAction =
+  | "detect-event-flow"
+  | "explain-auth-reconnect-flow"
+  | "explain-packet"
+  | "explain-sequence"
+  | "summarize-session";
+export type AiResultProvider = Exclude<AppAiProvider, "disabled"> | "mock";
 
 export type AiAnalysisInput = {
   action: AiAction;
@@ -14,7 +20,7 @@ export type AiAnalysisResult = {
   content: string;
   createdAt: number;
   model: string;
-  provider: Exclude<AppAiProvider, "disabled">;
+  provider: AiResultProvider;
 };
 
 export type AiProviderErrorCode =

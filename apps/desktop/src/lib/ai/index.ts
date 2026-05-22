@@ -14,6 +14,7 @@ export type {
 } from "@/lib/ai/types";
 
 export { validateAiProviderConfiguration } from "@/lib/ai/provider-validation";
+export { createMockAiAnalysisResult, mockAiProvider } from "@/lib/ai/providers/mock";
 export { fetchOllamaModels, type OllamaModel } from "@/lib/ai/providers/ollama";
 
 export async function runAiAnalysis(
@@ -61,7 +62,7 @@ export function validateAiActionAvailability(
     return validation;
   }
 
-  if (input.action === "explain-packet" && !input.packet) {
+  if ((input.action === "explain-packet" || input.action === "explain-sequence") && !input.packet) {
     return {
       error: {
         code: "invalid_configuration",
@@ -71,7 +72,13 @@ export function validateAiActionAvailability(
     };
   }
 
-  if ((input.action === "summarize-session" || input.action === "detect-event-flow") && input.packets.length === 0) {
+  if (
+    (input.action === "summarize-session" ||
+      input.action === "detect-event-flow" ||
+      input.action === "explain-auth-reconnect-flow" ||
+      input.action === "explain-sequence") &&
+    input.packets.length === 0
+  ) {
     return {
       error: {
         code: "invalid_configuration",
