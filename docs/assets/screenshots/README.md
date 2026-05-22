@@ -2,6 +2,8 @@
 
 Store final captured screenshots here.
 
+The current folder contains real captured alpha screenshots, not generated placeholder spam. Replace images only with newer captures from implemented app states.
+
 The README expects these root-level screenshot files:
 
 - `main-ui.png`
@@ -61,12 +63,14 @@ socketlens-v0.1.0-alpha-05-direct-echo-connected-dark-1440x900-en.png
 
 - Primary README screenshot: `1440x900`
 - GitHub release screenshot: `1280x720`
+- GIF / short-video source: `1920x1080`
 - Detailed documentation screenshot: `1600x1000`
 - QA/responsive screenshot: `390x844`
 
 ## Quality Rules
 
 - Capture real UI from `npm run dev` or `npm run dev:desktop`.
+- Follow `docs/demo-states.md` for the exact UI state each public screenshot should prove.
 - Do not edit fake packets into screenshots.
 - Do not show personal browser chrome, bookmarks, usernames, or local paths.
 - Use Demo Mode or the local echo server unless a real target is intentionally documented.

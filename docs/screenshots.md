@@ -3,6 +3,7 @@
 Use this guide when replacing public screenshot placeholders.
 
 For explanations of what each visible panel does, see [docs/ui-guide.md](ui-guide.md).
+For exact screenshot-ready app states, see [docs/demo-states.md](demo-states.md).
 
 ## Placeholder Files
 
@@ -24,6 +25,7 @@ Keep these filenames unless every reference is updated in the same change.
 ## Capture Rules
 
 - Capture real implemented SocketLens behavior.
+- Prefer screenshot states from [demo-states.md](demo-states.md) so every image explains a specific workflow.
 - Do not edit fake production traffic into screenshots.
 - Use Demo Mode or the local echo server unless the target is intentionally documented.
 - Do not show secrets, customer payloads, private URLs, usernames, browser bookmarks, or local file paths.
@@ -36,6 +38,7 @@ Keep these filenames unless every reference is updated in the same change.
 | --- | --- |
 | README hero screenshot | `1440x900` |
 | GitHub release thumbnail | `1280x720` |
+| GIF / short video source | `1920x1080` |
 | Detailed docs screenshot | `1600x1000` |
 | Narrow QA screenshot | `390x844` |
 
@@ -78,6 +81,20 @@ These are useful in docs, but they do not need to appear in the main README:
 | `packet-inspector-metadata.png` | Metadata tab showing packet, session, connection, size, and kind fields. |
 
 If you capture optional screenshots, reference them from detailed docs instead of overcrowding the README.
+
+## Demo GIF
+
+Use `docs/assets/demo/socketlens-demo.gif` only after recording a real app run. Do not commit a fake GIF placeholder.
+
+Recommended GIF source:
+
+- `1920x1080`, 30 FPS video capture,
+- 30-45 seconds,
+- Investor Demo Mode first,
+- Direct Mode with the local echo server second,
+- one selected packet and one replay action.
+
+The detailed recording guide lives in [docs/assets/demo/README.md](assets/demo/README.md).
 
 ## Local Setup For Screenshots
 

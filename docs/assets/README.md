@@ -75,6 +75,7 @@ Before capturing screenshots or video:
 9. Capture the real app state; do not mock UI in an image editor.
 
 For the recommended public showcase order and platform-specific positioning, see [../showcase.md](../showcase.md).
+For exact screenshot-ready app states, see [../demo-states.md](../demo-states.md).
 
 ## Demo Recording Recommendations
 

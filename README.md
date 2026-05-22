@@ -106,7 +106,9 @@ The core layout is a desktop-style debugging workspace: connection tools on the 
   </tr>
 </table>
 
-Screenshot capture guidance lives in [docs/screenshots.md](docs/screenshots.md). Interface-area explanations live in [docs/ui-guide.md](docs/ui-guide.md).
+Screenshot capture guidance lives in [docs/screenshots.md](docs/screenshots.md). Screenshot-ready demo states live in [docs/demo-states.md](docs/demo-states.md). Interface-area explanations live in [docs/ui-guide.md](docs/ui-guide.md).
+
+Demo GIF guidance lives in [docs/assets/demo/README.md](docs/assets/demo/README.md). A GIF should be embedded only after it is captured from a real SocketLens run.
 
 <details>
 <summary><strong>Asset references</strong></summary>

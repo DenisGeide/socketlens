@@ -2,6 +2,8 @@
 
 Store final demo recordings or storyboard notes here.
 
+Do not place a fake GIF or video placeholder in this folder. Add media only after recording real implemented SocketLens behavior.
+
 ## Recommended Recording
 
 - Canvas: `1920x1080`
@@ -35,6 +37,10 @@ Store final demo recordings or storyboard notes here.
 ## Output Naming
 
 ```text
+socketlens-demo.gif
 socketlens-v<version>-demo-<duration>-<viewport>-<locale>.mp4
+socketlens-v<version>-demo-<duration>-<viewport>-<locale>.gif
 socketlens-v0.1.0-alpha-demo-45s-1920x1080-en.mp4
 ```
+
+Use `socketlens-demo.gif` only for the canonical GitHub preview GIF after it is captured from the real app.
