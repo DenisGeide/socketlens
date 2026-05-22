@@ -79,7 +79,7 @@ Future signed releases may need platform signing secrets.
 When builds are published, they should appear on GitHub Releases:
 
 ```text
-https://github.com/socketlens/socketlens/releases
+https://github.com/DenisGeide/socketlens/releases
 ```
 
 Expected artifact types:

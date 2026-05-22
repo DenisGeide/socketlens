@@ -2,8 +2,8 @@
 
 ![SocketLens banner](docs/assets/branding/banner.png)
 
-[![CI](https://github.com/socketlens/socketlens/actions/workflows/ci.yml/badge.svg)](https://github.com/socketlens/socketlens/actions/workflows/ci.yml)
-[![Release](https://github.com/socketlens/socketlens/actions/workflows/release.yml/badge.svg)](https://github.com/socketlens/socketlens/actions/workflows/release.yml)
+[![CI](https://github.com/DenisGeide/socketlens/actions/workflows/ci.yml/badge.svg)](https://github.com/DenisGeide/socketlens/actions/workflows/ci.yml)
+[![Release](https://github.com/DenisGeide/socketlens/actions/workflows/release.yml/badge.svg)](https://github.com/DenisGeide/socketlens/actions/workflows/release.yml)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE)
 
 **Project status: v0.1.0-alpha**
@@ -52,20 +52,62 @@ Current alpha limitations:
 
 ## Screenshots
 
-These screenshots are the public visual tour. Keep them captured from real implemented SocketLens behavior.
+These screenshots are a guided visual tour of real implemented SocketLens behavior.
+
+### Main Workspace
+
+The core layout is a desktop-style debugging workspace: connection tools on the left, packet timeline in the center, payload inspector on the right, and logs at the bottom.
 
 ![SocketLens main UI](docs/assets/screenshots/main-ui.png)
-![SocketLens demo mode](docs/assets/screenshots/demo-mode.png)
-![SocketLens direct connection](docs/assets/screenshots/direct-mode.png)
-![SocketLens packet inspector](docs/assets/screenshots/packet-inspector.png)
-![SocketLens settings](docs/assets/screenshots/settings.png)
-![SocketLens proxy mode](docs/assets/screenshots/proxy-mode.png)
-![SocketLens launcher terminal](docs/assets/screenshots/launcher-terminal.png)
-![SocketLens Windows shortcuts](docs/assets/screenshots/launcher-shortcuts.png)
 
-Screenshot capture guidance lives in [docs/screenshots.md](docs/screenshots.md). Interface-area explanations live in [docs/ui-guide.md](docs/ui-guide.md). Asset-folder notes live in [docs/assets/screenshots/README.md](docs/assets/screenshots/README.md).
+### Guided Product Tour
 
-Branding placeholders live in [docs/assets/branding](docs/assets/branding):
+<table>
+  <tr>
+    <td width="50%">
+      <strong>Investor Demo Mode</strong><br>
+      Offline simulated traffic for first-run demos. Useful when someone wants to understand SocketLens without starting a server.<br><br>
+      <img src="docs/assets/screenshots/demo-mode.png" alt="SocketLens Investor Demo Mode">
+    </td>
+    <td width="50%">
+      <strong>Direct WebSocket Mode</strong><br>
+      SocketLens connects directly to a <code>ws://</code> or <code>wss://</code> endpoint. This screenshot shows the local echo server flow.<br><br>
+      <img src="docs/assets/screenshots/direct-mode.png" alt="SocketLens Direct WebSocket Mode">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <strong>Proxy Mode</strong><br>
+      Native desktop proxy mode creates a local proxy URL. External clients connect to SocketLens, and forwarded frames appear in the timeline.<br><br>
+      <img src="docs/assets/screenshots/proxy-mode.png" alt="SocketLens Proxy Mode">
+    </td>
+    <td width="50%">
+      <strong>Payload Inspector</strong><br>
+      Selecting a packet opens formatted JSON, raw payload, metadata, copy, and optional AI explain controls. AI is disabled by default.<br><br>
+      <img src="docs/assets/screenshots/packet-inspector.png" alt="SocketLens Payload Inspector">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <strong>Settings</strong><br>
+      Settings are local: language, visual density, packet retention, AI provider, and privacy controls.<br><br>
+      <img src="docs/assets/screenshots/settings.png" alt="SocketLens Settings">
+    </td>
+    <td width="50%">
+      <strong>One-click Launchers</strong><br>
+      Launchers provide a friendlier way to start web mode, desktop mode, and the local echo server. They run <code>npm install</code> automatically on first launch if dependencies are missing.<br><br>
+      <img src="docs/assets/screenshots/launcher-terminal.png" alt="SocketLens launcher terminal"><br><br>
+      <img src="docs/assets/screenshots/launcher-shortcuts.png" alt="SocketLens Windows shortcuts">
+    </td>
+  </tr>
+</table>
+
+Screenshot capture guidance lives in [docs/screenshots.md](docs/screenshots.md). Interface-area explanations live in [docs/ui-guide.md](docs/ui-guide.md).
+
+<details>
+<summary><strong>Asset references</strong></summary>
+
+Branding assets live in [docs/assets/branding](docs/assets/branding):
 
 - [logo.svg](docs/assets/branding/logo.svg)
 - [logo-dark.svg](docs/assets/branding/logo-dark.svg)
@@ -74,12 +116,14 @@ Branding placeholders live in [docs/assets/branding](docs/assets/branding):
 - [icon.ico](docs/assets/branding/icon.ico)
 - [banner.png](docs/assets/branding/banner.png)
 
-Release placeholders live in [docs/assets/release](docs/assets/release):
+Release assets live in [docs/assets/release](docs/assets/release):
 
 - [icon.png](docs/assets/release/icon.png)
 - [thumbnail.png](docs/assets/release/thumbnail.png)
 
 When replacing assets, keep the same filenames unless every README, release, and documentation reference is updated in the same change.
+
+</details>
 
 ## Quick Start
 
@@ -99,7 +143,7 @@ Prerequisites for desktop mode:
 Clone and install:
 
 ```bash
-git clone https://github.com/socketlens/socketlens.git
+git clone https://github.com/DenisGeide/socketlens.git
 cd socketlens
 npm install
 ```
@@ -409,7 +453,7 @@ Current alpha status:
 When artifacts are available, use the file for your OS from:
 
 ```text
-https://github.com/socketlens/socketlens/releases
+https://github.com/DenisGeide/socketlens/releases
 ```
 
 ## Roadmap
