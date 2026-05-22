@@ -84,7 +84,16 @@ The near-term plan is to make the existing workflows more reliable before expand
 
 - Team-shareable workspaces.
 - Plugin system for custom inspectors and generators.
+- AI-assisted mock server generation from recorded sessions. This is a future direction, not a current feature: a user could eventually record a session, review and sanitize it, then generate a local mock server draft that replays representative event flows.
 - Optional signed auto-update channel after the project has stable release infrastructure.
+
+Foundations needed before any AI mock-server generation work:
+
+- stable versioned session format,
+- conservative flow analysis,
+- replay sequence modeling,
+- sanitized export and redaction workflows,
+- reliable optional AI provider behavior and clear provider error states.
 
 ## How to Help
 

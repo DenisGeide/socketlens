@@ -28,6 +28,23 @@ This is clearly marked as:
 
 It is there so first-run users can understand the feature without sending any packet data.
 
+## Future Direction: Session-To-Mock Server
+
+One future idea is AI-assisted mock server generation: record a real debugging session, review and sanitize it, then generate a local mock server draft that can replay representative event flows for development or tests.
+
+This does not exist in the app today. SocketLens does not currently generate mock servers, does not expose a mock-server button, and does not claim recorded sessions can become production-ready mocks automatically.
+
+Before this should be built, the project needs stronger foundations:
+
+- stable versioned session format,
+- conservative flow analysis,
+- replay sequence modeling,
+- sanitized export and redaction workflows,
+- reliable optional AI provider behavior,
+- clear provider unavailable/error states.
+
+If implemented later, the output should be treated as a reviewed developer draft, not as a guaranteed contract or a replacement for real backend tests.
+
 ## Providers
 
 SocketLens supports:
