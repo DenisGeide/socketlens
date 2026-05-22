@@ -198,6 +198,10 @@ function createPacketDemoMetadata(packet: Packet): PacketDemoMetadata | null {
 }
 
 function createReplayPacketResult(packet: Packet) {
+  if (packet.sendSource === "replay") {
+    return true;
+  }
+
   const eventName = getPacketSummary(packet).eventName.toLowerCase();
 
   if (eventName.includes("replay")) {

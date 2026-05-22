@@ -893,7 +893,9 @@ export const useConnectionStore = create<ConnectionStore>()(
           connectionId: activeConnectionId,
           direction: "outbound",
           payload,
+          sendSource: source,
           sessionId: activeSessionId,
+          sourcePacketId: source === "replay" ? (options.sourcePacketId ?? null) : null,
         });
 
         usePacketStore.getState().addPacket(packet);

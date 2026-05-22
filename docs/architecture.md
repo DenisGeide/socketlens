@@ -128,6 +128,7 @@ SocketLens is designed for high packet volume.
 - Auto-selection of latest packets is batched in `useUiStore`.
 - `PacketTimeline` renders a virtualized fixed-height row window.
 - Packet summary/search/error checks are cached in `packet-inspection.ts`.
+- Packet relationships are derived in `lib/packet-relationships.ts` from retained packets, not from a separate mutable graph.
 - The default retention limit is 10,000 packets and can be raised in Settings or the Memory panel.
 
 When the limit is reached, SocketLens keeps the newest packets, removes the oldest retained packets from memory, logs a warning, and shows a toast.
@@ -145,6 +146,12 @@ Payload inspection is intentionally defensive.
 - Shared JSON payload helpers live in `lib/json-payload.ts`; use them when reading common fields such as `command` or `type`.
 
 Components should not parse arbitrary payloads unless they go through shared helper functions.
+
+## Packet Relationships
+
+Relationship tracking is intentionally conservative. SocketLens derives request/response links when a pair has an explicit shared `requestId`, `correlationId`, or reply reference. Auth and reconnect flows are labeled as inferred when nearby packets look like the same flow. Replay packets can carry `sendSource: "replay"` and `sourcePacketId` metadata so the UI can show the original packet without guessing.
+
+The relationship index is rebuilt from the selected session packet list with `buildPacketRelationshipIndex()`. It is used by the timeline and payload inspector only; raw packet payloads remain unchanged.
 
 ## Extension Points
 

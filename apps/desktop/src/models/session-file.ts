@@ -1,5 +1,11 @@
 import { createEntityId, type EntityId } from "./ids";
-import { normalizePacketAnnotations, type Packet, type PacketDirection, type PacketPayloadKind } from "./packet";
+import {
+  normalizePacketAnnotations,
+  type Packet,
+  type PacketDirection,
+  type PacketPayloadKind,
+  type PacketSendSource,
+} from "./packet";
 import { getSessionName, type Session, type SessionStatus } from "./session";
 
 export const socketLensSessionFileFormat = "socketlens.session";
@@ -86,6 +92,7 @@ type PacketStats = {
 const knownSessionStatuses = new Set<SessionStatus>(["closed", "connected", "connecting", "error"]);
 const knownPacketDirections = new Set<PacketDirection>(["inbound", "outbound"]);
 const knownPayloadKinds = new Set<PacketPayloadKind>(["binary", "json", "text"]);
+const knownPacketSendSources = new Set<PacketSendSource>(["manual", "replay"]);
 
 export function createSessionFile({
   exportedAt = Date.now(),
@@ -242,12 +249,21 @@ export function createImportedSessionSnapshot(file: SocketLensImportableFile, im
       ? (sourceSession?.endedAt ?? getLatestPacketTimestamp(sortedPackets) ?? importedAt)
       : sourceSession?.endedAt ?? null;
   const endpointUrl = sourceSession?.endpointUrl ?? file.metadata.endpointUrl ?? "import://socketlens/session";
-  const importedPackets = sortedPackets.map((packet) => ({
-    ...packet,
-    connectionId: nextConnectionId,
-    id: createEntityId(),
-    sessionId: nextSessionId,
-  }));
+  const packetIdMap = new Map(sortedPackets.map((packet) => [packet.id, createEntityId()]));
+  const importedPackets = sortedPackets.map((packet) => {
+    const nextPacketId = packetIdMap.get(packet.id) ?? createEntityId();
+    const nextSourcePacketId = packet.sourcePacketId
+      ? (packetIdMap.get(packet.sourcePacketId) ?? packet.sourcePacketId)
+      : packet.sourcePacketId;
+
+    return {
+      ...packet,
+      connectionId: nextConnectionId,
+      id: nextPacketId,
+      sessionId: nextSessionId,
+      ...(packet.sendSource ? { sourcePacketId: nextSourcePacketId } : {}),
+    };
+  });
   const stats = getPacketStats(importedPackets);
 
   return {
@@ -545,8 +561,10 @@ function parsePacket(value: unknown):
   const id = readString(value, "id");
   const payload = readString(value, "payload");
   const payloadKind = readString(value, "payloadKind");
+  const sendSource = readString(value, "sendSource");
   const sessionId = readString(value, "sessionId");
   const sizeBytes = readNumber(value, "sizeBytes");
+  const sourcePacketId = readNullableString(value, "sourcePacketId");
   const timestamp = readNumber(value, "timestamp");
 
   if (
@@ -576,6 +594,7 @@ function parsePacket(value: unknown):
       id,
       payload,
       payloadKind,
+      ...(isPacketSendSource(sendSource) ? { sendSource, sourcePacketId } : {}),
       sessionId,
       sizeBytes,
       timestamp,
@@ -700,4 +719,8 @@ function isPacketDirection(value: string | null): value is PacketDirection {
 
 function isPacketPayloadKind(value: string | null): value is PacketPayloadKind {
   return value !== null && knownPayloadKinds.has(value as PacketPayloadKind);
+}
+
+function isPacketSendSource(value: string | null): value is PacketSendSource {
+  return value !== null && knownPacketSendSources.has(value as PacketSendSource);
 }

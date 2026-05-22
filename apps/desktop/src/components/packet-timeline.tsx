@@ -16,6 +16,7 @@ import {
   FileJson2,
   FileText,
   Flag,
+  GitBranch,
   HeartPulse,
   KeyRound,
   Layers2,
@@ -50,6 +51,7 @@ import {
   isReplayPacketFast,
   type PacketStatus,
 } from "@/lib/packet-inspection";
+import type { PacketRelationshipIndex } from "@/lib/packet-relationships";
 import { cn } from "@/lib/utils";
 import {
   createEntityId,
@@ -75,6 +77,7 @@ type PacketTimelineProps = {
   onSelectPacket: (packetId: string) => void;
   onUpdateFilterState: (filterState: Partial<FilterState>) => void;
   packets: Packet[];
+  relationshipIndex: PacketRelationshipIndex | null;
   resultCount: number;
   selectedPacketId: string | null;
   totalCount: number;
@@ -89,6 +92,7 @@ export function PacketTimeline({
   onSelectPacket,
   onUpdateFilterState,
   packets,
+  relationshipIndex,
   resultCount,
   selectedPacketId,
   totalCount,
@@ -563,6 +567,7 @@ export function PacketTimeline({
                     key={item.id}
                     expanded={expandedGroupIds.has(item.group.id)}
                     group={item.group}
+                    relationshipIndex={relationshipIndex}
                     selected={item.group.packets.some((packet) => packet.id === selectedPacketId)}
                     showPayloadPreview={showPayloadPreview}
                     onToggleGroup={togglePacketGroup}
@@ -571,6 +576,7 @@ export function PacketTimeline({
                   <PacketTimelineRow
                     key={item.id}
                     packet={item.packet}
+                    relationshipIndex={relationshipIndex}
                     selected={item.packet.id === selectedPacketId}
                     showPayloadPreview={showPayloadPreview}
                     onSelectPacket={onSelectPacket}
@@ -758,6 +764,7 @@ type PacketTimelineGroupRowProps = {
   expanded: boolean;
   group: PacketTimelineGroup;
   onToggleGroup: (groupId: string) => void;
+  relationshipIndex: PacketRelationshipIndex | null;
   selected: boolean;
   showPayloadPreview: boolean;
 };
@@ -766,6 +773,7 @@ const PacketTimelineGroupRow = memo(function PacketTimelineGroupRow({
   expanded,
   group,
   onToggleGroup,
+  relationshipIndex,
   selected,
   showPayloadPreview,
 }: PacketTimelineGroupRowProps) {
@@ -776,6 +784,10 @@ const PacketTimelineGroupRow = memo(function PacketTimelineGroupRow({
   const GroupIcon = getGroupIcon(group.kind);
   const direction = group.directions.length === 1 ? group.directions[0] : null;
   const annotatedPacketCount = group.packets.filter((packet) => hasPacketAnnotations(packet.annotations)).length;
+  const relationshipCount = group.packets.reduce(
+    (count, packet) => count + (relationshipIndex?.byPacketId.get(packet.id)?.length ?? 0),
+    0,
+  );
   const timelineWindow =
     group.firstTimestamp === group.lastTimestamp
       ? formatTime(group.lastTimestamp)
@@ -830,6 +842,12 @@ const PacketTimelineGroupRow = memo(function PacketTimelineGroupRow({
               {t("packets.annotation.count", { count: annotatedPacketCount })}
             </Badge>
           ) : null}
+          {relationshipCount > 0 ? (
+            <Badge variant="outline" className="shrink-0 border-cyan-300/25 bg-cyan-300/10 text-cyan-200">
+              <GitBranch className="h-3 w-3" />
+              {t("packets.marker.related", { count: relationshipCount })}
+            </Badge>
+          ) : null}
         </span>
         <span className="mb-0.5 flex min-w-0 items-baseline gap-1.5 font-mono">
           {eventParts.namespace ? (
@@ -858,6 +876,7 @@ const PacketTimelineGroupRow = memo(function PacketTimelineGroupRow({
 type PacketTimelineRowProps = {
   onSelectPacket: (packetId: string) => void;
   packet: Packet;
+  relationshipIndex: PacketRelationshipIndex | null;
   selected: boolean;
   showPayloadPreview: boolean;
 };
@@ -865,6 +884,7 @@ type PacketTimelineRowProps = {
 const PacketTimelineRow = memo(function PacketTimelineRow({
   onSelectPacket,
   packet,
+  relationshipIndex,
   selected,
   showPayloadPreview,
 }: PacketTimelineRowProps) {
@@ -875,6 +895,8 @@ const PacketTimelineRow = memo(function PacketTimelineRow({
   const annotations = packet.annotations;
   const isError = summary.status === "error" || isErrorPacketFast(packet);
   const isReplay = isReplayPacketFast(packet);
+  const relationships = relationshipIndex?.byPacketId.get(packet.id) ?? [];
+  const isReplaySource = relationships.some((relationship) => relationship.kind === "replay-source" && relationship.sourcePacketId === packet.id);
   const eventParts = splitEventName(summary.eventName);
   const directionTone = getDirectionTone(packet.direction);
   const protocolLabel = getProtocolLabel(packet, t);
@@ -931,6 +953,18 @@ const PacketTimelineRow = memo(function PacketTimelineRow({
             <Badge variant="outline" className="shrink-0 border-accent/35 bg-accent/10 text-accent">
               <Repeat2 className="h-3 w-3" />
               {t("packets.marker.replay")}
+            </Badge>
+          ) : null}
+          {isReplaySource ? (
+            <Badge variant="outline" className="shrink-0 border-accent/35 bg-accent/10 text-accent">
+              <GitBranch className="h-3 w-3" />
+              {t("packets.marker.replaySource")}
+            </Badge>
+          ) : null}
+          {relationships.length > 0 ? (
+            <Badge variant="outline" className="shrink-0 border-cyan-300/25 bg-cyan-300/10 text-cyan-200">
+              <GitBranch className="h-3 w-3" />
+              {t("packets.marker.related", { count: relationships.length })}
             </Badge>
           ) : null}
           {isError ? (

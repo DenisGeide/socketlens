@@ -2,6 +2,7 @@ import { createEntityId, type EntityId } from "./ids";
 
 export type PacketDirection = "inbound" | "outbound";
 export type PacketPayloadKind = "json" | "text" | "binary";
+export type PacketSendSource = "manual" | "replay";
 
 export type PacketAnnotations = {
   bookmarked: boolean;
@@ -18,8 +19,10 @@ export type Packet = {
   id: EntityId;
   payload: string;
   payloadKind: PacketPayloadKind;
+  sendSource?: PacketSendSource;
   sessionId: EntityId;
   sizeBytes: number;
+  sourcePacketId?: EntityId | null;
   timestamp: number;
 };
 
@@ -28,7 +31,9 @@ export type CreatePacketInput = {
   direction: PacketDirection;
   payload: string;
   payloadKind?: PacketPayloadKind;
+  sendSource?: PacketSendSource;
   sessionId: EntityId;
+  sourcePacketId?: EntityId | null;
   timestamp?: number;
 };
 
@@ -39,7 +44,9 @@ export function createPacket({
   direction,
   payload,
   payloadKind,
+  sendSource,
   sessionId,
+  sourcePacketId,
   timestamp = Date.now(),
 }: CreatePacketInput): Packet {
   return {
@@ -48,6 +55,7 @@ export function createPacket({
     id: createEntityId(),
     payload,
     payloadKind: payloadKind ?? inferPayloadKind(payload),
+    ...(sendSource ? { sendSource, sourcePacketId: sourcePacketId ?? null } : {}),
     sessionId,
     sizeBytes: encoder.encode(payload).byteLength,
     timestamp,

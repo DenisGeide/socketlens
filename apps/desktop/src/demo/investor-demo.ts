@@ -804,7 +804,18 @@ function playNextInvestorDemoStep() {
 }
 
 function emitInvestorDemoStep(step: InvestorDemoStepDefinition, context: InvestorDemoContext) {
-  const packets = step.packets.map((template, index) => createInvestorPacket(template, step, context, index));
+  let replaySourcePacketId: EntityId | null = null;
+  const packets = step.packets.map((template, index) => {
+    const packet = createInvestorPacket(template, step, context, index, {
+      sourcePacketId: template.replaySource === "replay" ? replaySourcePacketId : null,
+    });
+
+    if (template.replaySource === "manual") {
+      replaySourcePacketId = packet.id;
+    }
+
+    return packet;
+  });
 
   if (packets.length > 0) {
     usePacketStore.getState().addPackets(packets);
@@ -837,6 +848,9 @@ function createInvestorPacket(
   step: InvestorDemoStepDefinition,
   context: InvestorDemoContext,
   index: number,
+  replay: {
+    sourcePacketId: EntityId | null;
+  },
 ) {
   const timestamp = context.baseTimestamp + (template.timestampOffsetMs ?? index * 180);
   const payload = decorateInvestorPayload(template.payload(context), {
@@ -850,7 +864,9 @@ function createInvestorPacket(
     direction: template.direction,
     payload: JSON.stringify(payload, null, 2),
     payloadKind: "json",
+    sendSource: template.replaySource,
     sessionId: context.sessionId,
+    sourcePacketId: replay.sourcePacketId,
     timestamp,
   });
 

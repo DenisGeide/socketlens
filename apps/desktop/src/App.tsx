@@ -59,6 +59,7 @@ import {
   type ProxyStatus,
 } from "@/lib/tauri-commands";
 import { getJsonCommand } from "@/lib/json-payload";
+import { buildPacketRelationshipIndex } from "@/lib/packet-relationships";
 import { filterPackets } from "@/models";
 import {
   addSocketLensRedactionMetadata,
@@ -179,6 +180,10 @@ export function App() {
   const currentSessionPackets = useMemo(
     () => (currentSession ? packets.filter((packet) => packet.sessionId === currentSession.id) : []),
     [currentSession, packets],
+  );
+  const packetRelationshipIndex = useMemo(
+    () => buildPacketRelationshipIndex(currentSessionPackets),
+    [currentSessionPackets],
   );
   const scopedPacketCount = useMemo(
     () => (selectedSessionId ? packets.filter((packet) => packet.sessionId === selectedSessionId).length : packets.length),
@@ -1367,7 +1372,9 @@ export function App() {
         <PayloadInspector
           packet={selectedPacket}
           packets={currentSessionPackets}
+          relationshipIndex={packetRelationshipIndex}
           session={currentSession}
+          onSelectRelatedPacket={selectPacket}
           onUpdatePacketAnnotations={updatePacketAnnotations}
         />
       }
@@ -1413,6 +1420,7 @@ export function App() {
               filterState={filterState}
               isConnected={isConnected}
               packets={visiblePackets}
+              relationshipIndex={packetRelationshipIndex}
               resultCount={visiblePackets.length}
               selectedPacketId={selectedPacketId}
               totalCount={scopedPacketCount}
