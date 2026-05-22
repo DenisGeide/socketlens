@@ -35,6 +35,7 @@ What works in `v0.1.0-alpha`:
 - **Packet Timeline**: virtualized list with direction, event name, timestamp, payload preview, size, badges, filters, and search.
 - **Payload Inspector**: Pretty JSON, Raw text, Metadata, copy support, and safe handling of invalid JSON.
 - **Socket.IO Decoding**: detects Engine.IO/Socket.IO frames, event names, namespaces, acknowledgements, and protocol badges while keeping Raw payloads available.
+- **GraphQL WS Decoding**: detects common GraphQL WebSocket subscription envelopes, operation names, lifecycle labels, and protocol badges.
 - **Manual Send and Replay**: send JSON or raw text, reuse previous outgoing packets, and replay while connected.
 - **Environments**: Local, Staging, and Production variables with `{{base_url}}` / `{{auth_token}}` interpolation.
 - **Session Files**: save/load SocketLens session JSON and export packets.

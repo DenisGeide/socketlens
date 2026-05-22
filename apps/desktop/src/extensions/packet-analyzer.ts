@@ -18,7 +18,13 @@ function getPacketStatus(decoded: DecodedPacket): PacketStatus {
   const severity = getRecordString(decoded.data, "severity")?.toLowerCase() ?? "";
   const replaySource = getNestedRecordString(decoded.data, "replay", "source")?.toLowerCase() ?? "";
 
-  if (normalizedEvent.includes("error") || code.includes("error") || severity === "error" || severity === "warning") {
+  if (
+    normalizedEvent.includes("error") ||
+    code.includes("error") ||
+    severity === "error" ||
+    severity === "warning" ||
+    decoded.metadata.hasErrors === true
+  ) {
     return "error";
   }
 
@@ -55,7 +61,8 @@ function getPacketStatus(decoded: DecodedPacket): PacketStatus {
     normalizedEvent === "pong" ||
     normalizedEvent.endsWith(".ping") ||
     normalizedEvent.endsWith(".pong") ||
-    normalizedEvent.includes("heartbeat")
+    normalizedEvent.includes("heartbeat") ||
+    normalizedEvent.includes("keepalive")
   ) {
     return "heartbeat";
   }

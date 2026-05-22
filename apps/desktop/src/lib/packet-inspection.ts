@@ -127,7 +127,10 @@ export function getPacketDemoMetadata(packet: Packet): PacketDemoMetadata | null
 export function getPrettyPayload(packet: Packet): PrettyPayloadResult {
   const decodedPacket = getDecodedPacket(packet);
 
-  if (decodedPacket.decoderId === "socketlens.decoder.socketio" && decodedPacket.data !== null) {
+  if (
+    (decodedPacket.decoderId === "socketlens.decoder.socketio" || decodedPacket.decoderId === "socketlens.decoder.graphqlws") &&
+    decodedPacket.data !== null
+  ) {
     return {
       formatted: JSON.stringify(decodedPacket.data, null, 2),
       kind: "formatted",

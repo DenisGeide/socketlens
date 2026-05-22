@@ -273,6 +273,7 @@
   "packets.protocol.text": "WS text",
   "packets.protocol.binary": "WS binary",
   "packets.protocol.socketio": "Socket.IO",
+  "packets.protocol.graphqlws": "GraphQL WS",
   "packets.marker.replay": "Replay",
   "packets.marker.replaySource": "Replay source",
   "packets.marker.related_one": "{{count}} link",

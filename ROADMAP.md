@@ -65,6 +65,7 @@ The near-term plan is to make the existing workflows more reliable before expand
 - Stronger reconnect controls for direct mode and proxy clients.
 - Session schema versioning and migration helpers.
 - More protocol-aware payload detection for common realtime event conventions.
+- Deeper GraphQL over WebSocket support: operation/result linking, query previews, and optional schema-aware helpers without turning SocketLens into a full GraphQL IDE.
 - Improved diagnostics for TLS, localhost binding, CORS-like client mistakes, and server close frames.
 
 ### 0.3 Advanced Realtime Tooling

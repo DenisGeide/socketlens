@@ -108,6 +108,24 @@ describe("packet parsing and inspection", () => {
     expect(
       getPrettyPayload(
         createPacketFixture({
+          payload: JSON.stringify({
+            id: "sub-1",
+            payload: {
+              operationName: "MessageAdded",
+              query: "subscription MessageAdded { messageAdded { id text } }",
+            },
+            type: "subscribe",
+          }),
+        }),
+      ),
+    ).toMatchObject({
+      kind: "formatted",
+      source: "decoded",
+    });
+
+    expect(
+      getPrettyPayload(
+        createPacketFixture({
           payload: "{not valid json",
           payloadKind: "json",
         }),

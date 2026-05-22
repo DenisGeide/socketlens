@@ -31,6 +31,7 @@ export {
   binaryPacketDecoder,
   decodePacket,
   defaultPacketDecoders,
+  graphQlWsPacketDecoder,
   jsonPacketDecoder,
   socketIoPacketDecoder,
   textPacketDecoder,

@@ -1410,6 +1410,10 @@ function getProtocolLabel(packet: Packet, t: ReturnType<typeof useTranslation>["
     return t("packets.protocol.socketio");
   }
 
+  if (decodedPacket.decoderId === "socketlens.decoder.graphqlws") {
+    return t("packets.protocol.graphqlws");
+  }
+
   if (packet.payloadKind === "json") {
     return t("packets.protocol.json");
   }

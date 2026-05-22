@@ -93,6 +93,133 @@ describe("extension contracts", () => {
       eventName: "text.frame",
     });
   });
+
+  it("decodes graphql-transport-ws subscription start, next, and complete messages", () => {
+    const start = decodePacket(
+      createPacketFixture({
+        payload: JSON.stringify({
+          id: "sub-1",
+          payload: {
+            operationName: "MessageAdded",
+            query: "subscription MessageAdded { messageAdded { id text } }",
+            variables: {
+              roomId: "launch",
+            },
+          },
+          type: "subscribe",
+        }),
+      }),
+    );
+    const next = decodePacket(
+      createPacketFixture({
+        payload: JSON.stringify({
+          id: "sub-1",
+          payload: {
+            data: {
+              messageAdded: {
+                id: "msg_1",
+                text: "Hello GraphQL",
+              },
+            },
+          },
+          type: "next",
+        }),
+      }),
+    );
+    const complete = decodePacket(
+      createPacketFixture({
+        payload: JSON.stringify({
+          id: "sub-1",
+          type: "complete",
+        }),
+      }),
+    );
+
+    expect(start).toMatchObject({
+      decoderId: "socketlens.decoder.graphqlws",
+      eventName: "graphql.subscription.start",
+      metadata: {
+        graphQlMessageType: "subscribe",
+        graphQlPhase: "start",
+        graphQlProtocol: "graphql-transport-ws",
+        operationId: "sub-1",
+        operationKind: "subscription",
+        operationName: "MessageAdded",
+        protocol: "graphql-ws",
+      },
+      tags: expect.arrayContaining(["graphql", "graphql-transport-ws", "start"]),
+    });
+    expect(start.preview).toContain("MessageAdded");
+    expect(next).toMatchObject({
+      decoderId: "socketlens.decoder.graphqlws",
+      eventName: "graphql.subscription.next",
+      metadata: {
+        operationId: "sub-1",
+      },
+    });
+    expect(complete).toMatchObject({
+      decoderId: "socketlens.decoder.graphqlws",
+      eventName: "graphql.subscription.complete",
+    });
+  });
+
+  it("decodes legacy subscriptions-transport-ws and preserves normal JSON fallback", () => {
+    const legacyStart = decodePacket(
+      createPacketFixture({
+        payload: JSON.stringify({
+          id: "legacy-1",
+          payload: {
+            operationName: "PresenceChanged",
+            query: "subscription PresenceChanged { presenceChanged { userId status } }",
+          },
+          type: "start",
+        }),
+      }),
+    );
+    const legacyError = decodePacket(
+      createPacketFixture({
+        payload: JSON.stringify({
+          id: "legacy-1",
+          payload: [
+            {
+              message: "Subscription failed",
+            },
+          ],
+          type: "error",
+        }),
+      }),
+    );
+    const normalJson = decodePacket(
+      createPacketFixture({
+        payload: JSON.stringify({
+          payload: {
+            text: "This is app JSON, not a GraphQL transport envelope",
+          },
+          type: "chat.message",
+        }),
+      }),
+    );
+
+    expect(legacyStart).toMatchObject({
+      decoderId: "socketlens.decoder.graphqlws",
+      eventName: "graphql.subscription.start",
+      metadata: {
+        graphQlProtocol: "subscriptions-transport-ws",
+        operationName: "PresenceChanged",
+      },
+    });
+    expect(legacyError).toMatchObject({
+      decoderId: "socketlens.decoder.graphqlws",
+      eventName: "graphql.subscription.error",
+      metadata: {
+        hasErrors: true,
+      },
+    });
+    expect(normalJson).toMatchObject({
+      decoderId: "socketlens.decoder.json",
+      eventName: "chat.message",
+    });
+  });
 });
 
 function createPacketFixture(packet: Partial<Packet> & Pick<Packet, "payload">): Packet {
