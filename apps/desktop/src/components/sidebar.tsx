@@ -98,6 +98,7 @@ type SidebarProps = {
   proxyTargetUrl: string;
   replayHistory: ReplayHistoryItem[];
   selectedConnectionId: string | null;
+  selectedPacket: Packet | null;
   selectedSessionId: string | null;
   sessions: Session[];
   status: ConnectionStatus;
@@ -154,6 +155,7 @@ export function Sidebar({
   proxyTargetUrl,
   replayHistory,
   selectedConnectionId,
+  selectedPacket,
   selectedSessionId,
   sessions,
   status,
@@ -405,6 +407,7 @@ export function Sidebar({
                 messageDraft={messageDraft}
                 outgoingPackets={outgoingPackets}
                 replayHistory={replayHistory}
+                selectedPacket={selectedPacket}
                 showHeader={false}
                 onClearReplayHistory={onClearReplayHistory}
                 onLoadSamplePayload={onLoadSamplePayload}

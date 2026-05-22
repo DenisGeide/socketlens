@@ -1,21 +1,26 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Braces,
+  CheckCircle2,
+  Clock3,
   FileText,
   History,
   KeyRound,
   ListRestart,
   MessageSquareText,
+  Repeat2,
   RotateCcw,
   SendHorizontal,
   Sparkles,
   Trash2,
   Wand2,
+  XCircle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ErrorNotice } from "@/components/error-notice";
+import { Input } from "@/components/ui/input";
 import { PanelContent, PanelHeader, PanelTitle } from "@/components/ui/panel";
 import { Textarea } from "@/components/ui/textarea";
 import { formatBytes, formatTime } from "@/lib/format";
@@ -31,6 +36,14 @@ type SendPayloadOptions = {
 };
 
 type ExamplePayloadId = "auth" | "chat" | "ping";
+type ReplayStatusKind = "idle" | "running" | "success" | "error";
+type ReplayStatus = {
+  kind: ReplayStatusKind;
+  message: string | null;
+};
+
+const replayDelayOptions = [0, 250, 1000] as const;
+const replaySequenceCountOptions = [2, 3, 5] as const;
 
 const examplePayloads = [
   {
@@ -64,6 +77,7 @@ type ManualSendPanelProps = {
   onSetComposerMode: (composerMode: ComposerMode) => void;
   outgoingPackets: Packet[];
   replayHistory: ReplayHistoryItem[];
+  selectedPacket: Packet | null;
   showHeader?: boolean;
 };
 
@@ -81,17 +95,46 @@ export function ManualSendPanel({
   onSetComposerMode,
   outgoingPackets,
   replayHistory,
+  selectedPacket,
   showHeader = true,
 }: ManualSendPanelProps) {
   const { t } = useTranslation();
   const [selectedPacketId, setSelectedPacketId] = useState<string | null>(null);
   const [composerErrorNotice, setComposerErrorNotice] = useState<UserFacingError | null>(null);
-  const selectedPacket = useMemo(
+  const [replayDelayMs, setReplayDelayMs] = useState(0);
+  const [replaySequenceCount, setReplaySequenceCount] = useState<(typeof replaySequenceCountOptions)[number]>(3);
+  const [replayStatus, setReplayStatus] = useState<ReplayStatus>({ kind: "idle", message: null });
+  const sequenceRunIdRef = useRef(0);
+  const selectedOutgoingPacket = useMemo(
     () => outgoingPackets.find((packet) => packet.id === selectedPacketId) ?? null,
     [outgoingPackets, selectedPacketId],
   );
+  const selectedReplayPacket = selectedOutgoingPacket ?? selectedPacket;
+  const selectedReplaySummary = selectedReplayPacket ? getPacketSummary(selectedReplayPacket) : null;
+  const lastOutgoingPacket = outgoingPackets[0] ?? null;
+  const lastOutgoingSummary = lastOutgoingPacket ? getPacketSummary(lastOutgoingPacket) : null;
   const recentOutgoingPackets = outgoingPackets.slice(0, 6);
   const visibleReplayHistory = replayHistory.slice(0, 5);
+  const replaySequencePackets = useMemo(
+    () => getReplaySequencePackets(outgoingPackets, selectedReplayPacket?.direction === "outbound" ? selectedReplayPacket.id : selectedPacketId, replaySequenceCount),
+    [outgoingPackets, replaySequenceCount, selectedPacketId, selectedReplayPacket],
+  );
+  const replayStatusMessage = replayStatus.message ?? (isConnected ? t("manualSend.replayStatus.ready") : t("manualSend.replayStatus.disconnected"));
+  const isRunningReplaySequence = replayStatus.kind === "running";
+
+  useEffect(
+    () => () => {
+      sequenceRunIdRef.current += 1;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!isConnected && replayStatus.kind !== "idle") {
+      sequenceRunIdRef.current += 1;
+      setReplayStatus({ kind: "idle", message: null });
+    }
+  }, [isConnected, replayStatus.kind]);
 
   function handleModeChange(mode: ComposerMode) {
     onSetComposerMode(mode);
@@ -103,6 +146,9 @@ export function ManualSendPanel({
     onSetComposerDraft(nextDraft);
     onSetComposerError(null);
     setComposerErrorNotice(null);
+    if (replayStatus.kind === "error") {
+      setReplayStatus({ kind: "idle", message: null });
+    }
   }
 
   function handleLoadSamplePayload() {
@@ -141,6 +187,10 @@ export function ManualSendPanel({
     onSetComposerDraft(formatPayloadForEditor(packet.payload, packet.payloadKind === "json"));
     onSetComposerError(null);
     setComposerErrorNotice(null);
+    setReplayStatus({
+      kind: "idle",
+      message: t("manualSend.replayStatus.loaded", { event: getPacketSummary(packet).eventName }),
+    });
   }
 
   function handleSendDraft(source: SendSource = "manual") {
@@ -157,58 +207,181 @@ export function ManualSendPanel({
     const sent = onSendPayload(preparedPayload.payload, {
       clearDraft: true,
       source,
-      sourcePacketId: source === "replay" ? selectedPacketId : null,
+      sourcePacketId: source === "replay" ? (selectedReplayPacket?.id ?? selectedPacketId) : null,
     });
 
     if (sent) {
       setSelectedPacketId(null);
       onSetComposerError(null);
       setComposerErrorNotice(null);
+      setReplayStatus({
+        kind: "success",
+        message: source === "replay" ? t("manualSend.replayStatus.editedSent") : t("manualSend.replayStatus.manualSent"),
+      });
     }
   }
 
   function handleReplayPacket(packet: Packet) {
-    if (!isConnected) {
-      showComposerError({
-        kind: "connectionFailure",
-        message: t("manualSend.errors.connectBeforeReplayPackets"),
-        ok: false,
-      });
-      return;
-    }
+    const sent = replayPayload(packet.payload, packet.id, t("manualSend.replayStatus.packetSent", { event: getPacketSummary(packet).eventName }));
 
-    const sent = onSendPayload(packet.payload, {
-      clearDraft: false,
-      source: "replay",
-      sourcePacketId: packet.id,
-    });
-
-    if (sent) {
+    if (sent && packet.direction === "outbound") {
       setSelectedPacketId(packet.id);
-      onSetComposerError(null);
-      setComposerErrorNotice(null);
     }
   }
 
   function handleReplayHistoryItem(item: ReplayHistoryItem) {
-    if (!isConnected) {
-      showComposerError({
-        kind: "connectionFailure",
-        message: t("manualSend.errors.connectBeforeReplayHistory"),
-        ok: false,
+    replayPayload(item.payload, item.sourcePacketId, t("manualSend.replayStatus.historySent"));
+  }
+
+  function handleReplaySelectedPacket() {
+    if (!selectedReplayPacket) {
+      setReplayStatus({
+        kind: "error",
+        message: t("manualSend.errors.selectPacketBeforeReplay"),
       });
       return;
     }
 
-    const sent = onSendPayload(item.payload, {
-      clearDraft: false,
-      source: "replay",
-      sourcePacketId: item.sourcePacketId,
+    handleReplayPacket(selectedReplayPacket);
+  }
+
+  function handleReplayLastPacket() {
+    if (!lastOutgoingPacket) {
+      setReplayStatus({
+        kind: "error",
+        message: t("manualSend.errors.noOutgoingPackets"),
+      });
+      return;
+    }
+
+    handleReplayPacket(lastOutgoingPacket);
+  }
+
+  async function handleReplaySequence() {
+    if (!isConnected) {
+      showReplayConnectionError(t("manualSend.errors.connectBeforeReplaySequence"));
+      return;
+    }
+
+    if (replaySequencePackets.length === 0) {
+      setReplayStatus({
+        kind: "error",
+        message: t("manualSend.errors.noSequencePackets"),
+      });
+      return;
+    }
+
+    const runId = sequenceRunIdRef.current + 1;
+    sequenceRunIdRef.current = runId;
+    setReplayStatus({
+      kind: "running",
+      message: t("manualSend.replayStatus.sequenceRunning", {
+        count: replaySequencePackets.length,
+        current: 0,
+        delay: replayDelayMs,
+      }),
     });
 
-    if (sent) {
-      onSetComposerError(null);
-      setComposerErrorNotice(null);
+    for (let index = 0; index < replaySequencePackets.length; index += 1) {
+      const packet = replaySequencePackets[index];
+
+      if (!packet || sequenceRunIdRef.current !== runId) {
+        return;
+      }
+
+      if (index > 0 && replayDelayMs > 0) {
+        await delay(replayDelayMs);
+      }
+
+      if (sequenceRunIdRef.current !== runId) {
+        return;
+      }
+
+      setReplayStatus({
+        kind: "running",
+        message: t("manualSend.replayStatus.sequenceRunning", {
+          count: replaySequencePackets.length,
+          current: index + 1,
+          delay: replayDelayMs,
+        }),
+      });
+
+      const sent = onSendPayload(packet.payload, {
+        clearDraft: false,
+        source: "replay",
+        sourcePacketId: packet.id,
+      });
+
+      if (!sent) {
+        setReplayStatus({
+          kind: "error",
+          message: t("manualSend.replayStatus.sequenceFailed", { current: index + 1 }),
+        });
+        return;
+      }
+    }
+
+    setReplayStatus({
+      kind: "success",
+      message: t("manualSend.replayStatus.sequenceComplete", { count: replaySequencePackets.length }),
+    });
+  }
+
+  function replayPayload(payload: string, sourcePacketId: string | null, successMessage: string) {
+    if (!isConnected) {
+      showReplayConnectionError(t("manualSend.errors.connectBeforeReplayPackets"));
+      return false;
+    }
+
+    const sent = onSendPayload(payload, {
+      clearDraft: false,
+      source: "replay",
+      sourcePacketId,
+    });
+
+    if (!sent) {
+      setReplayStatus({
+        kind: "error",
+        message: t("manualSend.replayStatus.sendFailed"),
+      });
+      return false;
+    }
+
+    onSetComposerError(null);
+    setComposerErrorNotice(null);
+    setReplayStatus({
+      kind: "success",
+      message: successMessage,
+    });
+    return true;
+  }
+
+  function showReplayConnectionError(message: string) {
+    showComposerError({
+      kind: "connectionFailure",
+      message,
+      ok: false,
+    });
+    setReplayStatus({
+      kind: "error",
+      message,
+    });
+  }
+
+  function handleClearReplayErrors() {
+    sequenceRunIdRef.current += 1;
+    setReplayStatus({ kind: "idle", message: null });
+    setComposerErrorNotice(null);
+    onSetComposerError(null);
+  }
+
+  function handleReplayDelayChange(nextValue: string) {
+    const parsedDelay = Number.parseInt(nextValue, 10);
+    const nextDelay = Number.isFinite(parsedDelay) ? Math.max(0, Math.min(parsedDelay, 10_000)) : 0;
+
+    setReplayDelayMs(nextDelay);
+    if (replayStatus.kind === "error") {
+      setReplayStatus({ kind: "idle", message: null });
     }
   }
 
@@ -225,7 +398,7 @@ export function ManualSendPanel({
     setComposerErrorNotice(issue);
     onSetComposerError(issue.message);
 
-    if (error.kind === "malformedJson") {
+    if (error.kind === "malformedJson" || error.kind === "connectionFailure") {
       onNotifyError({
         details: issue.technicalDetails,
         level: "warning",
@@ -272,6 +445,141 @@ export function ManualSendPanel({
           </div>
         </div>
 
+        <div className="space-y-2 rounded-md border border-accent/25 bg-[linear-gradient(135deg,hsl(var(--accent)/0.12),hsl(var(--panel)/0.65))] p-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="sl-section-label inline-flex items-center gap-1.5 text-xs font-semibold uppercase text-accent">
+                <Repeat2 className="h-3.5 w-3.5" />
+                {t("manualSend.replayCenter.title")}
+              </p>
+              <p className="sl-caption mt-1 line-clamp-2 text-[0.72rem] text-muted-foreground">{t("manualSend.replayCenter.description")}</p>
+            </div>
+            <ReplayStatusBadge kind={replayStatus.kind} label={replayStatusMessage} />
+          </div>
+
+          <div className="rounded-md border border-border/70 bg-background/45 p-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="sl-section-label text-[0.68rem] font-semibold uppercase text-muted-foreground">
+                  {t("manualSend.replayCenter.selectedPacket")}
+                </p>
+                {selectedReplayPacket && selectedReplaySummary ? (
+                  <>
+                    <p className="mt-1 truncate font-mono text-xs font-semibold text-foreground">{selectedReplaySummary.eventName}</p>
+                    <p className="mt-1 truncate font-mono text-[0.72rem] text-muted-foreground">{selectedReplaySummary.preview}</p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">{t("manualSend.replayCenter.selectedPacketEmpty")}</p>
+                )}
+              </div>
+              {selectedReplayPacket ? (
+                <Badge variant="outline" className="shrink-0">
+                  {selectedReplayPacket.direction === "outbound" ? t("packets.direction.outgoing") : t("packets.direction.incoming")}
+                </Badge>
+              ) : null}
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="min-w-0 px-2"
+                disabled={!selectedReplayPacket}
+                onClick={() => selectedReplayPacket && handleLoadPacket(selectedReplayPacket)}
+              >
+                <span className="truncate">{t("manualSend.replayCenter.editSelected")}</span>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="min-w-0 px-2"
+                disabled={!isConnected || !selectedReplayPacket || isRunningReplaySequence}
+                onClick={handleReplaySelectedPacket}
+              >
+                <RotateCcw className="h-4 w-4 shrink-0" />
+                <span className="truncate">{t("manualSend.replayCenter.replaySelected")}</span>
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-1.5 2xl:grid-cols-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="min-w-0 justify-start px-2"
+              disabled={!isConnected || !lastOutgoingPacket || isRunningReplaySequence}
+              onClick={handleReplayLastPacket}
+            >
+              <RotateCcw className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 truncate">
+                {lastOutgoingSummary ? t("manualSend.replayCenter.replayLastWithEvent", { event: lastOutgoingSummary.eventName }) : t("manualSend.replayCenter.replayLast")}
+              </span>
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="min-w-0 justify-start px-2"
+              disabled={!isConnected || replaySequencePackets.length === 0 || isRunningReplaySequence}
+              onClick={() => void handleReplaySequence()}
+            >
+              <ListRestart className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 truncate">
+                {t("manualSend.replayCenter.replaySequence", { count: replaySequencePackets.length })}
+              </span>
+            </Button>
+          </div>
+
+          <div className="grid gap-2 rounded-md border border-border/70 bg-background/35 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="sl-section-label inline-flex items-center gap-1 text-[0.68rem] font-semibold uppercase text-muted-foreground">
+                <Clock3 className="h-3.5 w-3.5" />
+                {t("manualSend.replayCenter.delay")}
+              </span>
+              <Input
+                className="h-7 w-20 px-2 py-1 text-right font-mono text-[0.72rem]"
+                min={0}
+                max={10000}
+                step={50}
+                type="number"
+                value={replayDelayMs}
+                onChange={(event) => handleReplayDelayChange(event.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {replayDelayOptions.map((delayMs) => (
+                <Button
+                  key={delayMs}
+                  variant={replayDelayMs === delayMs ? "secondary" : "ghost"}
+                  size="sm"
+                  className="px-2"
+                  onClick={() => setReplayDelayMs(delayMs)}
+                >
+                  {delayMs === 0 ? t("manualSend.replayCenter.noDelay") : t("manualSend.replayCenter.delayMs", { delay: delayMs })}
+                </Button>
+              ))}
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {replaySequenceCountOptions.map((count) => (
+                <Button
+                  key={count}
+                  variant={replaySequenceCount === count ? "secondary" : "ghost"}
+                  size="sm"
+                  className="px-2"
+                  onClick={() => setReplaySequenceCount(count)}
+                >
+                  {t("manualSend.replayCenter.count", { count })}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {replayStatus.kind === "error" || composerErrorNotice || composerError ? (
+            <Button variant="ghost" size="sm" className="w-full justify-center" onClick={handleClearReplayErrors}>
+              <XCircle className="h-4 w-4" />
+              {t("manualSend.replayCenter.clearErrors")}
+            </Button>
+          ) : null}
+        </div>
+
         <div className="grid grid-cols-2 gap-1.5">
           <ModeButton active={composerMode === "json"} icon={Braces} label={t("manualSend.mode.json")} onClick={() => handleModeChange("json")} />
           <ModeButton active={composerMode === "raw"} icon={FileText} label={t("manualSend.mode.raw")} onClick={() => handleModeChange("raw")} />
@@ -309,7 +617,7 @@ export function ManualSendPanel({
           <Button
             variant="secondary"
             className="min-w-0 whitespace-normal px-2 leading-4"
-            disabled={!isConnected || !selectedPacket || !messageDraft.trim()}
+            disabled={!isConnected || !messageDraft.trim() || isRunningReplaySequence}
             onClick={() => handleSendDraft("replay")}
           >
             <RotateCcw className="h-4 w-4 shrink-0" />
@@ -381,6 +689,30 @@ export function ManualSendPanel({
         </div>
       </PanelContent>
     </div>
+  );
+}
+
+function ReplayStatusBadge({ kind, label }: { kind: ReplayStatusKind; label: string }) {
+  const Icon = kind === "success" ? CheckCircle2 : kind === "error" ? XCircle : kind === "running" ? Clock3 : Repeat2;
+
+  return (
+    <Badge
+      variant="outline"
+      className={[
+        "max-w-[9rem] shrink-0 justify-start truncate",
+        kind === "success"
+          ? "border-emerald-300/35 bg-emerald-300/10 text-emerald-200"
+          : kind === "error"
+            ? "border-destructive/40 bg-destructive/10 text-destructive"
+            : kind === "running"
+              ? "border-amber-300/35 bg-amber-300/10 text-amber-100"
+              : "border-accent/30 bg-accent/10 text-accent",
+      ].join(" ")}
+      title={label}
+    >
+      <Icon className={["h-3 w-3", kind === "running" ? "animate-pulse" : ""].join(" ")} />
+      <span className="truncate">{label}</span>
+    </Badge>
   );
 }
 
@@ -524,6 +856,19 @@ function formatPayloadForEditor(payload: string, shouldFormatJson: boolean) {
   } catch {
     return payload;
   }
+}
+
+function getReplaySequencePackets(outgoingPackets: Packet[], anchorPacketId: string | null | undefined, count: number) {
+  const startIndex = anchorPacketId ? outgoingPackets.findIndex((packet) => packet.id === anchorPacketId) : 0;
+  const safeStartIndex = startIndex >= 0 ? startIndex : 0;
+
+  return outgoingPackets.slice(safeStartIndex, safeStartIndex + count).reverse();
+}
+
+function delay(delayMs: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, delayMs);
+  });
 }
 
 function createExamplePayload(exampleId: ExamplePayloadId) {

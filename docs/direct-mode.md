@@ -88,11 +88,16 @@ SocketLens records recent manual sends and replays.
 
 Use:
 
+- **Selected packet** to load the currently highlighted timeline packet into the editor or replay its payload.
+- **Replay last** to resend the most recent outbound frame.
+- **Replay sequence** to resend a short ordered group of recent outbound frames.
+- **Delay controls** to add a small pause between sequence frames when testing retry/backoff behavior.
 - **Previous outgoing** to load an earlier outbound packet into the editor.
 - **Replay history** to resend a previous frame.
 - **Replay edited** to resend an edited payload as a replay.
 
 Replay is only enabled while a direct WebSocket connection is active.
+Disconnected replay attempts show a visible replay status and a user-facing error instead of failing silently.
 
 ## Search and Inspect
 

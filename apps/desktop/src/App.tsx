@@ -850,6 +850,7 @@ export function App() {
           packets={packets}
           replayHistory={replayHistory}
           selectedConnectionId={selectedConnectionId}
+          selectedPacket={selectedPacket}
           selectedSessionId={selectedSessionId}
           sessions={sessions}
           status={status}
