@@ -1,5 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Cable,
+  Database,
+  Download,
+  Eraser,
+  Filter,
+  History,
+  Play,
+  RefreshCw,
+  RotateCcw,
+  Settings,
+  SlidersHorizontal,
+  Unplug,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { CommandPalette, type CommandPaletteCommand } from "@/components/command-palette";
 import { AppShell } from "@/components/layout/app-shell";
 import { InvestorDemoGuide } from "@/components/investor-demo-panel";
 import { LogPanel } from "@/components/log-panel";
@@ -68,7 +83,9 @@ export function App() {
   const { i18n, t } = useTranslation();
   const backendStatusCheckedRef = useRef(false);
   const [nativeBackendState, setNativeBackendState] = useState<NativeBackendState>("checking");
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [currentView, setCurrentView] = useState<AppView>("workspace");
+  const [diagnosticsOpenSignal, setDiagnosticsOpenSignal] = useState(0);
   const [proxyBusy, setProxyBusy] = useState(false);
   const [proxyError, setProxyError] = useState<UserFacingError | null>(null);
   const [proxyStatus, setProxyStatus] = useState<ProxyStatus | null>(null);
@@ -98,6 +115,9 @@ export function App() {
   } = useConnectionStore();
   const { addPacket, addPackets, clearPackets, packets } = usePacketStore();
   const { importSession, renameSession, sessions, updateSessionStatus, recordPacket } = useSessionStore();
+  const activeEnvironmentId = useEnvironmentStore((state) => state.activeEnvironmentId);
+  const environments = useEnvironmentStore((state) => state.environments);
+  const setActiveEnvironment = useEnvironmentStore((state) => state.setActiveEnvironment);
   const settings = useSettingsStore((state) => state.settings);
   const {
     addLog,
@@ -205,6 +225,289 @@ export function App() {
     ],
   );
   const proxyRunningRef = useRef(false);
+  const commandPaletteCommands = useMemo<CommandPaletteCommand[]>(() => {
+    const activeReconnectConnectionId = activeConnectionId ?? selectedConnectionId;
+    const demoIsRunning = demoMode.isActive || investorDemo.isActive;
+    const startDemoDisabledReason =
+      demoIsRunning
+        ? t("commandPalette.disabled.demoRunning")
+        : isConnected
+          ? t("commandPalette.disabled.disconnectFirst")
+          : status === "connecting"
+            ? t("commandPalette.disabled.connectionBusy")
+            : undefined;
+    const connectDisabledReason =
+      demoIsRunning
+        ? t("commandPalette.disabled.stopDemoFirst")
+        : isConnected
+          ? t("commandPalette.disabled.alreadyConnected")
+          : status === "connecting"
+            ? t("commandPalette.disabled.connectionBusy")
+            : undefined;
+    const disconnectDisabledReason =
+      isConnected || status === "connecting" ? undefined : t("commandPalette.disabled.noActiveConnection");
+    const reconnectDisabledReason =
+      demoIsRunning
+        ? t("commandPalette.disabled.stopDemoFirst")
+        : status === "connecting"
+          ? t("commandPalette.disabled.connectionBusy")
+          : activeReconnectConnectionId
+            ? undefined
+            : t("commandPalette.disabled.noSavedConnection");
+    const replayDisabledReason = !selectedPacket
+      ? t("commandPalette.disabled.selectPacket")
+      : !isConnected
+        ? t("commandPalette.disabled.connectFirst")
+        : undefined;
+    const sessionExportDisabledReason = currentSession ? undefined : t("commandPalette.disabled.noSession");
+    const clearTimelineDisabledReason = scopedPacketCount > 0 ? undefined : t("commandPalette.disabled.noPackets");
+
+    const commands: CommandPaletteCommand[] = [
+      {
+        description: t("commandPalette.actions.startDemo.description"),
+        disabled: Boolean(startDemoDisabledReason),
+        disabledReason: startDemoDisabledReason,
+        group: t("commandPalette.groups.workspace"),
+        icon: Play,
+        id: "workspace:start-demo",
+        keywords: ["demo", "investor", "offline"],
+        run: handleStartInvestorDemo,
+        title: t("commandPalette.actions.startDemo.title"),
+      },
+      {
+        description: t("commandPalette.actions.openSettings.description"),
+        group: t("commandPalette.groups.workspace"),
+        icon: Settings,
+        id: "workspace:open-settings",
+        keywords: ["preferences", "settings"],
+        run: () => setCurrentView("settings"),
+        title: t("commandPalette.actions.openSettings.title"),
+      },
+      {
+        description: t("commandPalette.actions.openDiagnostics.description"),
+        group: t("commandPalette.groups.workspace"),
+        icon: SlidersHorizontal,
+        id: "workspace:open-diagnostics",
+        keywords: ["debug", "health", "status"],
+        run: () => {
+          setCurrentView("workspace");
+          setDiagnosticsOpenSignal((value) => value + 1);
+        },
+        title: t("commandPalette.actions.openDiagnostics.title"),
+      },
+      {
+        description: t("commandPalette.actions.connect.description"),
+        disabled: Boolean(connectDisabledReason),
+        disabledReason: connectDisabledReason,
+        group: t("commandPalette.groups.connection"),
+        icon: Cable,
+        id: "connection:connect",
+        keywords: ["websocket", "direct", "socket"],
+        run: handleConnect,
+        title: t("commandPalette.actions.connect.title"),
+      },
+      {
+        description: t("commandPalette.actions.disconnect.description"),
+        disabled: Boolean(disconnectDisabledReason),
+        disabledReason: disconnectDisabledReason,
+        group: t("commandPalette.groups.connection"),
+        icon: Unplug,
+        id: "connection:disconnect",
+        keywords: ["close", "stop"],
+        run: disconnect,
+        title: t("commandPalette.actions.disconnect.title"),
+      },
+      {
+        description: t("commandPalette.actions.reconnect.description"),
+        disabled: Boolean(reconnectDisabledReason),
+        disabledReason: reconnectDisabledReason,
+        group: t("commandPalette.groups.connection"),
+        icon: RefreshCw,
+        id: "connection:reconnect",
+        keywords: ["retry", "restart"],
+        run: () => {
+          void reconnect(activeReconnectConnectionId);
+        },
+        title: t("commandPalette.actions.reconnect.title"),
+      },
+    ];
+
+    commands.push(
+      ...environments.map((environment) => ({
+        description: t("commandPalette.actions.switchEnvironment.description", { name: environment.name }),
+        disabled: environment.id === activeEnvironmentId,
+        disabledReason:
+          environment.id === activeEnvironmentId ? t("commandPalette.disabled.environmentActive") : undefined,
+        group: t("commandPalette.groups.environments"),
+        icon: Database,
+        id: `environment:${environment.id}`,
+        keywords: ["environment", "variables", environment.name],
+        run: () => setActiveEnvironment(environment.id),
+        title: t("commandPalette.actions.switchEnvironment.title", { name: environment.name }),
+      })),
+    );
+
+    if (sessions.length === 0) {
+      commands.push({
+        description: t("commandPalette.actions.switchSession.emptyDescription"),
+        disabled: true,
+        disabledReason: t("commandPalette.disabled.noSessions"),
+        group: t("commandPalette.groups.sessions"),
+        icon: History,
+        id: "session:none",
+        keywords: ["session"],
+        run: () => undefined,
+        title: t("commandPalette.actions.switchSession.emptyTitle"),
+      });
+    } else {
+      commands.push(
+        ...sessions.map((session) => ({
+          description: t("commandPalette.actions.switchSession.description", { name: session.name }),
+          disabled: session.id === selectedSessionId,
+          disabledReason: session.id === selectedSessionId ? t("commandPalette.disabled.sessionActive") : undefined,
+          group: t("commandPalette.groups.sessions"),
+          icon: History,
+          id: `session:${session.id}`,
+          keywords: ["session", session.name, session.endpointUrl],
+          run: () => {
+            setCurrentView("workspace");
+            handleSelectSession(session.id);
+          },
+          title: t("commandPalette.actions.switchSession.title", { name: session.name }),
+        })),
+      );
+    }
+
+    commands.push(
+      {
+        description: t("commandPalette.actions.replaySelected.description"),
+        disabled: Boolean(replayDisabledReason),
+        disabledReason: replayDisabledReason,
+        group: t("commandPalette.groups.packets"),
+        icon: RotateCcw,
+        id: "packets:replay-selected",
+        keywords: ["replay", "send", "packet"],
+        run: () => {
+          if (!selectedPacket) {
+            return;
+          }
+
+          handleSendPayload(selectedPacket.payload, {
+            clearDraft: false,
+            source: "replay",
+            sourcePacketId: selectedPacket.id,
+          });
+        },
+        title: t("commandPalette.actions.replaySelected.title"),
+      },
+      {
+        description: t("commandPalette.actions.clearTimeline.description"),
+        disabled: Boolean(clearTimelineDisabledReason),
+        disabledReason: clearTimelineDisabledReason,
+        group: t("commandPalette.groups.packets"),
+        icon: Eraser,
+        id: "packets:clear-timeline",
+        keywords: ["clear", "timeline", "packets"],
+        run: handleClearCapturedFrames,
+        title: t("commandPalette.actions.clearTimeline.title"),
+      },
+      {
+        description: t("commandPalette.actions.exportSession.description"),
+        disabled: Boolean(sessionExportDisabledReason),
+        disabledReason: sessionExportDisabledReason,
+        group: t("commandPalette.groups.packets"),
+        icon: Download,
+        id: "packets:export-session",
+        keywords: ["export", "save", "session", "json"],
+        run: () => {
+          if (currentSession) {
+            void handleSaveCurrentSession(currentSession.name);
+          }
+        },
+        title: t("commandPalette.actions.exportSession.title"),
+      },
+      {
+        description: t("commandPalette.actions.resetFilters.description"),
+        group: t("commandPalette.groups.filters"),
+        icon: Filter,
+        id: "filters:reset",
+        keywords: ["filter", "all"],
+        run: resetFilters,
+        title: t("commandPalette.actions.resetFilters.title"),
+      },
+      {
+        description: t("commandPalette.actions.incomingFilter.description"),
+        group: t("commandPalette.groups.filters"),
+        icon: Filter,
+        id: "filters:incoming",
+        keywords: ["incoming", "inbound", "filter"],
+        run: () => updateFilterState({ direction: filterState.direction === "inbound" ? "all" : "inbound" }),
+        title: t("commandPalette.actions.incomingFilter.title"),
+      },
+      {
+        description: t("commandPalette.actions.outgoingFilter.description"),
+        group: t("commandPalette.groups.filters"),
+        icon: Filter,
+        id: "filters:outgoing",
+        keywords: ["outgoing", "outbound", "filter"],
+        run: () => updateFilterState({ direction: filterState.direction === "outbound" ? "all" : "outbound" }),
+        title: t("commandPalette.actions.outgoingFilter.title"),
+      },
+      {
+        description: t("commandPalette.actions.jsonFilter.description"),
+        group: t("commandPalette.groups.filters"),
+        icon: Filter,
+        id: "filters:json",
+        keywords: ["json", "filter"],
+        run: () => updateFilterState({ payloadKind: filterState.payloadKind === "json" ? "all" : "json" }),
+        title: t("commandPalette.actions.jsonFilter.title"),
+      },
+      {
+        description: t("commandPalette.actions.errorsFilter.description"),
+        group: t("commandPalette.groups.filters"),
+        icon: Filter,
+        id: "filters:errors",
+        keywords: ["errors", "warning", "filter"],
+        run: () => updateFilterState({ errorsOnly: !filterState.errorsOnly }),
+        title: t("commandPalette.actions.errorsFilter.title"),
+      },
+      {
+        description: t("commandPalette.actions.pingPongFilter.description"),
+        group: t("commandPalette.groups.filters"),
+        icon: Filter,
+        id: "filters:hide-ping-pong",
+        keywords: ["ping", "pong", "heartbeat", "filter"],
+        run: () => updateFilterState({ hidePingPong: !filterState.hidePingPong }),
+        title: t("commandPalette.actions.pingPongFilter.title"),
+      },
+    );
+
+    return commands;
+  }, [
+    activeConnectionId,
+    activeEnvironmentId,
+    currentSession,
+    demoMode.isActive,
+    disconnect,
+    environments,
+    filterState.direction,
+    filterState.errorsOnly,
+    filterState.hidePingPong,
+    filterState.payloadKind,
+    investorDemo.isActive,
+    isConnected,
+    reconnect,
+    resetFilters,
+    scopedPacketCount,
+    selectedConnectionId,
+    selectedPacket,
+    selectedSessionId,
+    sessions,
+    setActiveEnvironment,
+    status,
+    t,
+    updateFilterState,
+  ]);
 
   useEffect(() => {
     document.documentElement.lang = settings.language;
@@ -869,6 +1172,7 @@ export function App() {
           onClearCapturedFrames={handleClearCapturedFrames}
           onConnect={handleConnect}
           onDisconnect={disconnect}
+          onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           onOpenSettings={() => setCurrentView("settings")}
           onOpenWorkspace={() => setCurrentView("workspace")}
           onResetInvestorDemo={handleResetInvestorDemo}
@@ -885,6 +1189,7 @@ export function App() {
           currentSession={currentSession}
           currentSessionPackets={currentSessionPackets}
           diagnostics={diagnostics}
+          diagnosticsOpenSignal={diagnosticsOpenSignal}
           endpointUrl={endpointUrl}
           error={error}
           isDemoActive={demoMode.isActive}
@@ -937,6 +1242,7 @@ export function App() {
       inspector={<PayloadInspector packet={selectedPacket} packets={currentSessionPackets} session={currentSession} />}
       bottomPanel={<LogPanel logs={logs} status={demoMode.isActive ? "demo" : status} onClearLogs={clearLogs} />}
     >
+      <CommandPalette commands={commandPaletteCommands} isOpen={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
       <ToastViewport toasts={toasts} onDismissToast={dismissToast} />
       {currentView === "settings" ? (
         <SettingsPage packetCount={packets.length} />

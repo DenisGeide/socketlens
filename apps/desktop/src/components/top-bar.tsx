@@ -1,4 +1,4 @@
-import { Activity, Cable, CircleDot, Eraser, RotateCcw, Settings, Sparkles, Square, Unplug } from "lucide-react";
+import { Activity, Cable, CircleDot, Command, Eraser, RotateCcw, Settings, Sparkles, Square, Unplug } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ type TopBarProps = {
   onClearCapturedFrames: () => void;
   onConnect: () => void;
   onDisconnect: () => void;
+  onOpenCommandPalette: () => void;
   onOpenSettings: () => void;
   onOpenWorkspace: () => void;
   onResetInvestorDemo: () => void;
@@ -33,6 +34,7 @@ export function TopBar({
   onClearCapturedFrames,
   onConnect,
   onDisconnect,
+  onOpenCommandPalette,
   onOpenSettings,
   onOpenWorkspace,
   onResetInvestorDemo,
@@ -73,6 +75,13 @@ export function TopBar({
         <Button variant="ghost" size="sm" disabled={capturedCount === 0} onClick={onClearCapturedFrames}>
           <Eraser className="h-4 w-4" />
           {t("actions.clear")}
+        </Button>
+        <Button variant="ghost" size="sm" className="hidden lg:inline-flex" onClick={onOpenCommandPalette}>
+          <Command className="h-4 w-4" />
+          {t("commandPalette.button")}
+          <span className="rounded border border-border/70 bg-muted/30 px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
+            {t("commandPalette.shortcut")}
+          </span>
         </Button>
         <Button
           variant={currentView === "settings" ? "secondary" : "ghost"}

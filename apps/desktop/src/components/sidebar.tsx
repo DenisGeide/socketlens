@@ -65,6 +65,7 @@ type SidebarProps = {
   currentSession: Session | null;
   currentSessionPackets: Packet[];
   diagnostics: ConnectionDiagnostics;
+  diagnosticsOpenSignal?: number;
   endpointUrl: string;
   error: string | null;
   isDemoActive: boolean;
@@ -122,6 +123,7 @@ export function Sidebar({
   currentSession,
   currentSessionPackets,
   diagnostics,
+  diagnosticsOpenSignal = 0,
   endpointUrl,
   error,
   isDemoActive,
@@ -404,6 +406,7 @@ export function Sidebar({
           <SidebarSection
             defaultOpen={Boolean(error || proxyError)}
             icon={AlertCircle}
+            openSignal={diagnosticsOpenSignal}
             title={t("diagnostics.title")}
           >
             <ConnectionDiagnosticsPanel diagnostics={diagnostics} showHeader={false} />
@@ -544,10 +547,11 @@ type SidebarSectionProps = {
   children: ReactNode;
   defaultOpen?: boolean;
   icon: LucideIcon;
+  openSignal?: number;
   title: string;
 };
 
-function SidebarSection({ badge, children, defaultOpen = false, icon: Icon, title }: SidebarSectionProps) {
+function SidebarSection({ badge, children, defaultOpen = false, icon: Icon, openSignal = 0, title }: SidebarSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   useEffect(() => {
@@ -555,6 +559,12 @@ function SidebarSection({ badge, children, defaultOpen = false, icon: Icon, titl
       setIsOpen(true);
     }
   }, [defaultOpen]);
+
+  useEffect(() => {
+    if (openSignal > 0) {
+      setIsOpen(true);
+    }
+  }, [openSignal]);
 
   return (
     <details
