@@ -133,11 +133,7 @@ sudo apt install -y \
 
 Branding:
 
-- `docs/assets/branding/logo.svg`
-- `docs/assets/branding/logo-dark.svg`
-- `docs/assets/branding/logo-mark.svg`
 - `docs/assets/branding/icon.png`
-- `docs/assets/branding/icon.ico`
 - `docs/assets/branding/banner.png`
 
 Screenshots:
@@ -153,13 +149,12 @@ Screenshots:
 
 Release assets:
 
-- `docs/assets/release/icon.png`
-- `docs/assets/release/thumbnail.png`
+- `docs/assets/release/release-notes-template.md`
 - `.github/RELEASE_TEMPLATE.md`
 
 Screenshot process: [screenshots.md](screenshots.md).
 
-Native installer icons live in `apps/desktop/src-tauri/icons`. Regenerate them from `docs/assets/branding/logo-mark.svg` before a stable signed release.
+Native installer icons live in `apps/desktop/src-tauri/icons`. Regenerate them from the final brand mark before a stable signed release.
 
 ## Tagging
 

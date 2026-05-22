@@ -1,13 +1,12 @@
 # Release Assets
 
-This folder contains assets for GitHub Releases and public launch posts.
+This folder contains release copy and future release assets for GitHub Releases and public launch posts.
 
 ## Files
 
-- `icon.png`: release/app icon placeholder generated from the temporary SocketLens mark.
-- `thumbnail.png`: 16:9 release thumbnail placeholder for GitHub release pages.
-- `socketlens-release-thumbnail.svg`: 16:9 release thumbnail for GitHub and social previews.
 - `release-notes-template.md`: copy-ready release notes structure.
+
+Release images are not committed yet. Until final release artwork exists, use the README banner from `docs/assets/branding/banner.png` and product screenshots from `docs/assets/screenshots/`.
 
 ## Release Asset Checklist
 

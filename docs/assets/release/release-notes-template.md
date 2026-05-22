@@ -56,10 +56,10 @@ SocketLens has no telemetry by default. Packet data stays local unless the user 
 
 ## Assets
 
-Recommended release thumbnail:
+Recommended release image source:
 
 ```text
-docs/assets/release/socketlens-release-thumbnail.svg
+docs/assets/branding/banner.png
 ```
 
 Recommended screenshot folder:

@@ -109,17 +109,12 @@ Screenshot capture guidance lives in [docs/screenshots.md](docs/screenshots.md).
 
 Branding assets live in [docs/assets/branding](docs/assets/branding):
 
-- [logo.svg](docs/assets/branding/logo.svg)
-- [logo-dark.svg](docs/assets/branding/logo-dark.svg)
-- [logo-mark.svg](docs/assets/branding/logo-mark.svg)
 - [icon.png](docs/assets/branding/icon.png)
-- [icon.ico](docs/assets/branding/icon.ico)
 - [banner.png](docs/assets/branding/banner.png)
 
 Release assets live in [docs/assets/release](docs/assets/release):
 
-- [icon.png](docs/assets/release/icon.png)
-- [thumbnail.png](docs/assets/release/thumbnail.png)
+- [release-notes-template.md](docs/assets/release/release-notes-template.md)
 
 When replacing assets, keep the same filenames unless every README, release, and documentation reference is updated in the same change.
 

@@ -6,27 +6,23 @@ This folder keeps public-facing assets for GitHub, release pages, screenshots, a
 
 ```text
 docs/assets/
-  branding/      app icon, wordmark, and social/banner artwork
+  branding/      README banner and app/launcher icon
   screenshots/   screenshot naming rules and captured product screenshots
-  release/       release thumbnails and release-note templates
+  release/       release-note template
   demo/          demo recording guidelines and exported clips
 ```
 
 ## Current Assets
 
-- [branding/logo.svg](branding/logo.svg)
-- [branding/logo-dark.svg](branding/logo-dark.svg)
-- [branding/logo-mark.svg](branding/logo-mark.svg)
 - [branding/icon.png](branding/icon.png)
-- [branding/icon.ico](branding/icon.ico)
 - [branding/banner.png](branding/banner.png)
-- [branding/socketlens-app-icon.svg](branding/socketlens-app-icon.svg)
-- [branding/socketlens-wordmark.svg](branding/socketlens-wordmark.svg)
-- [branding/socketlens-banner.svg](branding/socketlens-banner.svg)
-- [release/icon.png](release/icon.png)
-- [release/thumbnail.png](release/thumbnail.png)
-- [release/socketlens-release-thumbnail.svg](release/socketlens-release-thumbnail.svg)
 - [release/release-notes-template.md](release/release-notes-template.md)
+- [screenshots/main-ui.png](screenshots/main-ui.png)
+- [screenshots/demo-mode.png](screenshots/demo-mode.png)
+- [screenshots/direct-mode.png](screenshots/direct-mode.png)
+- [screenshots/proxy-mode.png](screenshots/proxy-mode.png)
+- [screenshots/packet-inspector.png](screenshots/packet-inspector.png)
+- [screenshots/settings.png](screenshots/settings.png)
 - [screenshots/launcher-terminal.png](screenshots/launcher-terminal.png)
 - [screenshots/launcher-shortcuts.png](screenshots/launcher-shortcuts.png)
 
