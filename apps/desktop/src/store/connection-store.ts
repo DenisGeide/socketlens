@@ -10,8 +10,12 @@ import {
   createEntityId,
   createPacket,
   getConnectionName,
+  getActiveEnvironment,
+  hasEnvironmentVariables,
   inferPayloadKind,
+  interpolateEnvironmentVariables,
   redactUrlForDisplay,
+  type AppEnvironment,
   type Connection,
   type ConnectionStatus,
   type EntityId,
@@ -20,6 +24,7 @@ import {
   type SendSource,
   validateWebSocketUrl,
 } from "@/models";
+import { useEnvironmentStore } from "@/store/environment-store";
 import { usePacketStore } from "@/store/packet-store";
 import { useSessionStore } from "@/store/session-store";
 import { useSettingsStore } from "@/store/settings-store";
@@ -27,12 +32,18 @@ import { useUiStore } from "@/store/ui-store";
 
 export type SaveConnectionInput = {
   endpointUrl: string;
+  endpointTemplate?: string | null;
+  environmentId?: EntityId | null;
+  environmentName?: string | null;
   name?: string;
 };
 
 type ConnectInput = {
   connectionId?: EntityId;
   endpointUrl?: string;
+  endpointTemplate?: string | null;
+  environmentId?: EntityId | null;
+  environmentName?: string | null;
   name?: string;
 };
 
@@ -84,6 +95,17 @@ const socketOpen = 1;
 const socketClosing = 2;
 const socketClosed = 3;
 
+type ResolvedConnectionEndpoint =
+  | {
+      endpointUrl: string;
+      ok: true;
+    }
+  | {
+      message: string;
+      ok: false;
+      technicalMessage: string;
+    };
+
 export const useConnectionStore = create<ConnectionStore>()(
   persist(
     (set, get) => ({
@@ -109,7 +131,16 @@ export const useConnectionStore = create<ConnectionStore>()(
         const targetConnection = input.connectionId
           ? currentState.connections.find((connection) => connection.id === input.connectionId)
           : null;
-        const endpointCandidate = input.endpointUrl ?? targetConnection?.endpointUrl ?? currentState.endpointUrl;
+        const rawEndpointCandidate = input.endpointUrl ?? targetConnection?.endpointUrl ?? currentState.endpointUrl;
+        const endpointTemplateCandidate =
+          input.endpointTemplate ??
+          targetConnection?.endpointTemplate ??
+          (hasEnvironmentVariables(rawEndpointCandidate) ? rawEndpointCandidate : null);
+        const environment = getConnectionEnvironment(input.environmentId ?? targetConnection?.environmentId ?? null);
+        const environmentIdCandidate =
+          input.environmentId ?? targetConnection?.environmentId ?? (endpointTemplateCandidate ? environment?.id ?? null : null);
+        const environmentNameCandidate =
+          input.environmentName ?? targetConnection?.environmentName ?? (endpointTemplateCandidate ? environment?.name ?? null : null);
         const nameCandidate = input.name ?? targetConnection?.name;
 
         if (uiStore.demoMode.isActive) {
@@ -148,7 +179,42 @@ export const useConnectionStore = create<ConnectionStore>()(
           set({ socket: null });
         }
 
-        const validation = validateWebSocketUrl(endpointCandidate);
+        const resolvedEndpoint = resolveConnectionEndpoint({
+          endpointTemplate: endpointTemplateCandidate,
+          endpointUrl: rawEndpointCandidate,
+          environment,
+        });
+
+        if (!resolvedEndpoint.ok) {
+          const issue = createInvalidUrlError(resolvedEndpoint.message, resolvedEndpoint.technicalMessage);
+          const message = issue.message;
+
+          set((state) => ({
+            connections: targetConnection
+              ? patchConnection(state.connections, targetConnection.id, {
+                  error: message,
+                  status: "error",
+                  updatedAt: Date.now(),
+                })
+              : state.connections,
+            error: message,
+            errorDetails: issue.technicalDetails,
+            isConnected: false,
+            lastDisconnectReason: message,
+            selectedConnectionId: targetConnection?.id ?? state.selectedConnectionId,
+            status: "error",
+          }));
+          uiStore.addLog({ level: "error", message });
+          uiStore.addToast({
+            details: issue.technicalDetails,
+            level: "error",
+            message: issue.suggestion,
+            title: issue.title,
+          });
+          return;
+        }
+
+        const validation = validateWebSocketUrl(resolvedEndpoint.endpointUrl);
 
         if (!validation.ok) {
           const issue = createInvalidUrlError(translateWebSocketValidationMessage(validation.message, i18n.t), validation.message);
@@ -222,6 +288,9 @@ export const useConnectionStore = create<ConnectionStore>()(
         const now = Date.now();
         const connection = getOrCreateConnection(get().connections, {
           endpointUrl: validatedEndpoint,
+          endpointTemplate: endpointTemplateCandidate,
+          environmentId: environmentIdCandidate,
+          environmentName: environmentNameCandidate,
           id: input.connectionId,
           name: nameCandidate,
           now,
@@ -239,6 +308,9 @@ export const useConnectionStore = create<ConnectionStore>()(
           connections: upsertConnection(state.connections, {
             ...connection,
             endpointUrl: validatedEndpoint,
+            endpointTemplate: endpointTemplateCandidate,
+            environmentId: environmentIdCandidate,
+            environmentName: environmentNameCandidate,
             error: null,
             name: getStableConnectionName(nameCandidate, validatedEndpoint),
             status: "connecting",
@@ -650,8 +722,30 @@ export const useConnectionStore = create<ConnectionStore>()(
           connections: state.connections.filter((connection) => connection.id !== connectionId),
           selectedConnectionId: state.selectedConnectionId === connectionId ? null : state.selectedConnectionId,
         })),
-      saveConnection: ({ endpointUrl, name }) => {
-        const validation = validateWebSocketUrl(endpointUrl);
+      saveConnection: ({ endpointTemplate, endpointUrl, environmentId, environmentName, name }) => {
+        const endpointTemplateCandidate = endpointTemplate ?? (hasEnvironmentVariables(endpointUrl) ? endpointUrl : null);
+        const environment = getConnectionEnvironment(environmentId ?? null);
+        const resolvedEndpoint = resolveConnectionEndpoint({
+          endpointTemplate: endpointTemplateCandidate,
+          endpointUrl,
+          environment,
+        });
+
+        if (!resolvedEndpoint.ok) {
+          const issue = createInvalidUrlError(resolvedEndpoint.message, resolvedEndpoint.technicalMessage);
+          const message = issue.message;
+          set({ error: message, errorDetails: issue.technicalDetails, lastDisconnectReason: message, status: "error" });
+          useUiStore.getState().addLog({ level: "error", message });
+          useUiStore.getState().addToast({
+            details: issue.technicalDetails,
+            level: "error",
+            message: issue.suggestion,
+            title: issue.title,
+          });
+          return null;
+        }
+
+        const validation = validateWebSocketUrl(resolvedEndpoint.endpointUrl);
 
         if (!validation.ok) {
           const issue = createInvalidUrlError(translateWebSocketValidationMessage(validation.message, i18n.t), validation.message);
@@ -668,15 +762,29 @@ export const useConnectionStore = create<ConnectionStore>()(
         }
 
         const now = Date.now();
-        const existingConnection = get().connections.find((connection) => connection.endpointUrl === validation.url);
+        const environmentIdCandidate = environmentId ?? (endpointTemplateCandidate ? environment?.id ?? null : null);
+        const environmentNameCandidate = environmentName ?? (endpointTemplateCandidate ? environment?.name ?? null : null);
+        const existingConnection =
+          get().connections.find(
+            (connection) =>
+              endpointTemplateCandidate &&
+              connection.endpointTemplate === endpointTemplateCandidate &&
+              connection.environmentId === environmentIdCandidate,
+          ) ?? get().connections.find((connection) => connection.endpointUrl === validation.url);
         const connection: Connection = {
           ...(existingConnection ??
             createConnection({
               endpointUrl: validation.url,
+              endpointTemplate: endpointTemplateCandidate,
+              environmentId: environmentIdCandidate,
+              environmentName: environmentNameCandidate,
               id: createEntityId(),
               now,
             })),
           endpointUrl: validation.url,
+          endpointTemplate: endpointTemplateCandidate,
+          environmentId: environmentIdCandidate,
+          environmentName: environmentNameCandidate,
           error: null,
           name: getStableConnectionName(name, validation.url),
           status: existingConnection?.status ?? "idle",
@@ -865,24 +973,102 @@ export const useConnectionStore = create<ConnectionStore>()(
   ),
 );
 
+function getConnectionEnvironment(environmentId: EntityId | null): AppEnvironment | null {
+  const environmentState = useEnvironmentStore.getState();
+
+  if (environmentId) {
+    const environment = environmentState.environments.find((item) => item.id === environmentId);
+
+    if (environment) {
+      return environment;
+    }
+  }
+
+  return getActiveEnvironment(environmentState.environments, environmentState.activeEnvironmentId);
+}
+
+function resolveConnectionEndpoint({
+  endpointTemplate,
+  endpointUrl,
+  environment,
+}: {
+  endpointTemplate?: string | null;
+  endpointUrl: string;
+  environment: AppEnvironment | null;
+}): ResolvedConnectionEndpoint {
+  const template = endpointTemplate?.trim() || endpointUrl.trim();
+
+  if (!hasEnvironmentVariables(template)) {
+    return {
+      endpointUrl: template,
+      ok: true,
+    };
+  }
+
+  const interpolation = interpolateEnvironmentVariables(template, environment);
+
+  if (!interpolation.ok) {
+    const variables = interpolation.missingVariables.join(", ");
+    const environmentName = environment?.name ?? i18n.t("common.notAvailable");
+
+    return {
+      message: i18n.t("environments.errors.missingVariables", { environment: environmentName, variables }),
+      ok: false,
+      technicalMessage: `Missing environment variables: ${variables}`,
+    };
+  }
+
+  return {
+    endpointUrl: interpolation.value,
+    ok: true,
+  };
+}
+
 function getOrCreateConnection(
   connections: Connection[],
-  { endpointUrl, id, name, now }: { endpointUrl: string; id?: EntityId; name?: string; now: number },
+  {
+    endpointTemplate,
+    endpointUrl,
+    environmentId,
+    environmentName,
+    id,
+    name,
+    now,
+  }: {
+    endpointTemplate?: string | null;
+    endpointUrl: string;
+    environmentId?: EntityId | null;
+    environmentName?: string | null;
+    id?: EntityId;
+    name?: string;
+    now: number;
+  },
 ) {
   const existingConnection =
     (id ? connections.find((connection) => connection.id === id) : null) ??
+    (endpointTemplate
+      ? connections.find(
+          (connection) => connection.endpointTemplate === endpointTemplate && connection.environmentId === environmentId,
+        )
+      : null) ??
     connections.find((connection) => connection.endpointUrl === endpointUrl);
 
   if (existingConnection) {
     return {
       ...existingConnection,
       endpointUrl,
+      endpointTemplate,
+      environmentId,
+      environmentName,
       name: getStableConnectionName(name ?? existingConnection.name, endpointUrl),
     };
   }
 
   return createConnection({
     endpointUrl,
+    endpointTemplate,
+    environmentId,
+    environmentName,
     id: id ?? createEntityId(),
     name: getStableConnectionName(name, endpointUrl),
     now,
@@ -929,6 +1115,9 @@ function sanitizeConnection(connection: Connection): Connection {
 
   return {
     ...connection,
+    endpointTemplate: connection.endpointTemplate ?? null,
+    environmentId: connection.environmentId ?? null,
+    environmentName: connection.environmentName ?? null,
     error: nextStatus === "error" ? connection.error : null,
     status: nextStatus,
     transport: connection.transport === "demo" ? "demo" : "websocket",

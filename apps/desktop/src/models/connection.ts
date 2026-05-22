@@ -6,6 +6,9 @@ export type ConnectionTransport = "demo" | "websocket";
 export type Connection = {
   createdAt: number;
   endpointUrl: string;
+  endpointTemplate?: string | null;
+  environmentId?: EntityId | null;
+  environmentName?: string | null;
   error: string | null;
   id: EntityId;
   lastConnectedAt: number | null;
@@ -18,16 +21,31 @@ export type Connection = {
 
 export type CreateConnectionInput = {
   endpointUrl: string;
+  endpointTemplate?: string | null;
+  environmentId?: EntityId | null;
+  environmentName?: string | null;
   id: EntityId;
   name?: string;
   now: number;
   transport?: ConnectionTransport;
 };
 
-export function createConnection({ endpointUrl, id, name, now, transport = "websocket" }: CreateConnectionInput): Connection {
+export function createConnection({
+  endpointTemplate = null,
+  endpointUrl,
+  environmentId = null,
+  environmentName = null,
+  id,
+  name,
+  now,
+  transport = "websocket",
+}: CreateConnectionInput): Connection {
   return {
     createdAt: now,
     endpointUrl,
+    endpointTemplate,
+    environmentId,
+    environmentName,
     error: null,
     id,
     lastConnectedAt: null,

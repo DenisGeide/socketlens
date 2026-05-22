@@ -45,13 +45,18 @@ import { getJsonCommand } from "@/lib/json-payload";
 import { filterPackets } from "@/models";
 import {
   createImportedSessionSnapshot,
+  getActiveEnvironment,
+  hasEnvironmentVariables,
+  interpolateEnvironmentVariables,
   type Packet,
+  redactEnvironmentSecrets,
   type Session,
   getSocketLensFileLabel,
   type SocketLensImportableFile,
   validateWebSocketUrl,
 } from "@/models";
 import { useConnectionStore } from "@/store/connection-store";
+import { useEnvironmentStore } from "@/store/environment-store";
 import { usePacketStore } from "@/store/packet-store";
 import { useSessionStore } from "@/store/session-store";
 import { useSettingsStore } from "@/store/settings-store";
@@ -497,14 +502,23 @@ export function App() {
   function handleCreateConnection({
     connectNow,
     endpointUrl: nextEndpointUrl,
+    endpointTemplate,
+    environmentId,
+    environmentName,
     name,
   }: {
     connectNow: boolean;
     endpointUrl: string;
+    endpointTemplate?: string | null;
+    environmentId?: string | null;
+    environmentName?: string | null;
     name: string;
   }) {
     const connection = saveConnection({
       endpointUrl: nextEndpointUrl,
+      endpointTemplate,
+      environmentId,
+      environmentName,
       name,
     });
 
@@ -541,14 +555,47 @@ export function App() {
   }
 
   async function handleStartProxy() {
-    const validation = validateWebSocketUrl(proxyTargetUrl);
+    const environmentState = useEnvironmentStore.getState();
+    const activeEnvironment = getActiveEnvironment(environmentState.environments, environmentState.activeEnvironmentId);
+    const proxyTargetTemplate = proxyTargetUrl.trim();
+    const proxyInterpolation =
+      activeEnvironment && hasEnvironmentVariables(proxyTargetTemplate)
+        ? interpolateEnvironmentVariables(proxyTargetTemplate, activeEnvironment)
+        : null;
+
+    if (proxyInterpolation && !proxyInterpolation.ok) {
+      const message = t("environments.errors.missingVariables", {
+        environment: activeEnvironment?.name ?? t("common.notAvailable"),
+        variables: proxyInterpolation.missingVariables.join(", "),
+      });
+      const issue = createUserFacingError("invalidUrl", t, {
+        message,
+        technicalDetails: createTechnicalDetails("Proxy target URL environment interpolation failed", {
+          environmentId: activeEnvironment?.id ?? null,
+          missingVariables: proxyInterpolation.missingVariables,
+        }),
+      });
+
+      setProxyError(issue);
+      addToast({
+        details: issue.technicalDetails,
+        level: "error",
+        message: issue.suggestion,
+        title: issue.title,
+      });
+      return;
+    }
+
+    const resolvedProxyTargetUrl = proxyInterpolation?.value ?? proxyTargetTemplate;
+    const validation = validateWebSocketUrl(resolvedProxyTargetUrl);
 
     if (!validation.ok) {
       const message = translateWebSocketValidationMessage(validation.message, t);
       const issue = createUserFacingError("invalidUrl", t, {
         message,
         technicalDetails: createTechnicalDetails("Proxy target URL validation failed", {
-          targetUrl: proxyTargetUrl,
+          targetUrl: activeEnvironment ? redactEnvironmentSecrets(resolvedProxyTargetUrl, activeEnvironment) : resolvedProxyTargetUrl,
+          template: proxyInterpolation ? proxyTargetTemplate : null,
           validationMessage: validation.message,
         }),
       });
@@ -590,7 +637,7 @@ export function App() {
 
     setNativeBackendState("ready");
     setProxyStatus(result.data);
-    setProxyTargetUrl(result.data.targetUrl ?? validation.url);
+    setProxyTargetUrl(proxyInterpolation ? proxyTargetTemplate : result.data.targetUrl ?? validation.url);
     addLog({
       level: "success",
       message: t("proxy.logs.started", { url: result.data.listenUrl ?? t("proxy.localListener") }),

@@ -35,13 +35,23 @@ import { formatBytes, formatDuration, formatTime } from "@/lib/format";
 import type { NativeBackendState, ProxyStatus } from "@/lib/tauri-commands";
 import { createTechnicalDetails, createUserFacingError, type UserFacingError } from "@/lib/user-facing-errors";
 import { translateWebSocketValidationMessage } from "@/lib/validation-messages";
-import type { Connection, ConnectionStatus, Packet, ReplayHistoryItem, SendSource, Session } from "@/models";
-import { validateWebSocketUrl } from "@/models";
+import type { Connection, ConnectionStatus, EntityId, Packet, ReplayHistoryItem, SendSource, Session } from "@/models";
+import {
+  getActiveEnvironment,
+  hasEnvironmentVariables,
+  interpolateEnvironmentVariables,
+  redactEnvironmentSecrets,
+  validateWebSocketUrl,
+} from "@/models";
+import { useEnvironmentStore } from "@/store/environment-store";
 import type { ComposerMode, CreateToastInput, InvestorDemoState } from "@/store/ui-store";
 
 type ConnectionDraft = {
   connectNow: boolean;
   endpointUrl: string;
+  endpointTemplate?: string | null;
+  environmentId?: EntityId | null;
+  environmentName?: string | null;
   name: string;
 };
 
@@ -296,7 +306,14 @@ export function Sidebar({
                   <div className="space-y-3">
                     <div className="min-w-0">
                       <p className="sl-heading truncate text-sm font-semibold">{focusedConnection.name}</p>
-                      <p className="mt-1 truncate font-mono text-xs text-muted-foreground">{focusedConnection.endpointUrl}</p>
+                      <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
+                        {focusedConnection.endpointTemplate ?? focusedConnection.endpointUrl}
+                      </p>
+                      {focusedConnection.environmentName ? (
+                        <Badge variant="outline" className="mt-1">
+                          {focusedConnection.environmentName}
+                        </Badge>
+                      ) : null}
                     </div>
                     {focusedConnection.error || (focusedConnection.id === selectedConnectionId ? error : null) ? (
                       <InlineError message={focusedConnection.error ?? error ?? t("errors.connection")} />
@@ -773,9 +790,14 @@ function ConnectionHistoryItem({
         <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onSelectConnection(connection.id)}>
           <span className="flex items-center justify-between gap-2">
             <span className="sl-heading truncate text-xs font-medium">{connection.name}</span>
-            <ConnectionStatusBadge status={connection.status} />
+            <span className="flex shrink-0 items-center gap-1">
+              {connection.environmentName ? <Badge variant="outline">{connection.environmentName}</Badge> : null}
+              <ConnectionStatusBadge status={connection.status} />
+            </span>
           </span>
-          <span className="mt-1 block truncate font-mono text-[0.72rem] text-muted-foreground">{connection.endpointUrl}</span>
+          <span className="mt-1 block truncate font-mono text-[0.72rem] text-muted-foreground">
+            {connection.endpointTemplate ?? connection.endpointUrl}
+          </span>
           {connection.lastConnectedAt ? (
             <span className="sl-caption mt-1 block text-[0.72rem] text-muted-foreground">
               {t("sidebar.lastConnected", { time: formatTime(connection.lastConnectedAt) })}
@@ -816,19 +838,67 @@ type NewConnectionModalProps = {
 
 function NewConnectionModal({ defaults, onClose, onCreateConnection }: NewConnectionModalProps) {
   const { t } = useTranslation();
+  const activeEnvironmentId = useEnvironmentStore((state) => state.activeEnvironmentId);
+  const environments = useEnvironmentStore((state) => state.environments);
+  const setActiveEnvironment = useEnvironmentStore((state) => state.setActiveEnvironment);
   const [name, setName] = useState(defaults.name);
   const [endpointUrl, setEndpointUrl] = useState(defaults.endpointUrl);
   const [modalError, setModalError] = useState<UserFacingError | null>(null);
+  const activeEnvironment = useMemo(
+    () => getActiveEnvironment(environments, activeEnvironmentId),
+    [activeEnvironmentId, environments],
+  );
+  const endpointHasVariables = hasEnvironmentVariables(endpointUrl);
+  const endpointPreview = useMemo(() => {
+    if (!activeEnvironment || !endpointHasVariables) {
+      return null;
+    }
+
+    const interpolation = interpolateEnvironmentVariables(endpointUrl, activeEnvironment);
+
+    if (!interpolation.ok) {
+      return {
+        missingVariables: interpolation.missingVariables,
+        ok: false as const,
+      };
+    }
+
+    return {
+      ok: true as const,
+      value: redactEnvironmentSecrets(interpolation.value, activeEnvironment),
+    };
+  }, [activeEnvironment, endpointHasVariables, endpointUrl]);
 
   function handleSubmit(connectNow: boolean) {
-    const validation = validateWebSocketUrl(endpointUrl);
+    const endpointTemplate = endpointHasVariables ? endpointUrl.trim() : null;
+    const interpolation = endpointTemplate && activeEnvironment ? interpolateEnvironmentVariables(endpointTemplate, activeEnvironment) : null;
+
+    if (interpolation && !interpolation.ok) {
+      setModalError(
+        createUserFacingError("invalidUrl", t, {
+          message: t("environments.errors.missingVariables", {
+            environment: activeEnvironment?.name ?? t("common.notAvailable"),
+            variables: interpolation.missingVariables.join(", "),
+          }),
+          technicalDetails: createTechnicalDetails("Connection modal environment interpolation failed", {
+            environmentId: activeEnvironment?.id ?? null,
+            missingVariables: interpolation.missingVariables,
+          }),
+        }),
+      );
+      return;
+    }
+
+    const resolvedEndpointUrl = interpolation?.value ?? endpointUrl;
+    const validation = validateWebSocketUrl(resolvedEndpointUrl);
 
     if (!validation.ok) {
       setModalError(
         createUserFacingError("invalidUrl", t, {
           message: translateWebSocketValidationMessage(validation.message, t),
           technicalDetails: createTechnicalDetails("Connection modal URL validation failed", {
-            endpointUrl,
+            endpointTemplate,
+            endpointUrl: activeEnvironment ? redactEnvironmentSecrets(resolvedEndpointUrl, activeEnvironment) : resolvedEndpointUrl,
             validationMessage: validation.message,
           }),
         }),
@@ -839,6 +909,9 @@ function NewConnectionModal({ defaults, onClose, onCreateConnection }: NewConnec
     const created = onCreateConnection({
       connectNow,
       endpointUrl: validation.url,
+      endpointTemplate,
+      environmentId: endpointTemplate ? activeEnvironment?.id ?? null : null,
+      environmentName: endpointTemplate ? activeEnvironment?.name ?? null : null,
       name,
     });
 
@@ -848,6 +921,7 @@ function NewConnectionModal({ defaults, onClose, onCreateConnection }: NewConnec
           message: t("connectionModal.saveFailed"),
           technicalDetails: createTechnicalDetails("Connection modal save failed", {
             connectNow,
+            endpointTemplate,
             endpointUrl: validation.url,
           }),
         }),
@@ -868,6 +942,56 @@ function NewConnectionModal({ defaults, onClose, onCreateConnection }: NewConnec
           </Button>
         </div>
         <div className="space-y-4 p-4">
+          <div className="space-y-2 rounded-md border border-border/70 bg-background/45 p-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="sl-heading text-xs font-semibold">{t("environments.activeEnvironment")}</p>
+              <Badge variant="secondary">{activeEnvironment?.name ?? t("common.notAvailable")}</Badge>
+            </div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${Math.min(environments.length, 3)}, minmax(0, 1fr))` }}>
+              {environments.map((environment) => (
+                <button
+                  key={environment.id}
+                  type="button"
+                  aria-pressed={environment.id === activeEnvironment?.id}
+                  className={[
+                    "sl-button truncate rounded-md px-2 py-1.5 text-xs font-medium transition",
+                    environment.id === activeEnvironment?.id
+                      ? "bg-primary/15 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.25)]"
+                      : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                  ].join(" ")}
+                  onClick={() => {
+                    setActiveEnvironment(environment.id);
+                    setModalError(null);
+                  }}
+                >
+                  {environment.name}
+                </button>
+              ))}
+            </div>
+            {activeEnvironment?.connectionProfiles.length ? (
+              <div className="grid gap-1">
+                <p className="sl-caption text-[0.72rem] font-medium uppercase text-muted-foreground">
+                  {t("environments.connectionProfiles")}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeEnvironment.connectionProfiles.map((profile) => (
+                    <Button
+                      key={profile.id}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setName(profile.name);
+                        setEndpointUrl(profile.endpointUrl);
+                        setModalError(null);
+                      }}
+                    >
+                      {profile.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
           <label className="sl-caption space-y-2 text-xs font-medium text-muted-foreground">
             {t("connectionModal.name")}
             <Input
@@ -890,6 +1014,18 @@ function NewConnectionModal({ defaults, onClose, onCreateConnection }: NewConnec
               }}
             />
           </label>
+          {endpointPreview ? (
+            <div className="rounded-md border border-border/70 bg-muted/15 px-3 py-2">
+              <p className="sl-caption text-[0.72rem] font-medium uppercase text-muted-foreground">
+                {t("environments.resolvedPreview")}
+              </p>
+              <p className={["mt-1 truncate font-mono text-xs", endpointPreview.ok ? "text-foreground" : "text-amber-100"].join(" ")}>
+                {endpointPreview.ok
+                  ? endpointPreview.value
+                  : t("environments.missingVariables", { variables: endpointPreview.missingVariables.join(", ") })}
+              </p>
+            </div>
+          ) : null}
           {modalError ? <ErrorNotice error={modalError} /> : null}
         </div>
         <div className="flex items-center justify-between gap-2 border-t border-border/70 px-4 py-3">

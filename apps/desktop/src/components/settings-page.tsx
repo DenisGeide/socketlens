@@ -22,6 +22,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EnvironmentManager } from "@/components/environment-manager";
 import { Input } from "@/components/ui/input";
 import { PanelContent, PanelHeader, PanelTitle } from "@/components/ui/panel";
 import { supportedLanguages } from "@/i18n";
@@ -336,6 +337,14 @@ export function SettingsPage({ packetCount }: SettingsPageProps) {
               </label>
               <p className="sl-copy text-xs text-muted-foreground">{t("settings.packetRetention.description")}</p>
             </div>
+          </SettingsSection>
+
+          <SettingsSection
+            description={t("settings.environments.description")}
+            icon={Server}
+            title={t("settings.environments.title")}
+          >
+            <EnvironmentManager />
           </SettingsSection>
 
           <SettingsSection

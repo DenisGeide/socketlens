@@ -35,6 +35,7 @@ What works in `v0.1.0-alpha`:
 - **Packet Timeline**: virtualized list with direction, event name, timestamp, payload preview, size, badges, filters, and search.
 - **Payload Inspector**: Pretty JSON, Raw text, Metadata, copy support, and safe handling of invalid JSON.
 - **Manual Send and Replay**: send JSON or raw text, reuse previous outgoing packets, and replay while connected.
+- **Environments**: Local, Staging, and Production variables with `{{base_url}}` / `{{auth_token}}` interpolation.
 - **Session Files**: save/load SocketLens session JSON and export packets.
 - **Echo Server**: local TypeScript WebSocket server on `ws://127.0.0.1:17787`.
 - **Settings**: theme, compact mode, auto-scroll, packet retention, language, AI provider, and privacy options.
@@ -90,7 +91,7 @@ The core layout is a desktop-style debugging workspace: connection tools on the 
   <tr>
     <td width="50%">
       <strong>Settings</strong><br>
-      Settings are local: language, visual density, packet retention, AI provider, and privacy controls.<br><br>
+      Settings are local: language, environments, visual density, packet retention, AI provider, and privacy controls.<br><br>
       <img src="docs/assets/screenshots/settings.png" alt="SocketLens Settings">
     </td>
     <td width="50%">
@@ -309,6 +310,20 @@ Use it when you want to connect SocketLens directly to a server:
 Direct Mode is the easiest real workflow to test today.
 
 More detail: [docs/direct-mode.md](docs/direct-mode.md).
+
+## Environments
+
+Environments let you keep reusable variables and connection profiles for Local, Staging, and Production.
+
+Example WebSocket URL template:
+
+```text
+{{base_url}}?token={{auth_token}}
+```
+
+SocketLens resolves templates locally when you connect, validates the resulting `ws://` or `wss://` URL, and avoids logging secret variable values. Environment files can be imported/exported from Settings, but exported JSON includes variable values, so do not commit real tokens.
+
+More detail: [docs/environments.md](docs/environments.md).
 
 ## Proxy Mode
 

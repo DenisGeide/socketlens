@@ -1,6 +1,7 @@
 export * from "./app-log";
 export * from "./app-settings";
 export * from "./connection";
+export * from "./environment";
 export * from "./filter-state";
 export * from "./ids";
 export * from "./packet";
