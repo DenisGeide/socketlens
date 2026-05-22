@@ -143,6 +143,17 @@ payload.user.id == "123"
 
 Expected result: matching packets remain visible, invalid regex/smart filters show a clear error, and malformed JSON payloads do not crash the timeline.
 
+## Test Realtime Grouping
+
+Packet grouping is enabled by default to keep noisy streams readable. It groups adjacent repeated events, heartbeat storms, reconnect flows, and auth flows without deleting the original packets.
+
+1. Start Investor Demo or connect to the echo server.
+2. Let several similar packets arrive.
+3. Use the **Grouping** toggle in the packet timeline header.
+4. Expand a group row.
+
+Expected result: collapsed groups reduce timeline noise, and expanding a group shows the original packets in their captured order.
+
 ## Test Desktop Mode
 
 Desktop mode starts the Tauri app:

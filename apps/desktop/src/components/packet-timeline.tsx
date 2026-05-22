@@ -7,6 +7,8 @@ import {
   Bot,
   Braces,
   BookmarkPlus,
+  ChevronDown,
+  ChevronRight,
   CirclePause,
   CirclePlay,
   Eraser,
@@ -14,6 +16,7 @@ import {
   FileText,
   HeartPulse,
   KeyRound,
+  Layers2,
   MessageSquareText,
   MousePointer2,
   Play,
@@ -36,6 +39,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PanelContent, PanelHeader, PanelTitle } from "@/components/ui/panel";
 import { formatBytes, formatTime } from "@/lib/format";
+import { groupTimelinePackets, type PacketTimelineGroup, type PacketTimelineItem } from "@/lib/packet-grouping";
 import {
   getPacketDemoMetadata,
   getPacketSummary,
@@ -90,9 +94,11 @@ export function PacketTimeline({
   const autoScrollDefault = useSettingsStore((state) => state.settings.autoScrollDefault);
   const filterPresets = useSettingsStore((state) => state.settings.filterPresets);
   const showPayloadPreview = useSettingsStore((state) => state.settings.privacy.showPayloadPreviewInTimeline);
+  const timelineGroupingEnabled = useSettingsStore((state) => state.settings.timelineGroupingEnabled);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const newestPacketId = packets[0]?.id ?? null;
   const [autoScroll, setAutoScroll] = useState(autoScrollDefault);
+  const [expandedGroupIds, setExpandedGroupIds] = useState<ReadonlySet<string>>(() => new Set());
   const [eventDraft, setEventDraft] = useState(filterState.eventQuery);
   const [searchDraft, setSearchDraft] = useState(filterState.searchQuery);
   const [smartDraft, setSmartDraft] = useState(filterState.smartQuery);
@@ -120,6 +126,29 @@ export function PacketTimeline({
       }),
     [filterPresets],
   );
+  const timelineItems = useMemo(
+    () =>
+      timelineGroupingEnabled
+        ? groupTimelinePackets(packets, { expandedGroupIds })
+        : packets.map((packet): PacketTimelineItem => ({ id: packet.id, packet, type: "packet" })),
+    [expandedGroupIds, packets, timelineGroupingEnabled],
+  );
+  const groupingStats = useMemo(() => {
+    let groupCount = 0;
+    let collapsedPacketCount = 0;
+
+    for (const item of timelineItems) {
+      if (item.type === "group") {
+        groupCount += 1;
+
+        if (!expandedGroupIds.has(item.group.id)) {
+          collapsedPacketCount += item.group.packetCount - 1;
+        }
+      }
+    }
+
+    return { collapsedPacketCount, groupCount };
+  }, [expandedGroupIds, timelineItems]);
 
   useEffect(() => {
     setSearchDraft(filterState.searchQuery);
@@ -208,22 +237,22 @@ export function PacketTimeline({
     if (autoScroll && nextScrollTop > rowHeight * 2) {
       setAutoScroll(false);
     }
-  }, [autoScroll]);
+  }, [autoScroll, rowHeight]);
 
   const visibleRange = useMemo(() => {
     const visibleCount = Math.ceil(viewportHeight / rowHeight);
     const startIndex = Math.max(Math.floor(scrollTop / rowHeight) - overscanRows, 0);
-    const endIndex = Math.min(startIndex + visibleCount + overscanRows * 2, packets.length);
+    const endIndex = Math.min(startIndex + visibleCount + overscanRows * 2, timelineItems.length);
 
     return {
       endIndex,
       startIndex,
     };
-  }, [packets.length, scrollTop, viewportHeight]);
+  }, [rowHeight, scrollTop, timelineItems.length, viewportHeight]);
 
-  const visiblePackets = useMemo(
-    () => packets.slice(visibleRange.startIndex, visibleRange.endIndex),
-    [packets, visibleRange.endIndex, visibleRange.startIndex],
+  const visibleTimelineItems = useMemo(
+    () => timelineItems.slice(visibleRange.startIndex, visibleRange.endIndex),
+    [timelineItems, visibleRange.endIndex, visibleRange.startIndex],
   );
 
   const stats = useMemo(() => {
@@ -299,6 +328,20 @@ export function PacketTimeline({
   function deleteFilterPreset(presetId: string) {
     updateSettings({
       filterPresets: filterPresets.filter((preset) => preset.id !== presetId),
+    });
+  }
+
+  function togglePacketGroup(groupId: string) {
+    setExpandedGroupIds((currentGroupIds) => {
+      const nextGroupIds = new Set(currentGroupIds);
+
+      if (nextGroupIds.has(groupId)) {
+        nextGroupIds.delete(groupId);
+      } else {
+        nextGroupIds.add(groupId);
+      }
+
+      return nextGroupIds;
     });
   }
 
@@ -459,6 +502,22 @@ export function PacketTimeline({
           <Badge variant="outline">{t("packets.inboundShort", { count: stats.inbound })}</Badge>
           <Badge variant="outline">{t("packets.outboundShort", { count: stats.outbound })}</Badge>
           {stats.errors > 0 ? <Badge variant="outline">{t("packets.errorsShort", { count: stats.errors })}</Badge> : null}
+          {timelineGroupingEnabled && groupingStats.groupCount > 0 ? (
+            <Badge variant="outline">
+              {t("packets.grouping.summary", {
+                count: groupingStats.groupCount,
+                hidden: groupingStats.collapsedPacketCount,
+              })}
+            </Badge>
+          ) : null}
+          <Button
+            variant={timelineGroupingEnabled ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => updateSettings({ timelineGroupingEnabled: !timelineGroupingEnabled })}
+          >
+            <Layers2 className="h-4 w-4" />
+            {timelineGroupingEnabled ? t("packets.grouping.on") : t("packets.grouping.off")}
+          </Button>
           <Button
             variant={autoScroll ? "secondary" : "ghost"}
             size="sm"
@@ -489,20 +548,31 @@ export function PacketTimeline({
             totalCount={totalCount}
           />
         ) : (
-          <div className="relative" style={{ height: packets.length * rowHeight }}>
+          <div className="relative" style={{ height: timelineItems.length * rowHeight }}>
             <div
               className="absolute left-0 right-0 top-0"
               style={{ transform: `translateY(${visibleRange.startIndex * rowHeight}px)` }}
             >
-              {visiblePackets.map((packet) => (
-                <PacketTimelineRow
-                  key={packet.id}
-                  packet={packet}
-                  selected={packet.id === selectedPacketId}
-                  showPayloadPreview={showPayloadPreview}
-                  onSelectPacket={onSelectPacket}
-                />
-              ))}
+              {visibleTimelineItems.map((item) =>
+                item.type === "group" ? (
+                  <PacketTimelineGroupRow
+                    key={item.id}
+                    expanded={expandedGroupIds.has(item.group.id)}
+                    group={item.group}
+                    selected={item.group.packets.some((packet) => packet.id === selectedPacketId)}
+                    showPayloadPreview={showPayloadPreview}
+                    onToggleGroup={togglePacketGroup}
+                  />
+                ) : (
+                  <PacketTimelineRow
+                    key={item.id}
+                    packet={item.packet}
+                    selected={item.packet.id === selectedPacketId}
+                    showPayloadPreview={showPayloadPreview}
+                    onSelectPacket={onSelectPacket}
+                  />
+                ),
+              )}
             </div>
           </div>
         )}
@@ -680,6 +750,100 @@ function EmptyStateHint({ description, icon: Icon, title }: EmptyStateHintProps)
   );
 }
 
+type PacketTimelineGroupRowProps = {
+  expanded: boolean;
+  group: PacketTimelineGroup;
+  onToggleGroup: (groupId: string) => void;
+  selected: boolean;
+  showPayloadPreview: boolean;
+};
+
+const PacketTimelineGroupRow = memo(function PacketTimelineGroupRow({
+  expanded,
+  group,
+  onToggleGroup,
+  selected,
+  showPayloadPreview,
+}: PacketTimelineGroupRowProps) {
+  const { t } = useTranslation();
+  const summary = getPacketSummary(group.representativePacket);
+  const eventParts = splitEventName(group.eventName);
+  const groupTone = getGroupTone(group.kind);
+  const GroupIcon = getGroupIcon(group.kind);
+  const direction = group.directions.length === 1 ? group.directions[0] : null;
+  const timelineWindow =
+    group.firstTimestamp === group.lastTimestamp
+      ? formatTime(group.lastTimestamp)
+      : `${formatTime(group.lastTimestamp)} - ${formatTime(group.firstTimestamp)}`;
+
+  return (
+    <button
+      type="button"
+      aria-expanded={expanded}
+      className={cn(
+        "group relative mb-2 grid h-[4.75rem] w-full grid-cols-[2.25rem_minmax(0,1fr)_auto] items-start gap-2 overflow-hidden rounded-md border p-2.5 pl-3.5 text-left transition-[background,border-color,box-shadow,transform]",
+        "hover:-translate-y-px focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/70",
+        selected
+          ? "border-primary/70 bg-[linear-gradient(90deg,hsl(var(--primary)/0.14),hsl(var(--panel)/0.9)_42%)] shadow-[0_0_0_1px_hsl(var(--primary)/0.24)]"
+          : groupTone.row,
+      )}
+      title={expanded ? t("packets.group.collapse") : t("packets.group.expand")}
+      onClick={() => onToggleGroup(group.id)}
+    >
+      <span className={cn("absolute inset-y-2 left-0 w-1 rounded-r-full shadow-[0_0_20px_currentColor]", groupTone.rail)} />
+      {selected ? <span className="pointer-events-none absolute inset-0 rounded-md ring-1 ring-inset ring-primary/40" /> : null}
+      <span
+        className={cn(
+          "mt-0.5 flex h-8 w-8 items-center justify-center rounded-md border shadow-[inset_0_0_0_1px_hsl(var(--background)/0.25),0_10px_24px_hsl(var(--background)/0.18)] transition group-hover:scale-[1.03]",
+          groupTone.icon,
+        )}
+      >
+        {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+      </span>
+
+      <span className="min-w-0">
+        <span className="mb-1 flex min-w-0 items-center gap-1.5 overflow-hidden">
+          <Badge variant="outline" className={cn("shrink-0 border-opacity-80", groupTone.badge)}>
+            <GroupIcon className="h-3 w-3" />
+            {t(getGroupLabelKey(group.kind))}
+          </Badge>
+          <Badge variant="outline" className="shrink-0 border-primary/25 bg-primary/10 text-primary">
+            <Layers2 className="h-3 w-3" />
+            {t("packets.group.packetCount", { count: group.packetCount })}
+          </Badge>
+          <Badge variant="outline" className={cn("shrink-0", direction ? getDirectionTone(direction) : "border-border/70 bg-muted/20 text-muted-foreground")}>
+            {direction
+              ? direction === "inbound"
+                ? t("packets.direction.incoming")
+                : t("packets.direction.outgoing")
+              : t("packets.group.mixedDirection")}
+          </Badge>
+          <StatusBadge status={group.status} />
+        </span>
+        <span className="mb-0.5 flex min-w-0 items-baseline gap-1.5 font-mono">
+          {eventParts.namespace ? (
+            <span className="truncate text-[0.68rem] font-medium text-muted-foreground/85">{eventParts.namespace}</span>
+          ) : null}
+          <span className="truncate text-[0.82rem] font-semibold text-foreground">{eventParts.name}</span>
+        </span>
+        <span className="block line-clamp-1 rounded-md border border-border/55 bg-code/80 px-2 py-0.5 break-all font-mono text-[0.7rem] leading-5 text-muted-foreground shadow-[inset_0_1px_0_hsl(var(--foreground)/0.03)]">
+          {showPayloadPreview ? summary.preview : t("packets.previewHidden")}
+        </span>
+      </span>
+
+      <span className="flex min-w-[7rem] flex-col items-end gap-1 whitespace-nowrap">
+        <time className="rounded-sm bg-background/40 px-1.5 py-0.5 font-mono text-[0.68rem] text-muted-foreground">
+          {timelineWindow}
+        </time>
+        <span className="font-mono text-[0.7rem] text-muted-foreground">{formatBytes(group.totalBytes)}</span>
+        <span className="text-[0.68rem] font-medium text-muted-foreground">
+          {expanded ? t("packets.group.expandedHint") : t("packets.group.expandHint")}
+        </span>
+      </span>
+    </button>
+  );
+});
+
 type PacketTimelineRowProps = {
   onSelectPacket: (packetId: string) => void;
   packet: Packet;
@@ -835,6 +999,74 @@ function ProtocolBadge({ label, payloadKind }: { label: string; payloadKind: Pac
       {label}
     </Badge>
   );
+}
+
+function getGroupIcon(kind: PacketTimelineGroup["kind"]) {
+  if (kind === "auth-flow") {
+    return KeyRound;
+  }
+
+  if (kind === "heartbeat-storm") {
+    return HeartPulse;
+  }
+
+  if (kind === "reconnect-flow") {
+    return RefreshCw;
+  }
+
+  return Layers2;
+}
+
+function getGroupLabelKey(kind: PacketTimelineGroup["kind"]) {
+  if (kind === "auth-flow") {
+    return "packets.group.authFlow";
+  }
+
+  if (kind === "heartbeat-storm") {
+    return "packets.group.heartbeatStorm";
+  }
+
+  if (kind === "reconnect-flow") {
+    return "packets.group.reconnectFlow";
+  }
+
+  return "packets.group.repeatedEvent";
+}
+
+function getGroupTone(kind: PacketTimelineGroup["kind"]) {
+  if (kind === "heartbeat-storm") {
+    return {
+      badge: "border-amber-300/25 bg-amber-300/10 text-amber-100",
+      icon: "border-amber-300/30 bg-amber-300/10 text-amber-100",
+      rail: "bg-amber-200/75",
+      row: "border-amber-300/25 bg-[linear-gradient(90deg,hsl(45_96%_58%/0.1),hsl(var(--panel)/0.86)_38%)] hover:border-amber-300/35",
+    };
+  }
+
+  if (kind === "reconnect-flow") {
+    return {
+      badge: "border-blue-300/25 bg-blue-300/10 text-blue-200",
+      icon: "border-blue-300/30 bg-blue-300/10 text-blue-200",
+      rail: "bg-blue-300/75",
+      row: "border-blue-300/25 bg-[linear-gradient(90deg,hsl(215_92%_68%/0.1),hsl(var(--panel)/0.86)_38%)] hover:border-blue-300/35",
+    };
+  }
+
+  if (kind === "auth-flow") {
+    return {
+      badge: "border-sky-300/25 bg-sky-300/10 text-sky-200",
+      icon: "border-sky-300/30 bg-sky-300/10 text-sky-200",
+      rail: "bg-sky-300/75",
+      row: "border-sky-300/25 bg-[linear-gradient(90deg,hsl(198_93%_60%/0.1),hsl(var(--panel)/0.86)_38%)] hover:border-sky-300/35",
+    };
+  }
+
+  return {
+    badge: "border-primary/25 bg-primary/10 text-primary",
+    icon: "border-primary/30 bg-primary/10 text-primary",
+    rail: "bg-primary",
+    row: "border-primary/25 bg-[linear-gradient(90deg,hsl(var(--primary)/0.1),hsl(var(--panel)/0.86)_38%)] hover:border-primary/35",
+  };
 }
 
 function getDirectionTone(direction: Packet["direction"]) {

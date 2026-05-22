@@ -63,6 +63,7 @@ export type AppSettings = {
   packetRetentionLimit: number;
   privacy: AppPrivacySettings;
   theme: AppTheme;
+  timelineGroupingEnabled: boolean;
 };
 
 export const onboardingStepIds = [
@@ -110,6 +111,7 @@ export const defaultAppSettings: AppSettings = {
     showPayloadPreviewInTimeline: true,
   },
   theme: "dark",
+  timelineGroupingEnabled: true,
 };
 
 export function clampPacketRetentionLimit(value: number) {
@@ -153,6 +155,7 @@ export function normalizeAppSettings(settings: Partial<AppSettings>): AppSetting
           : defaultAppSettings.privacy.showPayloadPreviewInTimeline,
     },
     theme: normalizeTheme(settings.theme),
+    timelineGroupingEnabled: getBooleanValue(settings.timelineGroupingEnabled, defaultAppSettings.timelineGroupingEnabled),
   };
 }
 
