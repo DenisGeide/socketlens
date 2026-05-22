@@ -523,6 +523,7 @@ These are local TypeScript contracts, not a remote plugin marketplace. SocketLen
 
 Contributor extension guides:
 
+- [docs/function-inventory.md](docs/function-inventory.md): full inventory of current UI features, core logic, workflows, extension points, and alpha limitations.
 - [docs/contributor-guide.md](docs/contributor-guide.md): where new work goes and how packet flow works.
 - [docs/architecture-rules.md](docs/architecture-rules.md): review guardrails for keeping the core stable.
 - [docs/adding-a-decoder.md](docs/adding-a-decoder.md): add protocol decoding without touching timeline/inspector internals.
