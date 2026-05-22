@@ -52,7 +52,7 @@ Each packet contains:
 
 Use **Session files** in the sidebar after selecting a session.
 
-1. Optionally edit the session name.
+1. Optionally edit the exported session name.
 2. Click **Save**.
 3. SocketLens writes a `.socketlens-session.json` file.
 
@@ -63,6 +63,28 @@ Desktop mode uses a native save dialog. Browser development mode downloads a JSO
 Use **Export** to write only packets and metadata. Packet-only exports use `.socketlens-packets.json`.
 
 Packet exports are useful when you want to share packet data without the full session object.
+
+## Redacted Exports
+
+Session files can contain secrets captured from real traffic. Before saving or exporting, SocketLens now shows a redaction warning and a preview.
+
+By default, the exported copy redacts common sensitive values:
+
+- tokens and bearer credentials
+- cookies and `Set-Cookie` values
+- authorization headers
+- API keys and password-like fields
+- endpoint URL credentials and query strings
+
+Redaction preserves the JSON shape where possible. For example, a `token` field stays in place, but its value becomes `[REDACTED]`. The active in-app session is not changed; only the saved/exported JSON copy is modified.
+
+You can add custom redaction rules in the Session Files panel:
+
+- plain text rules match literally
+- `/pattern/flags` rules run as regular expressions
+- invalid custom rules block export until fixed
+
+If redaction is disabled and SocketLens detects sensitive-looking data, the UI asks for explicit confirmation before writing a raw copy.
 
 ## Load a Session
 
@@ -90,7 +112,17 @@ Full session files use:
     "exportedAt": "2026-05-21T12:10:00.000Z",
     "packetCount": 2,
     "sourceSessionId": "session-id",
-    "endpointUrl": "ws://127.0.0.1:17787"
+    "endpointUrl": "ws://127.0.0.1:17787",
+    "redaction": {
+      "applied": true,
+      "customRuleCount": 0,
+      "invalidCustomRules": [],
+      "redactedAt": "2026-05-21T12:10:00.000Z",
+      "redactedPacketCount": 1,
+      "replacement": "[REDACTED]",
+      "replacements": 2,
+      "sensitiveDataDetected": true
+    }
   },
   "session": {
     "id": "session-id",
@@ -156,6 +188,6 @@ Imported files are validated before entering app state. SocketLens rejects:
 
 ## Privacy
 
-Session files may contain sensitive payloads and endpoint URLs. Treat exported files as debugging artifacts and review them before sharing.
+Session files may contain sensitive payloads and endpoint URLs. SocketLens applies safe export redaction by default, but exported files are still debugging artifacts. Review them before sharing.
 
 See [privacy.md](privacy.md).

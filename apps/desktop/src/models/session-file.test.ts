@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addSocketLensRedactionMetadata,
   createImportedSessionSnapshot,
   createPacketExportFile,
   createSession,
@@ -95,6 +96,38 @@ describe("session serialization", () => {
       message: "A packet entry is missing required fields.",
       ok: false,
     });
+  });
+
+  it("preserves optional redaction metadata during parse", () => {
+    const file = addSocketLensRedactionMetadata(
+      createSessionFile({
+        exportedAt: 5000,
+        packets,
+        session,
+      }),
+      {
+        applied: true,
+        customRuleCount: 1,
+        invalidCustomRules: [],
+        redactedAt: "2026-05-21T12:10:00.000Z",
+        redactedPacketCount: 2,
+        replacement: "[REDACTED]",
+        replacements: 4,
+        sensitiveDataDetected: true,
+      },
+    );
+
+    const parsed = parseSocketLensFile(serializeSocketLensFile(file));
+
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.file.metadata.redaction).toMatchObject({
+        applied: true,
+        customRuleCount: 1,
+        redactedPacketCount: 2,
+        replacements: 4,
+      });
+    }
   });
 
   it("creates imported session snapshots with remapped session and connection ids", () => {

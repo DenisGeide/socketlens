@@ -8,3 +8,4 @@ export * from "./packet";
 export * from "./replay-history";
 export * from "./session";
 export * from "./session-file";
+export * from "./session-redaction";

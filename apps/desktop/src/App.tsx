@@ -59,13 +59,18 @@ import {
 import { getJsonCommand } from "@/lib/json-payload";
 import { filterPackets } from "@/models";
 import {
+  addSocketLensRedactionMetadata,
   createImportedSessionSnapshot,
+  createSocketLensRedactionMetadata,
   getActiveEnvironment,
   hasEnvironmentVariables,
   interpolateEnvironmentVariables,
   type Packet,
+  redactSessionForExport,
   redactEnvironmentSecrets,
   type Session,
+  type SessionRedactionOptions,
+  type SessionRedactionSummary,
   getSocketLensFileLabel,
   type SocketLensImportableFile,
   validateWebSocketUrl,
@@ -78,6 +83,18 @@ import { useSettingsStore } from "@/store/settings-store";
 import { useUiStore } from "@/store/ui-store";
 
 type AppView = "settings" | "workspace";
+type SessionFileActionOptions = {
+  redaction?: SessionRedactionOptions;
+};
+
+function addRedactionMetadataIfNeeded<File extends SocketLensImportableFile>(
+  file: File,
+  summary: SessionRedactionSummary,
+) {
+  return summary.applied
+    ? addSocketLensRedactionMetadata(file, createSocketLensRedactionMetadata(summary))
+    : file;
+}
 
 export function App() {
   const { i18n, t } = useTranslation();
@@ -1024,7 +1041,7 @@ export function App() {
     }
   }
 
-  async function handleSaveCurrentSession(sessionName: string) {
+  async function handleSaveCurrentSession(sessionName: string, options: SessionFileActionOptions = {}) {
     if (!currentSession) {
       addLog({
         level: "warning",
@@ -1034,15 +1051,25 @@ export function App() {
     }
 
     const normalizedSessionName = sessionName.trim() || currentSession.name;
+    const redactionResult = redactSessionForExport({
+      customRules: options.redaction?.customRules,
+      enabled: options.redaction?.enabled ?? true,
+      packets: currentSessionPackets,
+      replacement: options.redaction?.replacement,
+      session: currentSession,
+    });
     const sessionForFile = {
-      ...currentSession,
+      ...(redactionResult.session ?? currentSession),
       name: normalizedSessionName,
     };
-    const file = createExportFile(socketLensSessionExportAdapter, {
-      packets: currentSessionPackets,
-      session: sessionForFile,
-      sessionName: normalizedSessionName,
-    });
+    const file = addRedactionMetadataIfNeeded(
+      createExportFile(socketLensSessionExportAdapter, {
+        packets: redactionResult.packets,
+        session: sessionForFile,
+        sessionName: normalizedSessionName,
+      }),
+      redactionResult.summary,
+    );
     const result = await saveSocketLensFile(file, socketLensSessionExportAdapter.getSuggestedFileName(file));
 
     if (result.cancelled) {
@@ -1054,7 +1081,6 @@ export function App() {
       return;
     }
 
-    renameSession(currentSession.id, normalizedSessionName);
     addLog({
       connectionId: currentSession.connectionId,
       level: "success",
@@ -1066,7 +1092,7 @@ export function App() {
     });
   }
 
-  async function handleExportPackets(sessionName: string) {
+  async function handleExportPackets(sessionName: string, options: SessionFileActionOptions = {}) {
     if (!currentSession || currentSessionPackets.length === 0) {
       addLog({
         level: "warning",
@@ -1077,14 +1103,24 @@ export function App() {
     }
 
     const normalizedSessionName = sessionName.trim() || currentSession.name;
-    const file = createExportFile(socketLensPacketExportAdapter, {
+    const redactionResult = redactSessionForExport({
+      customRules: options.redaction?.customRules,
+      enabled: options.redaction?.enabled ?? true,
       packets: currentSessionPackets,
+      replacement: options.redaction?.replacement,
       session: {
         ...currentSession,
         name: normalizedSessionName,
       },
-      sessionName: normalizedSessionName,
     });
+    const file = addRedactionMetadataIfNeeded(
+      createExportFile(socketLensPacketExportAdapter, {
+        packets: redactionResult.packets,
+        session: redactionResult.session ?? currentSession,
+        sessionName: normalizedSessionName,
+      }),
+      redactionResult.summary,
+    );
     const result = await saveSocketLensFile(file, socketLensPacketExportAdapter.getSuggestedFileName(file));
 
     if (result.cancelled) {

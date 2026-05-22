@@ -85,7 +85,18 @@ Session files are local JSON documents. They may contain:
 - close reasons
 - session names
 
-SocketLens validates imported session JSON before loading it into app state, but it does not redact exported payloads automatically. Review files before sharing them.
+SocketLens validates imported session JSON before loading it into app state.
+
+Before saving or exporting, SocketLens shows a warning and redaction preview. Redaction is enabled by default for the exported copy and targets common sensitive values:
+
+- tokens
+- cookies
+- authorization headers
+- API keys and password-like fields
+- endpoint URL credentials and query strings
+- custom rules that you enter manually
+
+Redaction preserves payload structure where possible and does not mutate the active in-app session. If you disable redaction and SocketLens detects sensitive-looking data, the UI asks for explicit confirmation before writing a raw copy. Always review exported files before sharing them.
 
 In the native Tauri app, file reads and writes happen after the user selects a path through the file dialog. In browser development mode, exports use browser downloads and imports use user-selected file uploads.
 

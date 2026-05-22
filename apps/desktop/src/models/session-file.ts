@@ -17,9 +17,21 @@ type SocketLensFileMetadata<Format extends SocketLensFileFormat> = {
   exportedAt: string;
   format: Format;
   packetCount: number;
+  redaction?: SocketLensRedactionMetadata;
   sessionName: string;
   sourceSessionId: EntityId | null;
   version: typeof socketLensSessionFileVersion;
+};
+
+export type SocketLensRedactionMetadata = {
+  applied: boolean;
+  customRuleCount: number;
+  invalidCustomRules: string[];
+  redactedAt: string;
+  redactedPacketCount: number;
+  replacement: string;
+  replacements: number;
+  sensitiveDataDetected: boolean;
 };
 
 export type SocketLensSessionFile = {
@@ -128,6 +140,19 @@ export function createPacketExportFile({
 
 export function serializeSocketLensFile(file: SocketLensImportableFile) {
   return `${JSON.stringify(file, null, 2)}\n`;
+}
+
+export function addSocketLensRedactionMetadata<File extends SocketLensImportableFile>(
+  file: File,
+  redaction: SocketLensRedactionMetadata,
+): File {
+  return {
+    ...file,
+    metadata: {
+      ...file.metadata,
+      redaction,
+    },
+  };
 }
 
 export function parseSocketLensFile(contents: string): ParsedSocketLensFileResult {
@@ -358,11 +383,52 @@ function parseMetadata(value: unknown):
       exportedAt,
       format,
       packetCount,
+      redaction: parseRedactionMetadata(value.redaction),
       sessionName,
       sourceSessionId: readNullableString(value, "sourceSessionId"),
       version: socketLensSessionFileVersion,
     },
     ok: true,
+  };
+}
+
+function parseRedactionMetadata(value: unknown): SocketLensRedactionMetadata | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const applied = value.applied;
+  const customRuleCount = readNumber(value, "customRuleCount");
+  const invalidCustomRules = Array.isArray(value.invalidCustomRules)
+    ? value.invalidCustomRules.filter((item): item is string => typeof item === "string")
+    : [];
+  const redactedAt = readString(value, "redactedAt");
+  const redactedPacketCount = readNumber(value, "redactedPacketCount");
+  const replacement = readString(value, "replacement");
+  const replacements = readNumber(value, "replacements");
+  const sensitiveDataDetected = value.sensitiveDataDetected;
+
+  if (
+    typeof applied !== "boolean" ||
+    customRuleCount === null ||
+    !redactedAt ||
+    redactedPacketCount === null ||
+    !replacement ||
+    replacements === null ||
+    typeof sensitiveDataDetected !== "boolean"
+  ) {
+    return undefined;
+  }
+
+  return {
+    applied,
+    customRuleCount,
+    invalidCustomRules,
+    redactedAt,
+    redactedPacketCount,
+    replacement,
+    replacements,
+    sensitiveDataDetected,
   };
 }
 
