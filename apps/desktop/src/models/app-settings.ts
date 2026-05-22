@@ -14,6 +14,7 @@ export type AppOnboardingStepId =
   | "observe-pong"
   | "replay-packet"
   | "filter-events";
+export type AppOnboardingCardId = "quick-start" | "investor-demo" | "demo-stream";
 
 export type AppPrivacySettings = {
   persistRecentConnections: boolean;
@@ -39,6 +40,7 @@ export type AppAiProviderSettings = {
 
 export type AppOnboardingSettings = {
   completedStepIds: AppOnboardingStepId[];
+  dismissedCardIds: AppOnboardingCardId[];
   dismissedAt: number | null;
 };
 
@@ -79,6 +81,7 @@ export const onboardingStepIds = [
   "replay-packet",
   "filter-events",
 ] as const satisfies AppOnboardingStepId[];
+export const onboardingCardIds = ["quick-start", "investor-demo", "demo-stream"] as const satisfies AppOnboardingCardId[];
 export const minPacketRetentionLimit = 10_000;
 export const maxPacketRetentionLimit = 100_000;
 export const packetRetentionLimitStep = 1_000;
@@ -105,6 +108,7 @@ export const defaultAppSettings: AppSettings = {
   logRetentionLimit: 200,
   onboarding: {
     completedStepIds: [],
+    dismissedCardIds: [],
     dismissedAt: null,
   },
   packetRetentionLimit: minPacketRetentionLimit,
@@ -204,16 +208,32 @@ function normalizeOnboardingSettings(settings: Record<string, unknown>): AppOnbo
   const completedStepIds = Array.isArray(settings.completedStepIds)
     ? settings.completedStepIds.filter((stepId): stepId is AppOnboardingStepId => isOnboardingStepId(stepId))
     : [];
+  const dismissedCardIds = Array.isArray(settings.dismissedCardIds)
+    ? settings.dismissedCardIds.filter((cardId): cardId is AppOnboardingCardId => isOnboardingCardId(cardId))
+    : [];
   const dismissedAt = typeof settings.dismissedAt === "number" && Number.isFinite(settings.dismissedAt) ? settings.dismissedAt : null;
 
   return {
     completedStepIds: [...new Set(completedStepIds)],
+    dismissedCardIds: [...new Set(dismissedCardIds)],
     dismissedAt,
   };
 }
 
+export function addDismissedOnboardingCardId(cardIds: AppOnboardingCardId[], cardId: AppOnboardingCardId): AppOnboardingCardId[] {
+  return [...new Set([...cardIds, cardId])];
+}
+
+export function isOnboardingCardDismissed(settings: AppOnboardingSettings, cardId: AppOnboardingCardId) {
+  return settings.dismissedCardIds.includes(cardId);
+}
+
 function isOnboardingStepId(value: unknown): value is AppOnboardingStepId {
   return typeof value === "string" && onboardingStepIds.includes(value as AppOnboardingStepId);
+}
+
+function isOnboardingCardId(value: unknown): value is AppOnboardingCardId {
+  return typeof value === "string" && onboardingCardIds.includes(value as AppOnboardingCardId);
 }
 
 function normalizeAiProviderSettings(settings: Record<string, unknown>): AppAiProviderSettings {

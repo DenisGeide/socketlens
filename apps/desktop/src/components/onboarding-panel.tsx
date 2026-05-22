@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { localEchoServerCommand, localEchoServerUrl } from "@/config/runtime-defaults";
 import type { AppOnboardingStepId, FilterState, Packet, ReplayHistoryItem } from "@/models";
-import { onboardingStepIds } from "@/models";
+import { addDismissedOnboardingCardId, isOnboardingCardDismissed, onboardingStepIds } from "@/models";
 import { useSettingsStore } from "@/store/settings-store";
 
 const quickStartStepIds = [
@@ -100,12 +100,13 @@ export function QuickStartOnboardingPanel({
     updateSettings({
       onboarding: {
         completedStepIds,
+        dismissedCardIds: settings.onboarding.dismissedCardIds,
         dismissedAt: Date.now(),
       },
     });
-  }, [completedStepIds, isComplete, settings.onboarding.dismissedAt, updateSettings]);
+  }, [completedStepIds, isComplete, settings.onboarding.dismissedAt, settings.onboarding.dismissedCardIds, updateSettings]);
 
-  if (settings.onboarding.dismissedAt !== null || isComplete) {
+  if (settings.onboarding.dismissedAt !== null || isOnboardingCardDismissed(settings.onboarding, "quick-start") || isComplete) {
     return null;
   }
 
@@ -113,6 +114,7 @@ export function QuickStartOnboardingPanel({
     updateSettings({
       onboarding: {
         completedStepIds,
+        dismissedCardIds: addDismissedOnboardingCardId(settings.onboarding.dismissedCardIds, "quick-start"),
         dismissedAt: Date.now(),
       },
     });
@@ -129,7 +131,7 @@ export function QuickStartOnboardingPanel({
           <h2 className="sl-heading mt-1 text-sm font-semibold text-foreground">{t("onboarding.quickStart.title")}</h2>
           <p className="sl-copy mt-1 text-xs leading-5 text-muted-foreground">{t("onboarding.quickStart.description")}</p>
         </div>
-        <Button variant="ghost" size="icon" title={t("onboarding.dismiss")} onClick={dismissOnboarding}>
+        <Button variant="ghost" size="icon" aria-label={t("onboarding.dismiss")} title={t("onboarding.dismiss")} onClick={dismissOnboarding}>
           <X className="h-4 w-4" />
         </Button>
       </div>

@@ -55,6 +55,7 @@ import {
   getActiveEnvironment,
   hasEnvironmentVariables,
   interpolateEnvironmentVariables,
+  isOnboardingCardDismissed,
   redactEnvironmentSecrets,
   hasPacketAnnotations,
   validateWebSocketUrl,
@@ -202,6 +203,7 @@ export function Sidebar({
 }: SidebarProps) {
   const { t } = useTranslation();
   const onboarding = useSettingsStore((state) => state.settings.onboarding);
+  const dismissOnboardingCard = useSettingsStore((state) => state.dismissOnboardingCard);
   const [captureMode, setCaptureMode] = useState<CaptureMode>("direct");
   const [modalDefaults, setModalDefaults] = useState<Pick<ConnectionDraft, "endpointUrl" | "name"> | null>(null);
   const directConnections = useMemo(
@@ -221,7 +223,9 @@ export function Sidebar({
   const canStartDemo = !isDemoActive && !isConnected && !isBusy;
   const canStartInvestorDemo = !isDemoActive && !isConnected && !isBusy;
   const canConnect = !isDemoActive && !isConnected && !isBusy;
-  const showQuickStartPanel = onboarding.dismissedAt === null;
+  const showQuickStartPanel = onboarding.dismissedAt === null && !isOnboardingCardDismissed(onboarding, "quick-start");
+  const showInvestorDemoSidebarCard = !showQuickStartPanel && !isOnboardingCardDismissed(onboarding, "investor-demo");
+  const showDemoStreamCard = !isOnboardingCardDismissed(onboarding, "demo-stream");
   const activeDirectPacketCount = activeConnection ? currentSessionPackets.length : 0;
   const annotatedPackets = useMemo(
     () => currentSessionPackets.filter((packet) => hasPacketAnnotations(packet.annotations)),
@@ -274,37 +278,52 @@ export function Sidebar({
               onOpenDocs={onOpenDocs}
               onStartDemo={onStartInvestorDemo}
             />
-          ) : (
+          ) : showInvestorDemoSidebarCard ? (
             <InvestorDemoSidebarCard
               canStart={canStartInvestorDemo}
               investorDemo={investorDemo}
               packetCount={investorDemoPacketCount}
+              onDismiss={() => dismissOnboardingCard("investor-demo")}
               onReset={onResetInvestorDemo}
               onStart={onStartInvestorDemo}
             />
-          )}
+          ) : null}
 
-          <div className="rounded-md border border-primary/25 bg-primary/10 p-2.5">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <div>
-                <p className="sl-section-label text-xs font-semibold uppercase text-primary">{t("sidebar.demoMode.title")}</p>
-                <p className="sl-caption mt-1 text-xs text-muted-foreground">{t("sidebar.demoMode.description")}</p>
+          {showDemoStreamCard ? (
+            <div className="rounded-md border border-primary/25 bg-primary/10 p-2.5 transition-all duration-200">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div>
+                  <p className="sl-section-label text-xs font-semibold uppercase text-primary">{t("sidebar.demoMode.title")}</p>
+                  <p className="sl-caption mt-1 text-xs text-muted-foreground">{t("sidebar.demoMode.description")}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Badge variant={isDemoActive ? "default" : "outline"}>
+                    {isDemoActive ? t("sidebar.demoMode.live") : t("status.demo")}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded text-muted-foreground/80 hover:border-primary/25 hover:bg-primary/10 hover:text-foreground"
+                    aria-label={t("onboarding.dismiss")}
+                    title={t("onboarding.dismiss")}
+                    onClick={() => dismissOnboardingCard("demo-stream")}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
-              <Badge variant={isDemoActive ? "default" : "outline"}>
-                {isDemoActive ? t("sidebar.demoMode.live") : t("status.demo")}
-              </Badge>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="secondary" size="sm" disabled={!canStartDemo} onClick={onStartDemo}>
+                  <Play className="h-4 w-4" />
+                  {t("actions.start")}
+                </Button>
+                <Button variant="ghost" size="sm" disabled={!isDemoActive} onClick={onStopDemo}>
+                  <Square className="h-4 w-4" />
+                  {t("actions.stop")}
+                </Button>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="secondary" size="sm" disabled={!canStartDemo} onClick={onStartDemo}>
-                <Play className="h-4 w-4" />
-                {t("actions.start")}
-              </Button>
-              <Button variant="ghost" size="sm" disabled={!isDemoActive} onClick={onStopDemo}>
-                <Square className="h-4 w-4" />
-                {t("actions.stop")}
-              </Button>
-            </div>
-          </div>
+          ) : null}
 
           <CaptureModeToggle
             mode={captureMode}

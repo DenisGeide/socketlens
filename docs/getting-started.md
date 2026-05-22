@@ -69,7 +69,7 @@ Use web mode for first-run onboarding, Demo Mode, Direct Mode, settings, session
 
 Expected result: simulated demo packets appear live and are clearly marked as demo traffic.
 
-You can hide the first-run guide at any time. To show it again later, open **Settings** and click **Restart guide**.
+You can hide the first-run guide and demo cards at any time. SocketLens remembers hidden cards after reloads. To restore all onboarding/demo cards and reset the guide progress, open **Settings** and click **Restart guide**.
 
 ## Start The Echo Server
 

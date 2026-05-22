@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { defaultAppSettings, normalizeAppSettings, type AppSettings } from "@/models";
+import { addDismissedOnboardingCardId, defaultAppSettings, normalizeAppSettings, type AppOnboardingCardId, type AppSettings } from "@/models";
 import {
   createPersistedSettingsState,
   resolvePersistedSettings,
@@ -9,6 +9,7 @@ import {
 } from "@/lib/settings-persistence";
 
 type SettingsStore = {
+  dismissOnboardingCard: (cardId: AppOnboardingCardId) => void;
   restartOnboarding: () => void;
   resetSettings: () => void;
   settings: AppSettings;
@@ -18,12 +19,23 @@ type SettingsStore = {
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
+      dismissOnboardingCard: (cardId) =>
+        set((state) => ({
+          settings: normalizeAppSettings({
+            ...state.settings,
+            onboarding: {
+              ...state.settings.onboarding,
+              dismissedCardIds: addDismissedOnboardingCardId(state.settings.onboarding.dismissedCardIds, cardId),
+            },
+          }),
+        })),
       restartOnboarding: () =>
         set((state) => ({
           settings: normalizeAppSettings({
             ...state.settings,
             onboarding: {
               completedStepIds: [],
+              dismissedCardIds: [],
               dismissedAt: null,
             },
           }),

@@ -11,6 +11,7 @@ import {
   RotateCcw,
   ShieldCheck,
   Sparkles,
+  X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { investorDemoSteps } from "@/demo/investor-demo";
@@ -23,6 +24,7 @@ type InvestorDemoPanelProps = {
   canStart: boolean;
   investorDemo: InvestorDemoState;
   packetCount: number;
+  onDismiss?: () => void;
   onReset: () => void;
   onStart: () => void;
 };
@@ -147,7 +149,7 @@ export function InvestorDemoGuide({ canStart, investorDemo, packetCount, onReset
   );
 }
 
-export function InvestorDemoSidebarCard({ canStart, investorDemo, packetCount, onReset, onStart }: InvestorDemoPanelProps) {
+export function InvestorDemoSidebarCard({ canStart, investorDemo, packetCount, onDismiss, onReset, onStart }: InvestorDemoPanelProps) {
   const { t } = useTranslation();
   const isComplete = investorDemo.isActive && investorDemo.completedAt !== null;
 
@@ -161,9 +163,23 @@ export function InvestorDemoSidebarCard({ canStart, investorDemo, packetCount, o
           </p>
           <p className="sl-copy mt-1 text-xs text-muted-foreground">{t("investorDemo.sidebarDescription")}</p>
         </div>
-        <Badge variant={investorDemo.isActive ? "default" : "outline"}>
-          {isComplete ? t("investorDemo.status.shortComplete") : investorDemo.isActive ? t("investorDemo.status.live") : t("status.demo")}
-        </Badge>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Badge variant={investorDemo.isActive ? "default" : "outline"}>
+            {isComplete ? t("investorDemo.status.shortComplete") : investorDemo.isActive ? t("investorDemo.status.live") : t("status.demo")}
+          </Badge>
+          {onDismiss ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 rounded text-muted-foreground/80 hover:border-primary/25 hover:bg-primary/10 hover:text-foreground"
+              aria-label={t("onboarding.dismiss")}
+              title={t("onboarding.dismiss")}
+              onClick={onDismiss}
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">

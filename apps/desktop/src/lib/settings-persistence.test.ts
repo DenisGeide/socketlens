@@ -107,4 +107,19 @@ describe("settings persistence helpers", () => {
     expect(resolved.filterPresets[0]?.filterState.sessionId).toBeNull();
     expect(resolved.filterPresets[0]?.filterState.smartQuery).toBe('payload.user.id == "123"');
   });
+
+  it("normalizes dismissed onboarding cards for persisted first-run state", () => {
+    const resolved = resolvePersistedSettings({
+      settings: {
+        onboarding: {
+          completedStepIds: ["view-timeline", "unsupported-step", "view-timeline"],
+          dismissedAt: null,
+          dismissedCardIds: ["demo-stream", "unknown-card", "investor-demo", "demo-stream"],
+        },
+      },
+    });
+
+    expect(resolved.onboarding.completedStepIds).toEqual(["view-timeline"]);
+    expect(resolved.onboarding.dismissedCardIds).toEqual(["demo-stream", "investor-demo"]);
+  });
 });
