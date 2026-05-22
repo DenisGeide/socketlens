@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SocketLens",
+  "version": "0.1.0-alpha",
+  "identifier": "dev.socketlens.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "SocketLens",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 960,
+        "minHeight": 640
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: blob: asset: http://asset.localhost",
+        "font-src": "'self' data:",
+        "connect-src": "'self' ipc: http://ipc.localhost http: https: ws: wss:",
+        "object-src": "'none'",
+        "base-uri": "'none'",
+        "frame-ancestors": "'none'"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "publisher": "SocketLens contributors",
+    "homepage": "https://github.com/socketlens/socketlens",
+    "copyright": "Copyright (c) 2026 SocketLens contributors",
+    "license": "AGPL-3.0-only",
+    "licenseFile": "../../../LICENSE",
+    "category": "DeveloperTool",
+    "shortDescription": "A professional desktop WebSocket debugger.",
+    "longDescription": "SocketLens is a desktop WebSocket debugger for inspecting realtime application traffic, replaying packets, saving sessions, and testing direct or proxied WebSocket flows.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico",
+      "icons/icon.icns"
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "socketlens",
+  "version": "0.1.0-alpha",
+  "private": true,
+  "description": "A professional desktop WebSocket debugger for developers building realtime apps.",
+  "license": "AGPL-3.0-only",
+  "packageManager": "npm@11.9.0",
+  "workspaces": [
+    "apps/desktop",
+    "apps/landing",
+    "examples/echo-server",
+    "examples/chat-demo"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @socketlens/desktop",
+    "dev:desktop": "npm run dev:desktop --workspace @socketlens/desktop",
+    "dev:landing": "npm run dev --workspace @socketlens/landing",
+    "dev:echo": "npm run dev --workspace @socketlens/echo-server",
+    "dev:chat": "npm run dev --workspace @socketlens/chat-demo",
+    "build": "npm run build --workspaces --if-present",
+    "build:desktop": "npm run build:desktop --workspace @socketlens/desktop",
+    "build:landing": "npm run build --workspace @socketlens/landing",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "encoding:check": "node scripts/encoding-audit.mjs",
+    "lint": "node scripts/lint.mjs",
+    "check": "npm run clean && npm run encoding:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run clean",
+    "clean": "node scripts/clean.mjs",
+    "release:prepare": "node scripts/release-prepare.mjs",
+    "release:build": "npm run release:prepare && npm run build:desktop"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0",
+    "npm": ">=10"
+  }
+}

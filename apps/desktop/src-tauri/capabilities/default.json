@@ -1,0 +1,13 @@
+{
+  "identifier": "default",
+  "description": "Default permissions for the main SocketLens window.",
+  "windows": ["main"],
+  "permissions": [
+    "dialog:default",
+    "core:event:default",
+    "fs:default",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
+    "opener:default"
+  ]
+}

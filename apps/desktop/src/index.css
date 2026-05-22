@@ -1,0 +1,256 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  font-size: 14px;
+  --font-ui:
+    Inter,
+    "Segoe UI Variable Text",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  --font-ui-cyrillic:
+    "Segoe UI Variable Text",
+    "Segoe UI",
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  --background: 220 18% 7%;
+  --foreground: 210 26% 92%;
+  --card: 220 15% 10%;
+  --card-foreground: 210 26% 92%;
+  --panel: 222 16% 9%;
+  --shell: 220 18% 6%;
+  --code: 224 18% 6%;
+  --primary: 184 84% 47%;
+  --primary-foreground: 220 18% 7%;
+  --secondary: 222 12% 16%;
+  --secondary-foreground: 210 22% 88%;
+  --muted: 222 12% 14%;
+  --muted-foreground: 216 11% 66%;
+  --accent: 38 92% 58%;
+  --accent-foreground: 220 18% 7%;
+  --destructive: 356 82% 64%;
+  --destructive-foreground: 220 18% 7%;
+  --border: 220 12% 18%;
+  --input: 220 12% 20%;
+  --ring: 184 84% 47%;
+  --radius: 0.5rem;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: 210 24% 96%;
+  --foreground: 222 24% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 24% 12%;
+  --panel: 0 0% 100%;
+  --shell: 210 30% 98%;
+  --code: 220 28% 94%;
+  --primary: 189 86% 34%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 18% 91%;
+  --secondary-foreground: 222 20% 18%;
+  --muted: 210 18% 92%;
+  --muted-foreground: 216 12% 40%;
+  --accent: 35 84% 48%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 356 74% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 216 16% 78%;
+  --input: 216 16% 72%;
+  --ring: 189 86% 34%;
+}
+
+:root[data-density="compact"] {
+  font-size: 13px;
+}
+
+@media (min-width: 1600px) {
+  :root {
+    font-size: 15px;
+  }
+
+  :root[data-density="compact"] {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 2400px) {
+  :root {
+    font-size: 16px;
+  }
+
+  :root[data-density="compact"] {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 2560px) {
+  :root {
+    font-size: 16px;
+  }
+
+  :root[data-density="compact"] {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 3200px) {
+  :root {
+    font-size: 17px;
+  }
+
+  :root[data-density="compact"] {
+    font-size: 15px;
+  }
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, hsl(220 20% 8%) 0%, hsl(var(--background)) 42%),
+    hsl(var(--background));
+  color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-ui);
+  font-kerning: normal;
+  font-optical-sizing: auto;
+  font-synthesis-weight: none;
+  line-height: 1.45;
+  text-rendering: optimizeLegibility;
+}
+
+html[lang="ru"] body {
+  font-family: var(--font-ui-cyrillic);
+}
+
+html[lang="ru"] .uppercase {
+  text-transform: none;
+}
+
+html[lang="ru"] .tracking-wide {
+  letter-spacing: 0;
+}
+
+:root[data-theme="light"] body {
+  background:
+    linear-gradient(180deg, hsl(210 28% 98%) 0%, hsl(var(--background)) 48%),
+    hsl(var(--background));
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  line-height: 1.4;
+}
+
+.sl-heading {
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.28;
+  text-wrap: balance;
+}
+
+.sl-copy {
+  font-weight: 430;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+.sl-caption {
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.42;
+}
+
+.sl-section-label {
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+.sl-button,
+.sl-badge,
+.sl-control {
+  font-kerning: normal;
+  letter-spacing: 0;
+}
+
+.sl-button {
+  font-weight: 560;
+  line-height: 1.25;
+}
+
+.sl-badge {
+  font-weight: 560;
+  line-height: 1.25;
+}
+
+.sl-control {
+  font-weight: 450;
+  line-height: 1.4;
+}
+
+html[lang="ru"] .sl-heading {
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+html[lang="ru"] .sl-copy {
+  font-weight: 440;
+  line-height: 1.52;
+}
+
+html[lang="ru"] .sl-caption {
+  font-weight: 520;
+  line-height: 1.45;
+}
+
+html[lang="ru"] .sl-button,
+html[lang="ru"] .sl-badge,
+html[lang="ru"] .sl-section-label {
+  font-weight: 600;
+}
+
+::selection {
+  background: hsl(var(--primary) / 0.18);
+}
+
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border: 2px solid hsl(var(--background));
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.55);
+}

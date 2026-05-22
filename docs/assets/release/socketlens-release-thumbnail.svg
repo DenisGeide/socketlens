@@ -1,0 +1,68 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">SocketLens release thumbnail</title>
+  <desc id="desc">Dark 16:9 release thumbnail for SocketLens alpha releases.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="720" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#05070A"/>
+      <stop offset="0.58" stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#08272D"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1008 226) rotate(128) scale(402 292)">
+      <stop stop-color="#22D3EE" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <rect width="1280" height="720" fill="url(#halo)"/>
+  <g opacity="0.35">
+    <path d="M0 180H1280M0 360H1280M0 540H1280" stroke="#1F2937"/>
+    <path d="M160 0V720M320 0V720M480 0V720M640 0V720M800 0V720M960 0V720M1120 0V720" stroke="#1F2937"/>
+  </g>
+  <g transform="translate(88 94)">
+    <rect width="116" height="116" rx="26" fill="#0B1220" stroke="#1F2937" stroke-width="4"/>
+    <circle cx="58" cy="58" r="35" stroke="#22D3EE" stroke-width="7"/>
+    <circle cx="58" cy="58" r="13" fill="#22D3EE"/>
+    <path d="M24 78C40 60 54 58 70 58C84 58 96 50 106 36" stroke="#22C55E" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <text x="230" y="160" fill="#F8FAFC" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="72" font-weight="760">SocketLens</text>
+  <text x="234" y="214" fill="#A8B3C7" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28">WebSocket debugging, local-first</text>
+  <g transform="translate(234 254)">
+    <rect width="118" height="40" rx="10" fill="#0B3B42" stroke="#22D3EE" stroke-opacity="0.45"/>
+    <text x="59" y="26" text-anchor="middle" fill="#67E8F9" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="800">ALPHA</text>
+  </g>
+  <g transform="translate(88 398)">
+    <rect width="368" height="76" rx="18" fill="#0D131C" stroke="#1F2937"/>
+    <text x="28" y="31" fill="#22D3EE" font-family="JetBrains Mono, ui-monospace, monospace" font-size="16">IN</text>
+    <text x="74" y="31" fill="#E2E8F0" font-family="JetBrains Mono, ui-monospace, monospace" font-size="16">auth.session.ready</text>
+    <text x="28" y="56" fill="#94A3B8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15">inspect auth handshakes</text>
+  </g>
+  <g transform="translate(88 494)">
+    <rect width="368" height="76" rx="18" fill="#0D131C" stroke="#1F2937"/>
+    <text x="28" y="31" fill="#22C55E" font-family="JetBrains Mono, ui-monospace, monospace" font-size="16">OUT</text>
+    <text x="86" y="31" fill="#E2E8F0" font-family="JetBrains Mono, ui-monospace, monospace" font-size="16">chat.message.send</text>
+    <text x="28" y="56" fill="#94A3B8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15">send, edit, and replay frames</text>
+  </g>
+  <g transform="translate(594 112)">
+    <rect width="560" height="480" rx="28" fill="#080C12" stroke="#1F2937" stroke-width="2"/>
+    <rect x="28" y="28" width="504" height="50" rx="14" fill="#0D131C" stroke="#1F2937"/>
+    <circle cx="56" cy="53" r="7" fill="#22C55E"/>
+    <text x="78" y="60" fill="#CBD5E1" font-family="JetBrains Mono, ui-monospace, monospace" font-size="16">Investor Demo Mode</text>
+    <rect x="28" y="104" width="304" height="330" rx="18" fill="#05070A" stroke="#1F2937"/>
+    <rect x="356" y="104" width="176" height="330" rx="18" fill="#0B1220" stroke="#1F2937"/>
+    <g font-family="JetBrains Mono, ui-monospace, monospace" font-size="14">
+      <rect x="52" y="134" width="256" height="38" rx="10" fill="#0F172A"/>
+      <text x="70" y="158" fill="#22D3EE">IN</text><text x="116" y="158" fill="#E2E8F0">server.welcome</text>
+      <rect x="52" y="184" width="256" height="38" rx="10" fill="#0F172A"/>
+      <text x="70" y="208" fill="#22C55E">OUT</text><text x="128" y="208" fill="#E2E8F0">command.ping</text>
+      <rect x="52" y="234" width="256" height="38" rx="10" fill="#0F172A"/>
+      <text x="70" y="258" fill="#22D3EE">IN</text><text x="116" y="258" fill="#E2E8F0">command.pong</text>
+      <rect x="52" y="284" width="256" height="38" rx="10" fill="#2A1015"/>
+      <text x="70" y="308" fill="#FB7185">IN</text><text x="116" y="308" fill="#E2E8F0">warning.rate_limit</text>
+    </g>
+    <text x="384" y="146" fill="#94A3B8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="700">PAYLOAD</text>
+    <text x="384" y="188" fill="#67E8F9" font-family="JetBrains Mono, ui-monospace, monospace" font-size="14">{`{`}</text>
+    <text x="402" y="214" fill="#CBD5E1" font-family="JetBrains Mono, ui-monospace, monospace" font-size="14">"command"</text>
+    <text x="402" y="240" fill="#CBD5E1" font-family="JetBrains Mono, ui-monospace, monospace" font-size="14">"ping"</text>
+    <text x="384" y="266" fill="#67E8F9" font-family="JetBrains Mono, ui-monospace, monospace" font-size="14">{`}`}</text>
+  </g>
+</svg>
