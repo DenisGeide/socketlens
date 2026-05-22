@@ -94,14 +94,14 @@ export function EnvironmentManager() {
 
   return (
     <div className="space-y-2.5">
-      <div className="grid gap-1 rounded-md border border-border/70 bg-background/45 p-1 md:grid-cols-3">
+      <div className="grid gap-1 rounded-md border border-border/70 bg-background/45 p-1 sm:grid-cols-3">
         {environments.map((environment) => (
           <button
             key={environment.id}
             type="button"
             aria-pressed={environment.id === activeEnvironment.id}
             className={[
-              "sl-button min-w-0 rounded-md px-3 py-1.5 text-left text-xs font-medium transition",
+              "sl-button min-w-0 rounded-md px-3 py-1.5 text-center text-xs font-medium transition sm:text-left",
               environment.id === activeEnvironment.id
                 ? "bg-primary/15 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.25)]"
                 : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
@@ -133,12 +133,12 @@ export function EnvironmentManager() {
       </div>
 
       <div className="rounded-md border border-border/70 bg-background/45 p-2.5">
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <p className="sl-heading inline-flex items-center gap-2 text-sm font-medium">
             <Variable className="h-4 w-4 text-primary" />
             {t("environments.variables")}
           </p>
-          <Button variant="ghost" size="sm" onClick={() => addVariable(activeEnvironment.id)}>
+          <Button variant="ghost" size="sm" className="shrink-0" onClick={() => addVariable(activeEnvironment.id)}>
             <Plus className="h-4 w-4" />
             {t("environments.addVariable")}
           </Button>
@@ -149,7 +149,7 @@ export function EnvironmentManager() {
             const isValidKey = isValidEnvironmentVariableKey(variable.key);
 
             return (
-              <div key={variable.id} className="grid gap-1.5 rounded-md border border-border/70 bg-muted/15 p-2 md:grid-cols-[0.75fr_1fr_auto_auto]">
+              <div key={variable.id} className="grid min-w-0 gap-1.5 rounded-md border border-border/70 bg-muted/15 p-2 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1fr)_auto_auto]">
                 <Input
                   aria-label={t("environments.variableKey")}
                   className={isValidKey ? "" : "border-destructive/50"}
@@ -167,12 +167,13 @@ export function EnvironmentManager() {
                 <Button
                   variant={variable.isSecret ? "secondary" : "ghost"}
                   size="sm"
+                  className="min-w-0 whitespace-normal"
                   onClick={() => updateVariable(activeEnvironment.id, variable.id, { isSecret: !variable.isSecret })}
                 >
                   <EyeOff className="h-4 w-4" />
                   {variable.isSecret ? t("environments.secret") : t("environments.public")}
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => deleteVariable(activeEnvironment.id, variable.id)}>
+                <Button variant="ghost" size="sm" className="justify-center" onClick={() => deleteVariable(activeEnvironment.id, variable.id)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -184,12 +185,12 @@ export function EnvironmentManager() {
       </div>
 
       <div className="rounded-md border border-border/70 bg-background/45 p-2.5">
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <p className="sl-heading inline-flex items-center gap-2 text-sm font-medium">
             <Server className="h-4 w-4 text-primary" />
             {t("environments.connectionProfiles")}
           </p>
-          <Button variant="ghost" size="sm" onClick={() => addConnectionProfile(activeEnvironment.id)}>
+          <Button variant="ghost" size="sm" className="shrink-0" onClick={() => addConnectionProfile(activeEnvironment.id)}>
             <Plus className="h-4 w-4" />
             {t("environments.addProfile")}
           </Button>
@@ -201,7 +202,7 @@ export function EnvironmentManager() {
 
             return (
               <div key={profile.id} className="rounded-md border border-border/70 bg-muted/15 p-2">
-                <div className="grid gap-1.5 md:grid-cols-[0.75fr_1.25fr_auto]">
+                <div className="grid min-w-0 gap-1.5 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)_auto]">
                   <Input
                     aria-label={t("environments.profileName")}
                     value={profile.name}
@@ -216,7 +217,7 @@ export function EnvironmentManager() {
                       updateConnectionProfile(activeEnvironment.id, profile.id, { endpointUrl: event.target.value })
                     }
                   />
-                  <Button variant="ghost" size="sm" onClick={() => deleteConnectionProfile(activeEnvironment.id, profile.id)}>
+                  <Button variant="ghost" size="sm" className="justify-center" onClick={() => deleteConnectionProfile(activeEnvironment.id, profile.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -231,17 +232,18 @@ export function EnvironmentManager() {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={addEnvironment}>
+          <Button variant="secondary" size="sm" className="min-w-0 whitespace-normal" onClick={addEnvironment}>
             <Plus className="h-4 w-4" />
             {t("environments.addEnvironment")}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => duplicateEnvironment(activeEnvironment.id)}>
+          <Button variant="ghost" size="sm" className="min-w-0 whitespace-normal" onClick={() => duplicateEnvironment(activeEnvironment.id)}>
             <Copy className="h-4 w-4" />
             {t("environments.duplicate")}
           </Button>
           <Button
             variant="ghost"
             size="sm"
+            className="min-w-0 whitespace-normal"
             disabled={environments.length <= 1}
             onClick={() => deleteEnvironment(activeEnvironment.id)}
           >
@@ -263,11 +265,11 @@ export function EnvironmentManager() {
               }
             }}
           />
-          <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()}>
+          <Button variant="ghost" size="sm" className="min-w-0 whitespace-normal" onClick={() => fileInputRef.current?.click()}>
             <FileUp className="h-4 w-4" />
             {t("environments.import")}
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleExport}>
+          <Button variant="ghost" size="sm" className="min-w-0 whitespace-normal" onClick={handleExport}>
             <Download className="h-4 w-4" />
             {t("environments.export")}
           </Button>

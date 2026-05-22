@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  AlertTriangle,
   Bookmark,
   Cable,
   Database,
@@ -25,6 +26,7 @@ import { SettingsPage } from "@/components/settings-page";
 import { Sidebar } from "@/components/sidebar";
 import { ToastViewport } from "@/components/toast-viewport";
 import { TopBar } from "@/components/top-bar";
+import { Button } from "@/components/ui/button";
 import { appMetadata } from "@/config/app-metadata";
 import { gettingStartedDocsUrl, localEchoServerUrl } from "@/config/runtime-defaults";
 import { getWebSocketReadyStateLabel } from "@/lib/friendly-errors";
@@ -108,6 +110,7 @@ export function App() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [currentView, setCurrentView] = useState<AppView>("workspace");
   const [diagnosticsOpenSignal, setDiagnosticsOpenSignal] = useState(0);
+  const [clearPacketsDialogOpen, setClearPacketsDialogOpen] = useState(false);
   const [proxyBusy, setProxyBusy] = useState(false);
   const [proxyError, setProxyError] = useState<UserFacingError | null>(null);
   const [proxyStatus, setProxyStatus] = useState<ProxyStatus | null>(null);
@@ -151,6 +154,7 @@ export function App() {
     composerMode,
     demoMode,
     filterState,
+    followLatestPacket,
     investorDemo,
     logs,
     replayHistory,
@@ -195,6 +199,15 @@ export function App() {
     [packets, selectedSessionId],
   );
   const selectedPacket = packets.find((packet) => packet.id === selectedPacketId) ?? null;
+  const newerPacketCount = useMemo(() => {
+    if (!selectedPacketId) {
+      return 0;
+    }
+
+    const selectedIndex = visiblePackets.findIndex((packet) => packet.id === selectedPacketId);
+
+    return selectedIndex > 0 ? selectedIndex : 0;
+  }, [selectedPacketId, visiblePackets]);
   const proxyPacketCount = useMemo(
     () => packets.filter((packet) => packet.sessionId.startsWith("proxy-session-")).length,
     [packets],
@@ -492,7 +505,7 @@ export function App() {
         icon: Eraser,
         id: "packets:clear-timeline",
         keywords: ["clear", "timeline", "packets"],
-        run: handleClearCapturedFrames,
+        run: handleRequestClearCapturedFrames,
         title: t("commandPalette.actions.clearTimeline.title"),
       },
       {
@@ -944,6 +957,23 @@ export function App() {
     });
   }
 
+  function handleRequestClearCapturedFrames() {
+    if (scopedPacketCount === 0) {
+      return;
+    }
+
+    setClearPacketsDialogOpen(true);
+  }
+
+  function handleConfirmClearCapturedFrames() {
+    setClearPacketsDialogOpen(false);
+    handleClearCapturedFrames();
+  }
+
+  function handleJumpToLatestPacket() {
+    followLatestPacket(visiblePackets[0]?.id ?? null);
+  }
+
   function handleLoadSamplePayload() {
     setComposerDraft(createDemoPayload());
     setComposerMode("json");
@@ -1345,7 +1375,7 @@ export function App() {
           isInvestorDemoActive={investorDemo.isActive}
           isConnected={isConnected}
           status={demoMode.isActive ? "demo" : status}
-          onClearCapturedFrames={handleClearCapturedFrames}
+          onClearCapturedFrames={handleRequestClearCapturedFrames}
           onConnect={handleConnect}
           onDisconnect={disconnect}
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
@@ -1457,7 +1487,9 @@ export function App() {
               resultCount={visiblePackets.length}
               selectedPacketId={selectedPacketId}
               totalCount={scopedPacketCount}
-              onClearPackets={handleClearCapturedFrames}
+              newPacketCount={newerPacketCount}
+              onClearPackets={handleRequestClearCapturedFrames}
+              onJumpToLatest={handleJumpToLatestPacket}
               onResetFilters={resetFilters}
               onSelectPacket={selectPacket}
               onUpdateFilterState={updateFilterState}
@@ -1465,7 +1497,59 @@ export function App() {
           </div>
         </div>
       )}
+      <ClearPacketsDialog
+        isOpen={clearPacketsDialogOpen}
+        packetCount={scopedPacketCount}
+        onCancel={() => setClearPacketsDialogOpen(false)}
+        onConfirm={handleConfirmClearCapturedFrames}
+      />
     </AppShell>
+  );
+}
+
+type ClearPacketsDialogProps = {
+  isOpen: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+  packetCount: number;
+};
+
+function ClearPacketsDialog({ isOpen, onCancel, onConfirm, packetCount }: ClearPacketsDialogProps) {
+  const { t } = useTranslation();
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm">
+      <div
+        aria-modal="true"
+        className="w-full max-w-md rounded-lg border border-border/80 bg-panel shadow-2xl shadow-black/35"
+        role="dialog"
+      >
+        <div className="flex items-start gap-3 border-b border-border/70 p-4">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-destructive/35 bg-destructive/10 text-destructive">
+            <AlertTriangle className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-foreground">{t("packets.clearConfirm.title")}</h2>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {t("packets.clearConfirm.description", { count: packetCount })}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 p-3">
+          <Button variant="ghost" size="sm" onClick={onCancel}>
+            {t("actions.cancel")}
+          </Button>
+          <Button variant="destructive" size="sm" onClick={onConfirm}>
+            <Eraser className="h-4 w-4" />
+            {t("packets.clearConfirm.confirm")}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 

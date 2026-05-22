@@ -167,7 +167,7 @@ export function SessionPersistencePanel({
         type="file"
         onChange={handleBrowserFileChange}
       />
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase text-muted-foreground">
             <FileJson className="h-3.5 w-3.5" />
@@ -177,7 +177,9 @@ export function SessionPersistencePanel({
             {currentSession ? currentSession.endpointUrl : t("sessions.files.description")}
           </p>
         </div>
-        <Badge variant="outline">{t("sessions.files.packetCount", { count: currentSessionPackets.length })}</Badge>
+        <Badge variant="outline" className="shrink-0 whitespace-normal text-center">
+          {t("sessions.files.packetCount", { count: currentSessionPackets.length })}
+        </Badge>
       </div>
 
       <label className="space-y-2 text-xs font-medium text-muted-foreground">
@@ -199,11 +201,11 @@ export function SessionPersistencePanel({
       ) : null}
 
       <div className="mt-3 rounded-md border border-amber-500/35 bg-amber-500/10 p-2.5">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-100">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {t("sessions.redaction.warningTitle")}
+            <p className="inline-flex items-start gap-1.5 text-xs font-semibold leading-4 text-amber-100">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span className="min-w-0 break-words">{t("sessions.redaction.warningTitle")}</span>
             </p>
             <p className="mt-1 text-[0.72rem] leading-4 text-muted-foreground">
               {t("sessions.redaction.warningDescription")}
@@ -213,7 +215,7 @@ export function SessionPersistencePanel({
             type="button"
             variant={redactionEnabled ? "secondary" : "outline"}
             size="sm"
-            className="shrink-0"
+            className="h-auto min-h-7 shrink-0 whitespace-normal px-2 py-1.5"
             onClick={() => {
               setRedactionEnabled((enabled) => !enabled);
               setUnsafeOperation(null);
@@ -230,12 +232,12 @@ export function SessionPersistencePanel({
       </div>
 
       <div className="mt-3 space-y-2 rounded-md border border-border/70 bg-background/45 p-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground">
-            <Eye className="h-3.5 w-3.5" />
-            {t("sessions.redaction.preview")}
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <p className="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground">
+            <Eye className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 break-words">{t("sessions.redaction.preview")}</span>
           </p>
-          <Badge variant={redactionPreview.sensitiveDataDetected ? "default" : "outline"}>
+          <Badge variant={redactionPreview.sensitiveDataDetected ? "default" : "outline"} className="shrink-0 whitespace-normal text-center">
             {t("sessions.redaction.previewStats", {
               packets: redactionPreview.redactedPacketCount,
               replacements: redactionPreview.replacements,
@@ -286,7 +288,7 @@ export function SessionPersistencePanel({
           <p className="mt-1 text-[0.72rem] leading-4 text-muted-foreground">
             {t("sessions.redaction.confirmUnsafeDescription")}
           </p>
-          <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="mt-2 grid grid-cols-1 gap-2 min-[320px]:grid-cols-2">
             <Button
               type="button"
               variant="ghost"
@@ -307,10 +309,11 @@ export function SessionPersistencePanel({
         </div>
       ) : null}
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-3 grid grid-cols-1 gap-2 min-[320px]:grid-cols-2">
         <Button
           variant="secondary"
           size="sm"
+          className="min-w-0 whitespace-normal"
           disabled={!hasSession || fileActionsDisabled}
           onClick={() => handleFileOperation("save")}
         >
@@ -320,6 +323,7 @@ export function SessionPersistencePanel({
         <Button
           variant="ghost"
           size="sm"
+          className="min-w-0 whitespace-normal"
           disabled={!hasPackets || fileActionsDisabled}
           onClick={() => handleFileOperation("export")}
         >
@@ -329,6 +333,7 @@ export function SessionPersistencePanel({
         <Button
           variant="ghost"
           size="sm"
+          className="min-w-0 whitespace-normal"
           disabled={!hasPackets || fileActionsDisabled}
           title={t("sessions.files.asyncApiExperimental")}
           onClick={() => handleFileOperation("asyncapi")}
@@ -336,7 +341,7 @@ export function SessionPersistencePanel({
           <FileJson className="h-4 w-4" />
           {t("sessions.files.exportAsyncApi")}
         </Button>
-        <Button variant="ghost" size="sm" disabled={pendingOperation !== null} onClick={handleLoadClick}>
+        <Button variant="ghost" size="sm" className="min-w-0 whitespace-normal" disabled={pendingOperation !== null} onClick={handleLoadClick}>
           <Upload className="h-4 w-4" />
           {t("actions.load")}
         </Button>

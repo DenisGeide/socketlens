@@ -76,7 +76,9 @@ type PacketTimelineProps = {
   flowAnalysis: FlowAnalysis | null;
   isConnected: boolean;
   connectionStatus: ConnectionStatus;
+  newPacketCount: number;
   onClearPackets: () => void;
+  onJumpToLatest: () => void;
   onResetFilters: () => void;
   onSelectPacket: (packetId: string) => void;
   onUpdateFilterState: (filterState: Partial<FilterState>) => void;
@@ -93,6 +95,7 @@ export function PacketTimeline({
   flowAnalysis,
   isConnected,
   onClearPackets,
+  onJumpToLatest,
   onResetFilters,
   onSelectPacket,
   onUpdateFilterState,
@@ -101,6 +104,7 @@ export function PacketTimeline({
   resultCount,
   selectedPacketId,
   totalCount,
+  newPacketCount,
 }: PacketTimelineProps) {
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -359,6 +363,17 @@ export function PacketTimeline({
     });
   }
 
+  function jumpToLatestPacket() {
+    setAutoScroll(true);
+
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+      setScrollTop(0);
+    }
+
+    onJumpToLatest();
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PanelHeader className="min-h-[5.75rem] flex-col items-stretch justify-center gap-2 py-2 xl:flex-row xl:items-center xl:justify-between">
@@ -547,6 +562,17 @@ export function PacketTimeline({
             {autoScroll ? <CirclePause className="h-4 w-4" /> : <CirclePlay className="h-4 w-4" />}
             {autoScroll ? t("actions.pause") : t("actions.resume")}
           </Button>
+          {newPacketCount > 0 ? (
+            <Button variant="secondary" size="sm" className="border-primary/40 text-primary" onClick={jumpToLatestPacket}>
+              <ArrowDownLeft className="h-4 w-4" />
+              {t("packets.newPackets", { count: newPacketCount })}
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" disabled={!newestPacketId} onClick={jumpToLatestPacket}>
+              <ArrowDownLeft className="h-4 w-4" />
+              {t("packets.goToLatest")}
+            </Button>
+          )}
           <Button variant="ghost" size="sm" disabled={packets.length === 0} onClick={onClearPackets}>
             <Eraser className="h-4 w-4" />
             {t("actions.clear")}

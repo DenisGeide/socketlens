@@ -43,21 +43,21 @@ export function ProxyModePanel({
 
   return (
     <div className="rounded-md border border-border/80 bg-muted/20 p-2.5">
-      <div className="mb-2 flex items-start justify-between gap-2">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="sl-section-label inline-flex items-center gap-1 text-xs font-semibold uppercase text-muted-foreground">
-            <Network className="h-3.5 w-3.5" />
-            {t("proxy.title")}
+            <Network className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 break-words">{t("proxy.title")}</span>
           </p>
-          <p className="sl-copy mt-1 text-xs text-muted-foreground">{t("proxy.description")}</p>
+          <p className="sl-copy mt-1 text-xs leading-5 text-muted-foreground">{t("proxy.description")}</p>
         </div>
-        <Badge variant={isRunning ? "default" : "outline"} className="shrink-0">
+        <Badge variant={isRunning ? "default" : "outline"} className="shrink-0 whitespace-normal">
           <StatusIcon className="h-3 w-3" />
           {t(statusLabel.textKey)}
         </Badge>
       </div>
 
-      <div className="mb-2 grid grid-cols-3 gap-1.5">
+      <div className="mb-2 grid grid-cols-1 gap-1.5 min-[320px]:grid-cols-3">
         <MetricTile label={t("proxy.metrics.status")} value={t(statusLabel.shortTextKey)} />
         <MetricTile label={t("proxy.metrics.clients")} value={String(proxyStatus?.activeConnections ?? 0)} />
         <MetricTile label={t("proxy.metrics.packets")} value={String(packetCount)} />
@@ -77,22 +77,28 @@ export function ProxyModePanel({
       {isRunning && proxyStatus?.targetUrl ? (
         <div className="mt-2 rounded-md border border-border/70 bg-background/60 px-2.5 py-1.5">
           <p className="sl-section-label text-[0.65rem] font-medium uppercase text-muted-foreground">{t("proxy.forwardingTo")}</p>
-          <p className="mt-1 truncate font-mono text-xs text-foreground">{proxyStatus.targetUrl}</p>
+          <p className="mt-1 truncate font-mono text-xs text-foreground" title={proxyStatus.targetUrl}>
+            {proxyStatus.targetUrl}
+          </p>
         </div>
       ) : null}
 
       <div className="mt-2 rounded-md border border-border/70 bg-background/70 p-2">
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <span className="sl-section-label inline-flex items-center gap-1 text-[0.72rem] font-medium uppercase text-muted-foreground">
-            <RadioTower className="h-3 w-3" />
-            {t("proxy.localProxyUrl")}
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <span className="sl-section-label inline-flex min-w-0 items-center gap-1 text-[0.72rem] font-medium uppercase text-muted-foreground">
+            <RadioTower className="h-3 w-3 shrink-0" />
+            <span className="min-w-0 break-words">{t("proxy.localProxyUrl")}</span>
           </span>
-          <Button variant="ghost" size="sm" disabled={!localProxyUrl} onClick={onCopyProxyUrl}>
+          <Button variant="ghost" size="sm" className="shrink-0 px-2" disabled={!localProxyUrl} onClick={onCopyProxyUrl}>
             <Copy className="h-4 w-4" />
             {t("proxy.copyLocalUrl")}
           </Button>
         </div>
-        <p className="truncate font-mono text-xs text-foreground">{localProxyUrl || t("proxy.localProxyUrlEmpty")}</p>
+        {localProxyUrl ? (
+          <p className="truncate font-mono text-xs text-foreground" title={localProxyUrl}>{localProxyUrl}</p>
+        ) : (
+          <p className="text-xs leading-5 text-muted-foreground">{t("proxy.localProxyUrlEmpty")}</p>
+        )}
       </div>
 
       {backendState === "unavailable" ? (
@@ -106,19 +112,19 @@ export function ProxyModePanel({
           <Info className="h-3.5 w-3.5" />
           {t("proxy.limitations.title")}
         </p>
-        <ul className="sl-copy mt-2 space-y-1.5 text-xs text-muted-foreground">
+        <ul className="sl-copy mt-2 space-y-1.5 text-xs leading-5 text-muted-foreground">
           <li>{t("proxy.limitations.desktop")}</li>
           <li>{t("proxy.limitations.localhost")}</li>
           <li>{t("proxy.limitations.frames")}</li>
         </ul>
       </div>
 
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <Button variant="secondary" size="sm" disabled={!canStart} onClick={onStartProxy}>
+      <div className="mt-2 grid grid-cols-1 gap-2 min-[320px]:grid-cols-2">
+        <Button variant="secondary" size="sm" className="min-w-0 whitespace-normal" disabled={!canStart} onClick={onStartProxy}>
           {isBusy && !isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           {t("proxy.start")}
         </Button>
-        <Button variant="ghost" size="sm" disabled={!canStop} onClick={onStopProxy}>
+        <Button variant="ghost" size="sm" className="min-w-0 whitespace-normal" disabled={!canStop} onClick={onStopProxy}>
           {isBusy && isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Square className="h-4 w-4" />}
           {t("proxy.stop")}
         </Button>
@@ -129,16 +135,16 @@ export function ProxyModePanel({
 
 function MetricTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border/70 bg-background/60 px-2 py-2">
+    <div className="min-w-0 rounded-md border border-border/70 bg-background/60 px-2 py-2">
       <p className="sl-section-label text-[0.65rem] font-medium uppercase text-muted-foreground">{label}</p>
-      <p className="mt-1 truncate font-mono text-xs text-foreground">{value}</p>
+      <p className="mt-1 truncate font-mono text-xs text-foreground" title={value}>{value}</p>
     </div>
   );
 }
 
 function InlineNotice({ message, title }: { message: string; title: string }) {
   return (
-    <div className="sl-copy mt-3 rounded-md border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-xs text-muted-foreground">
+    <div className="sl-copy mt-3 rounded-md border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-muted-foreground">
       <p className="sl-heading font-semibold text-amber-100">{title}</p>
       <p className="mt-1">{message}</p>
     </div>

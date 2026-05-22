@@ -423,9 +423,9 @@ export function ManualSendPanel({
         <div className="rounded-md border border-primary/20 bg-primary/10 p-2">
           <div className="mb-2">
             <p className="sl-section-label text-xs font-semibold uppercase text-primary">{t("manualSend.examples.title")}</p>
-            <p className="sl-caption mt-1 line-clamp-2 text-[0.72rem] text-muted-foreground">{t("manualSend.examples.description")}</p>
+            <p className="sl-caption mt-1 text-[0.72rem] leading-4 text-muted-foreground">{t("manualSend.examples.description")}</p>
           </div>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-1 gap-1.5 min-[320px]:grid-cols-3">
             {examplePayloads.map((example) => {
               const Icon = example.icon;
 
@@ -446,13 +446,13 @@ export function ManualSendPanel({
         </div>
 
         <div className="space-y-2 rounded-md border border-accent/25 bg-[linear-gradient(135deg,hsl(var(--accent)/0.12),hsl(var(--panel)/0.65))] p-2">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="sl-section-label inline-flex items-center gap-1.5 text-xs font-semibold uppercase text-accent">
-                <Repeat2 className="h-3.5 w-3.5" />
-                {t("manualSend.replayCenter.title")}
+                <Repeat2 className="h-3.5 w-3.5 shrink-0" />
+                <span className="min-w-0 break-words">{t("manualSend.replayCenter.title")}</span>
               </p>
-              <p className="sl-caption mt-1 line-clamp-2 text-[0.72rem] text-muted-foreground">{t("manualSend.replayCenter.description")}</p>
+              <p className="sl-caption mt-1 text-[0.72rem] leading-4 text-muted-foreground">{t("manualSend.replayCenter.description")}</p>
             </div>
             <ReplayStatusBadge kind={replayStatus.kind} label={replayStatusMessage} />
           </div>
@@ -478,11 +478,11 @@ export function ManualSendPanel({
                 </Badge>
               ) : null}
             </div>
-            <div className="mt-2 grid grid-cols-2 gap-1.5">
+            <div className="mt-2 grid grid-cols-1 gap-1.5 min-[340px]:grid-cols-2">
               <Button
                 variant="ghost"
                 size="sm"
-                className="min-w-0 px-2"
+                className="min-w-0 whitespace-normal px-2"
                 disabled={!selectedReplayPacket}
                 onClick={() => selectedReplayPacket && handleLoadPacket(selectedReplayPacket)}
               >
@@ -491,7 +491,7 @@ export function ManualSendPanel({
               <Button
                 variant="secondary"
                 size="sm"
-                className="min-w-0 px-2"
+                className="min-w-0 whitespace-normal px-2"
                 disabled={!isConnected || !selectedReplayPacket || isRunningReplaySequence}
                 onClick={handleReplaySelectedPacket}
               >
@@ -501,11 +501,11 @@ export function ManualSendPanel({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-1.5 2xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-1.5 min-[340px]:grid-cols-2">
             <Button
               variant="secondary"
               size="sm"
-              className="min-w-0 justify-start px-2"
+              className="h-auto min-h-7 min-w-0 justify-start whitespace-normal px-2 py-1.5"
               disabled={!isConnected || !lastOutgoingPacket || isRunningReplaySequence}
               onClick={handleReplayLastPacket}
             >
@@ -517,7 +517,7 @@ export function ManualSendPanel({
             <Button
               variant="secondary"
               size="sm"
-              className="min-w-0 justify-start px-2"
+              className="h-auto min-h-7 min-w-0 justify-start whitespace-normal px-2 py-1.5"
               disabled={!isConnected || replaySequencePackets.length === 0 || isRunningReplaySequence}
               onClick={() => void handleReplaySequence()}
             >
@@ -544,26 +544,26 @@ export function ManualSendPanel({
                 onChange={(event) => handleReplayDelayChange(event.target.value)}
               />
             </div>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-1 gap-1.5 min-[320px]:grid-cols-3">
               {replayDelayOptions.map((delayMs) => (
                 <Button
                   key={delayMs}
                   variant={replayDelayMs === delayMs ? "secondary" : "ghost"}
                   size="sm"
-                  className="px-2"
+                  className="h-auto min-h-7 whitespace-normal px-2 py-1.5"
                   onClick={() => setReplayDelayMs(delayMs)}
                 >
                   {delayMs === 0 ? t("manualSend.replayCenter.noDelay") : t("manualSend.replayCenter.delayMs", { delay: delayMs })}
                 </Button>
               ))}
             </div>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-1 gap-1.5 min-[320px]:grid-cols-3">
               {replaySequenceCountOptions.map((count) => (
                 <Button
                   key={count}
                   variant={replaySequenceCount === count ? "secondary" : "ghost"}
                   size="sm"
-                  className="px-2"
+                  className="h-auto min-h-7 whitespace-normal px-2 py-1.5"
                   onClick={() => setReplaySequenceCount(count)}
                 >
                   {t("manualSend.replayCenter.count", { count })}
@@ -580,13 +580,13 @@ export function ManualSendPanel({
           ) : null}
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-1 gap-1.5 min-[320px]:grid-cols-2">
           <ModeButton active={composerMode === "json"} icon={Braces} label={t("manualSend.mode.json")} onClick={() => handleModeChange("json")} />
           <ModeButton active={composerMode === "raw"} icon={FileText} label={t("manualSend.mode.raw")} onClick={() => handleModeChange("raw")} />
           <Button
             variant="ghost"
             size="sm"
-            className="col-span-2 justify-start"
+            className="justify-start min-[320px]:col-span-2"
             disabled={messageDraft.trim().length === 0}
             onClick={handleFormatJson}
           >
@@ -609,7 +609,7 @@ export function ManualSendPanel({
           <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">{composerError}</p>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-1.5 2xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-1.5 min-[340px]:grid-cols-2">
           <Button className="min-w-0 whitespace-normal px-2 leading-4" disabled={!isConnected || !messageDraft.trim()} onClick={() => handleSendDraft("manual")}>
             <SendHorizontal className="h-4 w-4 shrink-0" />
             <span className="min-w-0 text-balance">{t("manualSend.sendFrame")}</span>
@@ -699,7 +699,7 @@ function ReplayStatusBadge({ kind, label }: { kind: ReplayStatusKind; label: str
     <Badge
       variant="outline"
       className={[
-        "max-w-[9rem] shrink-0 justify-start truncate",
+        "max-w-full shrink-0 justify-start whitespace-normal",
         kind === "success"
           ? "border-emerald-300/35 bg-emerald-300/10 text-emerald-200"
           : kind === "error"
@@ -711,7 +711,7 @@ function ReplayStatusBadge({ kind, label }: { kind: ReplayStatusKind; label: str
       title={label}
     >
       <Icon className={["h-3 w-3", kind === "running" ? "animate-pulse" : ""].join(" ")} />
-      <span className="truncate">{label}</span>
+      <span className="min-w-0 break-words leading-4">{label}</span>
     </Badge>
   );
 }
@@ -760,7 +760,7 @@ function OutgoingPacketReplayRow({
         <span className="mt-1 block truncate font-mono text-[0.72rem] text-muted-foreground">{summary.preview}</span>
         <span className="mt-1 block text-[0.72rem] text-muted-foreground">{formatBytes(packet.sizeBytes)}</span>
       </button>
-      <div className="mt-2 grid grid-cols-2 gap-1.5">
+      <div className="mt-2 grid grid-cols-1 gap-1.5 min-[320px]:grid-cols-2">
         <Button variant="ghost" size="sm" className="min-w-0 px-2" onClick={() => onLoadPacket(packet)}>
           <span className="truncate">{t("manualSend.edit")}</span>
         </Button>
@@ -795,7 +795,7 @@ function ReplayHistoryRow({ disabled, item, onReplayHistoryItem, onUseHistoryIte
         </span>
         <span className="mt-1 block text-[0.72rem] text-muted-foreground">{formatBytes(item.sizeBytes)}</span>
       </button>
-      <div className="mt-2 grid grid-cols-2 gap-1.5">
+      <div className="mt-2 grid grid-cols-1 gap-1.5 min-[320px]:grid-cols-2">
         <Button variant="ghost" size="sm" className="min-w-0 px-2" onClick={() => onUseHistoryItem(item)}>
           <span className="truncate">{t("manualSend.use")}</span>
         </Button>

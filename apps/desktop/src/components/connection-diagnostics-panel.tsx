@@ -81,25 +81,25 @@ export function ConnectionDiagnosticsPanel({ diagnostics, showHeader = true }: C
 
   return (
     <div className="rounded-md border border-border/80 bg-muted/15 p-2.5">
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         {showHeader ? (
           <p className="sl-section-label inline-flex min-w-0 items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
             <Bug className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">{t("diagnostics.title")}</span>
           </p>
         ) : null}
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
           <Badge variant={diagnostics.lastError ? "outline" : "secondary"} className={diagnostics.lastError ? "border-destructive/40 text-destructive" : ""}>
             {diagnostics.activeMode}
           </Badge>
-          <Button variant="ghost" size="sm" className="min-w-0 px-2" title={copied ? t("diagnostics.copied") : t("diagnostics.copy")} onClick={handleCopyDiagnostics}>
+          <Button variant="ghost" size="sm" className="min-w-0 max-w-full px-2" title={copied ? t("diagnostics.copied") : t("diagnostics.copy")} onClick={handleCopyDiagnostics}>
             <Clipboard className="h-4 w-4 shrink-0" />
             <span className="min-w-0 truncate">{copied ? t("diagnostics.copied") : t("diagnostics.copy")}</span>
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="min-w-0 px-2"
+            className="min-w-0 max-w-full px-2"
             title={exported ? t("diagnostics.exported") : t("diagnostics.export")}
             onClick={handleExportDiagnostics}
           >
@@ -198,10 +198,10 @@ type DiagnosticRowProps = {
 
 function DiagnosticRow({ icon: Icon, label, mono = false, value }: DiagnosticRowProps) {
   return (
-    <div className="grid min-w-0 grid-cols-[auto_minmax(4.75rem,6.25rem)_minmax(0,1fr)] items-center gap-1.5 text-muted-foreground">
-      <Icon className="h-3.5 w-3.5 shrink-0" />
-      <span className="truncate">{label}</span>
-      <span className={["min-w-0 truncate text-right text-foreground/90", mono ? "font-mono" : ""].join(" ")} title={value}>
+    <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-x-1.5 gap-y-0.5 text-muted-foreground">
+      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span className="min-w-0 truncate">{label}</span>
+      <span className={["col-start-2 min-w-0 truncate text-right text-foreground/90", mono ? "font-mono" : ""].join(" ")} title={value}>
         {value}
       </span>
     </div>

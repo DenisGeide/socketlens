@@ -47,8 +47,10 @@ type UiStore = {
   demoMode: DemoModeState;
   dismissToast: (toastId: EntityId) => void;
   filterState: FilterState;
+  followLatestPacket: (packetId: EntityId | null) => void;
   investorDemo: InvestorDemoState;
   logs: AppLog[];
+  packetSelectionMode: PacketSelectionMode;
   replayHistory: ReplayHistoryItem[];
   resetFilters: () => void;
   selectLatestPacket: (packetId: EntityId | null) => void;
@@ -71,6 +73,8 @@ type DemoModeState = {
   sessionId: EntityId | null;
   startedAt: number | null;
 };
+
+type PacketSelectionMode = "follow" | "manual";
 
 export type InvestorDemoState = {
   completedAt: number | null;
@@ -161,8 +165,14 @@ export const useUiStore = create<UiStore>((set) => {
       toasts: state.toasts.filter((toast) => toast.id !== toastId),
     })),
   filterState: defaultFilterState,
+  followLatestPacket: (packetId) =>
+    set({
+      packetSelectionMode: "follow",
+      selectedPacketId: packetId,
+    }),
   investorDemo: inactiveInvestorDemo,
   logs: [],
+  packetSelectionMode: "follow",
   replayHistory: [],
 
   resetFilters: () =>
@@ -181,16 +191,25 @@ export const useUiStore = create<UiStore>((set) => {
 
     selectionBatchTimer = setTimeout(() => {
       selectionBatchTimer = null;
-      uiStoreSet?.({ selectedPacketId: pendingSelectedPacketId });
+      uiStoreSet?.((state) =>
+        state.packetSelectionMode === "follow"
+          ? { selectedPacketId: pendingSelectedPacketId }
+          : {},
+      );
     }, 16);
   },
-  selectPacket: (packetId) => set({ selectedPacketId: packetId }),
+  selectPacket: (packetId) =>
+    set({
+      packetSelectionMode: packetId ? "manual" : "follow",
+      selectedPacketId: packetId,
+    }),
   selectSession: (sessionId) =>
     set((state) => ({
       filterState: {
         ...state.filterState,
         sessionId,
       },
+      packetSelectionMode: "follow",
       selectedPacketId: null,
       selectedSessionId: sessionId,
     })),

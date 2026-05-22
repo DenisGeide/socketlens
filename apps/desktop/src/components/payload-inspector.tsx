@@ -14,6 +14,7 @@ import {
   GitBranch,
   Inbox,
   Link2,
+  Maximize2,
   Plus,
   Ruler,
   Tag,
@@ -63,10 +64,12 @@ export function PayloadInspector({
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<InspectorTab>("pretty");
   const [copyState, setCopyState] = useState<CopyState>("idle");
+  const [largeViewOpen, setLargeViewOpen] = useState(false);
 
   useEffect(() => {
     setActiveTab("pretty");
     setCopyState("idle");
+    setLargeViewOpen(false);
   }, [packet?.id]);
 
   const prettyPayload = useMemo(() => (packet ? getPrettyPayload(packet) : null), [packet]);
@@ -133,10 +136,16 @@ export function PayloadInspector({
         ) : (
           <div className="flex h-full min-h-0 flex-col">
             <InspectorSummary eventName={eventName ?? "unknown.event"} packet={packet} />
-            <div className="flex shrink-0 gap-1 border-b border-border/70 p-1.5">
-              <TabButton active={activeTab === "pretty"} label={t("inspector.tabs.pretty")} onClick={() => setActiveTab("pretty")} />
-              <TabButton active={activeTab === "raw"} label={t("inspector.tabs.raw")} onClick={() => setActiveTab("raw")} />
-              <TabButton active={activeTab === "metadata"} label={t("inspector.tabs.metadata")} onClick={() => setActiveTab("metadata")} />
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border/70 p-1.5">
+              <div className="flex gap-1">
+                <TabButton active={activeTab === "pretty"} label={t("inspector.tabs.pretty")} onClick={() => setActiveTab("pretty")} />
+                <TabButton active={activeTab === "raw"} label={t("inspector.tabs.raw")} onClick={() => setActiveTab("raw")} />
+                <TabButton active={activeTab === "metadata"} label={t("inspector.tabs.metadata")} onClick={() => setActiveTab("metadata")} />
+              </div>
+              <Button variant="ghost" size="sm" className="shrink-0 px-2" onClick={() => setLargeViewOpen(true)}>
+                <Maximize2 className="h-4 w-4" />
+                {t("inspector.largeView.open")}
+              </Button>
             </div>
 
             <div className="min-h-0 flex-1 overflow-auto p-3">
@@ -158,9 +167,106 @@ export function PayloadInspector({
                 <AiAnalysisPanel packet={packet} packets={packets} session={session} />
               </div>
             </div>
+            <LargePayloadViewer
+              activeTab={activeTab}
+              eventName={eventName ?? "unknown.event"}
+              isOpen={largeViewOpen}
+              packet={packet}
+              prettyPayload={prettyPayload}
+              rawPayload={rawPayload}
+              onClose={() => setLargeViewOpen(false)}
+              onCopyPayload={() => void copyPayload()}
+            />
           </div>
         )}
       </PanelContent>
+    </div>
+  );
+}
+
+type LargePayloadViewerProps = {
+  activeTab: InspectorTab;
+  eventName: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onCopyPayload: () => void;
+  packet: Packet;
+  prettyPayload: ReturnType<typeof getPrettyPayload> | null;
+  rawPayload: RenderedPayload | null;
+};
+
+function LargePayloadViewer({
+  activeTab,
+  eventName,
+  isOpen,
+  onClose,
+  onCopyPayload,
+  packet,
+  prettyPayload,
+  rawPayload,
+}: LargePayloadViewerProps) {
+  const { t } = useTranslation();
+  const [mode, setMode] = useState<"pretty" | "raw">("pretty");
+
+  useEffect(() => {
+    setMode(activeTab === "raw" ? "raw" : "pretty");
+  }, [activeTab, packet.id]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const pretty = getLargePrettyPayload(packet, prettyPayload);
+  const raw = rawPayload ?? getRenderedPayload(packet.payload);
+  const displayedPayload = mode === "pretty" ? pretty : raw;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/75 p-4 backdrop-blur-sm">
+      <div className="flex h-[min(86vh,52rem)] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-border/80 bg-panel shadow-2xl shadow-black/40">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/70 p-3">
+          <div className="min-w-0">
+            <p className="sl-section-label text-[0.72rem] font-semibold uppercase text-muted-foreground">
+              {t("inspector.largeView.title")}
+            </p>
+            <p className="mt-1 truncate font-mono text-xs text-foreground">{eventName}</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            <Button variant={mode === "pretty" ? "secondary" : "ghost"} size="sm" onClick={() => setMode("pretty")}>
+              {t("inspector.tabs.pretty")}
+            </Button>
+            <Button variant={mode === "raw" ? "secondary" : "ghost"} size="sm" onClick={() => setMode("raw")}>
+              {t("inspector.tabs.raw")}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onCopyPayload}>
+              <Copy className="h-4 w-4" />
+              {t("inspector.copy.action")}
+            </Button>
+            <Button variant="ghost" size="icon" title={t("inspector.largeView.close")} onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-auto p-3">
+          {displayedPayload.truncated ? (
+            <Notice message={t(mode === "pretty" ? "inspector.notices.prettyTruncated" : "inspector.notices.rawTruncated")} />
+          ) : null}
+          <div className="mt-3 overflow-hidden rounded-md border border-border/70 bg-code">
+            <pre className="max-h-[36rem] min-h-[18rem] overflow-auto p-3 font-mono text-xs leading-5 text-foreground">
+              {displayedPayload.value}
+            </pre>
+          </div>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            <InspectorMetric icon={Tag} label={t("inspector.metadata.eventName")} value={eventName} />
+            <InspectorMetric icon={packet.direction === "inbound" ? ArrowDownLeft : ArrowUpRight} label={t("inspector.metadata.direction")} value={packet.direction} />
+            <InspectorMetric icon={Clock3} label={t("inspector.metadata.timestamp")} value={formatDateTime(packet.timestamp)} />
+            <InspectorMetric icon={Ruler} label={t("inspector.metadata.size")} value={formatBytes(packet.sizeBytes)} />
+            <InspectorMetric icon={Braces} label={t("inspector.metadata.payloadKind")} value={packet.payloadKind} />
+            <InspectorMetric icon={Waypoints} label={t("inspector.metadata.connectionId")} value={packet.connectionId} />
+            <InspectorMetric icon={TextCursorInput} label={t("inspector.metadata.sessionId")} value={packet.sessionId} />
+            <InspectorMetric icon={FileText} label={t("inspector.metadata.packetId")} value={packet.id} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -653,6 +759,14 @@ function getRenderedPayload(payload: string): RenderedPayload {
     truncated: true,
     value: truncatePreview(payload, renderedPayloadLimit),
   };
+}
+
+function getLargePrettyPayload(packet: Packet, prettyPayload: ReturnType<typeof getPrettyPayload> | null): RenderedPayload {
+  if (prettyPayload?.kind === "formatted") {
+    return getRenderedPayload(prettyPayload.formatted);
+  }
+
+  return getRenderedPayload(packet.payload);
 }
 
 async function copyText(value: string) {
