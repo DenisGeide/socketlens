@@ -14,7 +14,7 @@ These are explicit TypeScript extension points. SocketLens does not have runtime
 
 | Extension | Contract | Built-in file | Use case |
 | --- | --- | --- | --- |
-| Packet decoder | `PacketDecoder` | `packet-decoder.ts` | Parse payloads and produce event name, preview, tags, metadata, decoded data. |
+| Packet decoder | `PacketDecoder`, `DecoderRegistry`, `BinaryDecoder` | `packet-decoder.ts` | Parse payloads and produce event name, preview, tags, metadata, decoded data. |
 | Packet analyzer | `PacketAnalyzer` | `packet-analyzer.ts` | Classify packets as auth, chat, error, notification, heartbeat, or ok. |
 | Filter engine | `FilterEngine` | `filter-engine.ts` | Apply search, direction, JSON/error, ping/pong, size, and session filters. |
 | Export adapter | `ExportAdapter` | `export-adapter.ts` | Create serialized session/packet export files. |
@@ -33,8 +33,21 @@ export type PacketDecoder = {
   decode: (packet: Packet) => DecodedPacket;
   id: string;
   label: string;
+  priority: number;
 };
 ```
+
+Decoder selection is handled by `DecoderRegistry`. Higher `priority` values run first. If a decoder throws, the registry returns the raw fallback decoded packet and records fallback metadata instead of crashing the UI.
+
+Built-in decoder classes:
+
+- `SocketIoDecoder`
+- `GraphqlWsDecoder`
+- `JsonDecoder`
+- `RawBinaryDecoder`
+- `FallbackDecoder`
+
+Future binary formats such as Protobuf, MessagePack, and BSON should extend `BinaryDecoder` instead of changing timeline or inspector components.
 
 Example:
 
@@ -44,6 +57,7 @@ import type { PacketDecoder } from "@/extensions";
 export const graphqlWsDecoder: PacketDecoder = {
   id: "example.decoder.graphql-ws",
   label: "GraphQL over WebSocket decoder",
+  priority: 80,
   canDecode: (packet) => packet.payloadKind === "json" && packet.payload.includes('"type"'),
   decode: (packet) => {
     const payload = JSON.parse(packet.payload) as { id?: string; type?: string };
@@ -67,8 +81,10 @@ To wire it:
 
 1. Add the decoder file under `apps/desktop/src/extensions`.
 2. Add focused tests next to it.
-3. Add it to the decoder list used by `decodePacket()`.
+3. Add it to `defaultPacketDecoders`.
 4. Do not parse that protocol directly in React components.
+
+Full contributor guide: [docs/adding-a-decoder.md](adding-a-decoder.md).
 
 ## PacketAnalyzer
 

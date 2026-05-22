@@ -50,6 +50,7 @@ export type PacketDecoder = {
   decode: (packet: Packet) => DecodedPacket;
   id: ExtensionId;
   label: string;
+  priority: number;
 };
 
 export type PacketAnalyzer = {

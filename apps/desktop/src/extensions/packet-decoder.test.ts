@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodePacket, defaultPacketAnalyzer, defaultFilterEngine } from "@/extensions";
+import { BinaryDecoder, DecoderRegistry, decodePacket, defaultFilterEngine, defaultPacketAnalyzer, type DecodedPacket } from "@/extensions";
 import { defaultFilterState, inferPayloadKind, type Packet } from "@/models";
 
 describe("extension contracts", () => {
@@ -220,7 +220,96 @@ describe("extension contracts", () => {
       eventName: "chat.message",
     });
   });
+
+  it("uses decoder priority and falls back safely when a decoder fails", () => {
+    const lowPriorityDecoder = createTestDecoder("test.decoder.low", 1, "low.frame");
+    const highPriorityDecoder = createTestDecoder("test.decoder.high", 10, "high.frame");
+    const throwingDecoder = {
+      ...createTestDecoder("test.decoder.throwing", 20, "throwing.frame"),
+      decode: () => {
+        throw new Error("test decoder failure");
+      },
+    };
+    const packet = createPacketFixture({
+      payload: "plain frame",
+      payloadKind: "text",
+    });
+
+    expect(new DecoderRegistry([lowPriorityDecoder, highPriorityDecoder]).decode(packet).eventName).toBe("high.frame");
+
+    const fallback = new DecoderRegistry([throwingDecoder, lowPriorityDecoder]).decode(packet);
+
+    expect(fallback).toMatchObject({
+      decoderId: "socketlens.decoder.text",
+      eventName: "text.frame",
+      metadata: {
+        fallbackReason: "test decoder failure",
+        fallbackSourceDecoder: "test.decoder.throwing",
+      },
+    });
+  });
+
+  it("supports source-level binary decoders without changing packet consumers", () => {
+    class ExampleBinaryDecoder extends BinaryDecoder {
+      readonly id = "test.decoder.binary";
+      readonly label = "Test binary decoder";
+      readonly priority = 50;
+
+      protected override canDecodeBinary(packet: Packet) {
+        return packet.payload.startsWith("msgpack:");
+      }
+
+      protected override decodeBinary(packet: Packet): DecodedPacket {
+        return {
+          data: {
+            marker: packet.payload.slice("msgpack:".length),
+          },
+          decoderId: this.id,
+          eventName: "messagepack.frame",
+          metadata: {
+            protocol: "messagepack",
+          },
+          payloadKind: "binary",
+          preview: "MessagePack frame",
+          tags: ["binary", "messagepack"],
+        };
+      }
+    }
+
+    const decoded = new DecoderRegistry([new ExampleBinaryDecoder()]).decode(
+      createPacketFixture({
+        payload: "msgpack:demo",
+        payloadKind: "binary",
+      }),
+    );
+
+    expect(decoded).toMatchObject({
+      decoderId: "test.decoder.binary",
+      eventName: "messagepack.frame",
+      metadata: {
+        protocol: "messagepack",
+      },
+    });
+  });
 });
+
+function createTestDecoder(id: string, priority: number, eventName: string) {
+  return {
+    canDecode: () => true,
+    decode: (packet: Packet): DecodedPacket => ({
+      data: packet.payload,
+      decoderId: id,
+      eventName,
+      metadata: {},
+      payloadKind: packet.payloadKind,
+      preview: packet.payload,
+      tags: ["test"],
+    }),
+    id,
+    label: id,
+    priority,
+  };
+}
 
 function createPacketFixture(packet: Partial<Packet> & Pick<Packet, "payload">): Packet {
   return {

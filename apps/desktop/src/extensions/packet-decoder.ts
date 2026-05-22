@@ -1,11 +1,12 @@
 import type { Packet } from "@/models";
 import type { DecodedPacket, PacketDecoder } from "@/extensions/types";
 
-const socketIoDecoderId = "socketlens.decoder.socketio";
-const graphQlWsDecoderId = "socketlens.decoder.graphqlws";
-const jsonDecoderId = "socketlens.decoder.json";
-const textDecoderId = "socketlens.decoder.text";
-const binaryDecoderId = "socketlens.decoder.binary";
+export const socketIoDecoderId = "socketlens.decoder.socketio";
+export const graphQlWsDecoderId = "socketlens.decoder.graphqlws";
+export const jsonDecoderId = "socketlens.decoder.json";
+export const textDecoderId = "socketlens.decoder.text";
+export const binaryDecoderId = "socketlens.decoder.binary";
+export const fallbackDecoderId = "socketlens.decoder.fallback";
 
 type SocketIoEnginePacketType = "close" | "message" | "noop" | "open" | "ping" | "pong" | "upgrade" | "unknown";
 type SocketIoPacketType =
@@ -57,9 +58,97 @@ type ParsedGraphQlWsMessage = {
   type: string;
 };
 
-export const socketIoPacketDecoder: PacketDecoder = {
-  canDecode: (packet) => packet.payloadKind === "text" && looksLikeSocketIoFrame(packet.payload),
-  decode: (packet): DecodedPacket => {
+export class DecoderRegistry {
+  private readonly fallbackDecoder: PacketDecoder;
+  private readonly orderedDecoders: PacketDecoder[];
+
+  constructor(decoders: PacketDecoder[], fallbackDecoder: PacketDecoder = fallbackPacketDecoder) {
+    this.fallbackDecoder = fallbackDecoder;
+    this.orderedDecoders = decoders
+      .filter((decoder) => decoder.id !== fallbackDecoder.id)
+      .map((decoder, index) => ({ decoder, index }))
+      .sort((left, right) => right.decoder.priority - left.decoder.priority || left.index - right.index)
+      .map(({ decoder }) => decoder);
+  }
+
+  decode(packet: Packet): DecodedPacket {
+    const decoder = this.findDecoder(packet);
+
+    try {
+      return decoder.decode(packet);
+    } catch (error) {
+      return this.decodeWithFallback(packet, decoder, error);
+    }
+  }
+
+  findDecoder(packet: Packet): PacketDecoder {
+    for (const decoder of this.orderedDecoders) {
+      try {
+        if (decoder.canDecode(packet)) {
+          return decoder;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    return this.fallbackDecoder;
+  }
+
+  getDecoders(): PacketDecoder[] {
+    return [...this.orderedDecoders, this.fallbackDecoder];
+  }
+
+  private decodeWithFallback(packet: Packet, decoder: PacketDecoder, error: unknown): DecodedPacket {
+    const decoded = this.fallbackDecoder.decode(packet);
+    const message = error instanceof Error ? error.message : "Decoder failed";
+
+    return {
+      ...decoded,
+      metadata: {
+        ...decoded.metadata,
+        fallbackReason: message,
+        fallbackSourceDecoder: decoder.id,
+      },
+      tags: [...decoded.tags, "fallback"],
+    };
+  }
+}
+
+export abstract class BinaryDecoder implements PacketDecoder {
+  abstract readonly id: string;
+  abstract readonly label: string;
+  abstract readonly priority: number;
+
+  canDecode(packet: Packet) {
+    return packet.payloadKind === "binary" && this.canDecodeBinary(packet);
+  }
+
+  decode(packet: Packet): DecodedPacket {
+    if (packet.payloadKind !== "binary") {
+      return fallbackPacketDecoder.decode(packet);
+    }
+
+    return this.decodeBinary(packet);
+  }
+
+  protected canDecodeBinary(_packet: Packet) {
+    return true;
+  }
+
+  protected abstract decodeBinary(packet: Packet): DecodedPacket;
+}
+
+export class SocketIoDecoder implements PacketDecoder {
+  readonly id = socketIoDecoderId;
+  readonly label = "Socket.IO packet decoder";
+  readonly priority = 90;
+
+  canDecode(packet: Packet) {
+    return packet.payloadKind === "text" && looksLikeSocketIoFrame(packet.payload);
+  }
+
+  decode(packet: Packet): DecodedPacket {
     const parsed = parseSocketIoFrame(packet.payload);
 
     if (!parsed) {
@@ -118,14 +207,19 @@ export const socketIoPacketDecoder: PacketDecoder = {
       preview: parsed.preview,
       tags,
     };
-  },
-  id: socketIoDecoderId,
-  label: "Socket.IO packet decoder",
-};
+  }
+}
 
-export const graphQlWsPacketDecoder: PacketDecoder = {
-  canDecode: (packet) => packet.payloadKind === "json" && looksLikeGraphQlWsMessage(packet.payload),
-  decode: (packet): DecodedPacket => {
+export class GraphqlWsDecoder implements PacketDecoder {
+  readonly id = graphQlWsDecoderId;
+  readonly label = "GraphQL WebSocket packet decoder";
+  readonly priority = 80;
+
+  canDecode(packet: Packet) {
+    return packet.payloadKind === "json" && looksLikeGraphQlWsMessage(packet.payload);
+  }
+
+  decode(packet: Packet): DecodedPacket {
     const parsed = parseGraphQlWsMessage(packet.payload);
 
     if (!parsed) {
@@ -165,14 +259,19 @@ export const graphQlWsPacketDecoder: PacketDecoder = {
       preview: parsed.preview,
       tags: ["graphql", parsed.protocol, parsed.phase],
     };
-  },
-  id: graphQlWsDecoderId,
-  label: "GraphQL WebSocket packet decoder",
-};
+  }
+}
 
-export const jsonPacketDecoder: PacketDecoder = {
-  canDecode: (packet) => packet.payloadKind === "json",
-  decode: (packet): DecodedPacket => {
+export class JsonDecoder implements PacketDecoder {
+  readonly id = jsonDecoderId;
+  readonly label = "JSON packet decoder";
+  readonly priority = 20;
+
+  canDecode(packet: Packet) {
+    return packet.payloadKind === "json";
+  }
+
+  decode(packet: Packet): DecodedPacket {
     const parsed = safeParseJson(packet.payload);
 
     if (!parsed.ok) {
@@ -203,53 +302,95 @@ export const jsonPacketDecoder: PacketDecoder = {
       preview: getJsonPreview(parsed.data),
       tags: ["json"],
     };
-  },
-  id: jsonDecoderId,
-  label: "JSON packet decoder",
-};
+  }
+}
 
-export const textPacketDecoder: PacketDecoder = {
-  canDecode: (packet) => packet.payloadKind === "text",
-  decode: (packet) => ({
-    data: packet.payload,
-    decoderId: textDecoderId,
-    eventName: "text.frame",
-    metadata: {},
-    payloadKind: "text",
-    preview: truncateDecodedPreview(packet.payload),
-    tags: ["text"],
-  }),
-  id: textDecoderId,
-  label: "Text packet decoder",
-};
+export class RawBinaryDecoder extends BinaryDecoder {
+  readonly id = binaryDecoderId;
+  readonly label = "Raw binary packet decoder";
+  readonly priority = 10;
 
-export const binaryPacketDecoder: PacketDecoder = {
-  canDecode: (packet) => packet.payloadKind === "binary",
-  decode: (packet) => ({
-    data: packet.payload,
-    decoderId: binaryDecoderId,
-    eventName: "binary.frame",
-    metadata: {},
-    payloadKind: "binary",
-    preview: truncateDecodedPreview(packet.payload),
-    tags: ["binary"],
-  }),
-  id: binaryDecoderId,
-  label: "Binary packet decoder",
-};
+  protected decodeBinary(packet: Packet): DecodedPacket {
+    return {
+      data: packet.payload,
+      decoderId: binaryDecoderId,
+      eventName: "binary.frame",
+      metadata: {},
+      payloadKind: "binary",
+      preview: truncateDecodedPreview(packet.payload),
+      tags: ["binary"],
+    };
+  }
+}
+
+export class FallbackDecoder implements PacketDecoder {
+  readonly id = fallbackDecoderId;
+  readonly label = "Raw fallback packet decoder";
+  readonly priority = -1000;
+
+  canDecode() {
+    return true;
+  }
+
+  decode(packet: Packet): DecodedPacket {
+    if (packet.payloadKind === "binary") {
+      return {
+        data: packet.payload,
+        decoderId: binaryDecoderId,
+        eventName: "binary.frame",
+        metadata: {},
+        payloadKind: "binary",
+        preview: truncateDecodedPreview(packet.payload),
+        tags: ["binary", "fallback"],
+      };
+    }
+
+    if (packet.payloadKind === "json") {
+      return {
+        data: packet.payload,
+        decoderId: jsonDecoderId,
+        eventName: "json.frame",
+        metadata: {},
+        payloadKind: "json",
+        preview: truncateDecodedPreview(packet.payload),
+        tags: ["json", "fallback"],
+      };
+    }
+
+    return {
+      data: packet.payload,
+      decoderId: textDecoderId,
+      eventName: "text.frame",
+      metadata: {},
+      payloadKind: "text",
+      preview: truncateDecodedPreview(packet.payload),
+      tags: ["text", "fallback"],
+    };
+  }
+}
+
+export const socketIoPacketDecoder = new SocketIoDecoder();
+export const graphQlWsPacketDecoder = new GraphqlWsDecoder();
+export const jsonPacketDecoder = new JsonDecoder();
+export const binaryPacketDecoder = new RawBinaryDecoder();
+export const fallbackPacketDecoder = new FallbackDecoder();
+export const textPacketDecoder = fallbackPacketDecoder;
 
 export const defaultPacketDecoders: PacketDecoder[] = [
   socketIoPacketDecoder,
   graphQlWsPacketDecoder,
   jsonPacketDecoder,
-  textPacketDecoder,
   binaryPacketDecoder,
+  fallbackPacketDecoder,
 ];
+export const defaultDecoderRegistry = new DecoderRegistry(defaultPacketDecoders, fallbackPacketDecoder);
 
 export function decodePacket(packet: Packet, decoders: PacketDecoder[] = defaultPacketDecoders): DecodedPacket {
-  const decoder = decoders.find((candidate) => candidate.canDecode(packet)) ?? textPacketDecoder;
+  if (decoders === defaultPacketDecoders) {
+    return defaultDecoderRegistry.decode(packet);
+  }
 
-  return decoder.decode(packet);
+  return new DecoderRegistry(decoders, fallbackPacketDecoder).decode(packet);
 }
 
 export function truncateDecodedPreview(value: string, maxLength = 220) {
