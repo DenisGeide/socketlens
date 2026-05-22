@@ -152,7 +152,7 @@ export function App() {
   const showInvestorDemoGuide =
     investorDemo.isActive || (currentSession?.endpointUrl === investorDemoEndpointUrl && investorDemoPacketCount > 0);
   const showOnboardingPanel =
-    !investorDemo.isActive && !demoMode.isActive && !isConnected && status !== "connecting" && packets.length === 0;
+    settings.onboarding.dismissedAt === null && !investorDemo.isActive && !demoMode.isActive && !isConnected && status !== "connecting";
   const canStartInvestorDemo = !demoMode.isActive && !isConnected && status !== "connecting";
   const diagnostics = useMemo(
     () => ({

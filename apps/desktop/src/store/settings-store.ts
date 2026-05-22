@@ -9,6 +9,7 @@ import {
 } from "@/lib/settings-persistence";
 
 type SettingsStore = {
+  restartOnboarding: () => void;
   resetSettings: () => void;
   settings: AppSettings;
   updateSettings: (settings: Partial<AppSettings>) => void;
@@ -17,6 +18,16 @@ type SettingsStore = {
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
+      restartOnboarding: () =>
+        set((state) => ({
+          settings: normalizeAppSettings({
+            ...state.settings,
+            onboarding: {
+              completedStepIds: [],
+              dismissedAt: null,
+            },
+          }),
+        })),
       resetSettings: () => set({ settings: defaultAppSettings }),
       settings: defaultAppSettings,
       updateSettings: (settings) =>

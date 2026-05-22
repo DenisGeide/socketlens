@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
+  BookOpenCheck,
   Bot,
   Check,
   CircleOff,
@@ -54,6 +55,7 @@ const aiProviderValues = ["disabled", "openai-compatible", "ollama"] satisfies A
 export function SettingsPage({ packetCount }: SettingsPageProps) {
   const { t } = useTranslation();
   const settings = useSettingsStore((state) => state.settings);
+  const restartOnboarding = useSettingsStore((state) => state.restartOnboarding);
   const resetSettings = useSettingsStore((state) => state.resetSettings);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const [aiValidationMessage, setAiValidationMessage] = useState<string | null>(null);
@@ -219,6 +221,15 @@ export function SettingsPage({ packetCount }: SettingsPageProps) {
     });
   }
 
+  function handleRestartOnboarding() {
+    restartOnboarding();
+    useUiStore.getState().addToast({
+      level: "info",
+      message: t("settings.onboarding.restartToastMessage"),
+      title: t("settings.onboarding.restartToastTitle"),
+    });
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PanelHeader>
@@ -226,10 +237,16 @@ export function SettingsPage({ packetCount }: SettingsPageProps) {
           <PanelTitle>{t("settings.title")}</PanelTitle>
           <p className="sl-copy mt-1 text-xs text-muted-foreground">{t("settings.description")}</p>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleResetSettings}>
-          <RotateCcw className="h-4 w-4" />
-          {t("actions.reset")}
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button variant="secondary" size="sm" onClick={handleRestartOnboarding}>
+            <BookOpenCheck className="h-4 w-4" />
+            {t("settings.onboarding.restart")}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleResetSettings}>
+            <RotateCcw className="h-4 w-4" />
+            {t("actions.reset")}
+          </Button>
+        </div>
       </PanelHeader>
       <PanelContent className="min-h-0 flex-1 overflow-auto">
         <div className="mx-auto grid w-full max-w-4xl content-start gap-3">
