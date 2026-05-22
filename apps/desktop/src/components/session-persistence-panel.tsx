@@ -25,18 +25,20 @@ type SessionFileActionOptions = {
 type SessionPersistencePanelProps = {
   currentSession: Session | null;
   currentSessionPackets: Packet[];
+  onExportAsyncApiDraft: (sessionName: string, options?: SessionFileActionOptions) => Promise<void>;
   onExportPackets: (sessionName: string, options?: SessionFileActionOptions) => Promise<void>;
   onImportBrowserFile: (file: File) => Promise<void>;
   onLoadSessionFile: () => Promise<void>;
   onSaveSession: (sessionName: string, options?: SessionFileActionOptions) => Promise<void>;
 };
 
-type FileOperation = "export" | "save";
+type FileOperation = "asyncapi" | "export" | "save";
 type PendingOperation = FileOperation | "load" | null;
 
 export function SessionPersistencePanel({
   currentSession,
   currentSessionPackets,
+  onExportAsyncApiDraft,
   onExportPackets,
   onImportBrowserFile,
   onLoadSessionFile,
@@ -142,11 +144,17 @@ export function SessionPersistencePanel({
   }
 
   function runFileOperation(operation: FileOperation, options: SessionRedactionOptions) {
-    return runOperation(operation, () =>
-      operation === "save"
-        ? onSaveSession(sessionName, { redaction: options })
-        : onExportPackets(sessionName, { redaction: options }),
-    );
+    return runOperation(operation, () => {
+      if (operation === "save") {
+        return onSaveSession(sessionName, { redaction: options });
+      }
+
+      if (operation === "asyncapi") {
+        return onExportAsyncApiDraft(sessionName, { redaction: options });
+      }
+
+      return onExportPackets(sessionName, { redaction: options });
+    });
   }
 
   return (
@@ -299,7 +307,7 @@ export function SessionPersistencePanel({
         </div>
       ) : null}
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <Button
           variant="secondary"
           size="sm"
@@ -317,6 +325,16 @@ export function SessionPersistencePanel({
         >
           <Download className="h-4 w-4" />
           {t("sessions.files.export")}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={!hasPackets || fileActionsDisabled}
+          title={t("sessions.files.asyncApiExperimental")}
+          onClick={() => handleFileOperation("asyncapi")}
+        >
+          <FileJson className="h-4 w-4" />
+          {t("sessions.files.exportAsyncApi")}
         </Button>
         <Button variant="ghost" size="sm" disabled={pendingOperation !== null} onClick={handleLoadClick}>
           <Upload className="h-4 w-4" />

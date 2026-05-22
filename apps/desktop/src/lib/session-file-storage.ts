@@ -31,6 +31,15 @@ export type LoadSessionFileResult =
     };
 
 const jsonMimeType = "application/json;charset=utf-8";
+type FileDialogFilter = {
+  extensions: string[];
+  name: string;
+};
+type SaveTextFileOptions = {
+  filters?: FileDialogFilter[];
+  mimeType?: string;
+  title?: string;
+};
 const socketLensJsonFilter = [
   {
     extensions: ["json"],
@@ -42,8 +51,22 @@ export async function saveSocketLensFile(
   file: SocketLensImportableFile,
   suggestedFileName: string,
 ): Promise<SaveSessionFileResult> {
-  const contents = serializeSocketLensFile(file);
+  return saveTextFile(serializeSocketLensFile(file), suggestedFileName, {
+    filters: socketLensJsonFilter,
+    mimeType: jsonMimeType,
+    title: "Save SocketLens session",
+  });
+}
 
+export async function saveTextFile(
+  contents: string,
+  suggestedFileName: string,
+  {
+    filters = socketLensJsonFilter,
+    mimeType = "text/plain;charset=utf-8",
+    title = "Save SocketLens file",
+  }: SaveTextFileOptions = {},
+): Promise<SaveSessionFileResult> {
   if (isTauriRuntime()) {
     const [{ save }, { writeTextFile }] = await Promise.all([
       import("@tauri-apps/plugin-dialog"),
@@ -51,8 +74,8 @@ export async function saveSocketLensFile(
     ]);
     const selectedPath = await save({
       defaultPath: suggestedFileName,
-      filters: socketLensJsonFilter,
-      title: "Save SocketLens session",
+      filters,
+      title,
     });
 
     if (!selectedPath) {
@@ -71,7 +94,7 @@ export async function saveSocketLensFile(
     };
   }
 
-  downloadBrowserFile(contents, suggestedFileName);
+  downloadBrowserFile(contents, suggestedFileName, mimeType);
 
   return {
     cancelled: false,
@@ -130,8 +153,8 @@ export async function loadSocketLensFileFromBrowserFile(file: File): Promise<Loa
   };
 }
 
-function downloadBrowserFile(contents: string, fileName: string) {
-  const blob = new Blob([contents], { type: jsonMimeType });
+function downloadBrowserFile(contents: string, fileName: string, mimeType: string) {
+  const blob = new Blob([contents], { type: mimeType });
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
 

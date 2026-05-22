@@ -134,6 +134,7 @@ Main contributor and user docs:
 - `development.md`: contributor workflow.
 - `contributor-guide.md`: where to start when adding focused extensions.
 - `extension-points.md`: supported source-level extension contracts.
+- `asyncapi-export.md`: experimental inferred AsyncAPI-like YAML draft export.
 - `manual-qa.md`: release and feature QA checklist.
 - `troubleshooting.md`: common failures and fixes.
 - `release.md`: release process.
@@ -203,6 +204,7 @@ AI is optional and disabled by default.
 ## Where Session Files Live
 
 - UI: `apps/desktop/src/components/session-persistence-panel.tsx`
+- AsyncAPI draft helper: `apps/desktop/src/lib/asyncapi-export.ts`
 - Session file schema: `apps/desktop/src/models/session-file.ts`
 - Storage helpers: `apps/desktop/src/lib/session-file-storage.ts`
 - Session store: `apps/desktop/src/store/session-store.ts`

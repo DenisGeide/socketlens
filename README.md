@@ -38,7 +38,7 @@ What works in `v0.1.0-alpha`:
 - **GraphQL WS Decoding**: detects common GraphQL WebSocket subscription envelopes, operation names, lifecycle labels, and protocol badges.
 - **Manual Send and Replay**: send JSON or raw text, reuse previous outgoing packets, and replay while connected.
 - **Environments**: Local, Staging, and Production variables with `{{base_url}}` / `{{auth_token}}` interpolation.
-- **Session Files**: save/load SocketLens session JSON and export packets.
+- **Session Files**: save/load SocketLens session JSON, export packets, and create experimental inferred AsyncAPI-like YAML drafts.
 - **Echo Server**: local TypeScript WebSocket server on `ws://127.0.0.1:17787`.
 - **Socket.IO Demo**: local TypeScript Socket.IO server for testing decoded events on `ws://127.0.0.1:17810/socket.io/?EIO=4&transport=websocket`.
 - **Settings**: theme, compact mode, auto-scroll, packet retention, language, AI provider, and privacy options.

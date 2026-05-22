@@ -39,7 +39,16 @@ import { getPacketSummary } from "@/lib/packet-inspection";
 import type { NativeBackendState, ProxyStatus } from "@/lib/tauri-commands";
 import { createTechnicalDetails, createUserFacingError, type UserFacingError } from "@/lib/user-facing-errors";
 import { translateWebSocketValidationMessage } from "@/lib/validation-messages";
-import type { Connection, ConnectionStatus, EntityId, Packet, ReplayHistoryItem, SendSource, Session } from "@/models";
+import type {
+  Connection,
+  ConnectionStatus,
+  EntityId,
+  Packet,
+  ReplayHistoryItem,
+  SendSource,
+  Session,
+  SessionRedactionOptions,
+} from "@/models";
 import {
   getActiveEnvironment,
   hasEnvironmentVariables,
@@ -61,6 +70,9 @@ type ConnectionDraft = {
 };
 
 type CaptureMode = "direct" | "proxy";
+type SessionFileActionOptions = {
+  redaction?: SessionRedactionOptions;
+};
 
 type SidebarProps = {
   activeConnectionId: string | null;
@@ -83,7 +95,8 @@ type SidebarProps = {
   onConnectConnection: (connectionId: string) => void;
   onCreateConnection: (draft: ConnectionDraft) => boolean;
   onDisconnect: () => void;
-  onExportPackets: (sessionName: string) => Promise<void>;
+  onExportAsyncApiDraft: (sessionName: string, options?: SessionFileActionOptions) => Promise<void>;
+  onExportPackets: (sessionName: string, options?: SessionFileActionOptions) => Promise<void>;
   onImportBrowserFile: (file: File) => Promise<void>;
   onLoadSamplePayload: () => void;
   onLoadSessionFile: () => Promise<void>;
@@ -91,7 +104,7 @@ type SidebarProps = {
   onNotifyError: (toast: CreateToastInput) => void;
   onQuickConnectLocalEcho: () => void;
   onReconnectConnection: (connectionId: string) => void;
-  onSaveSession: (sessionName: string) => Promise<void>;
+  onSaveSession: (sessionName: string, options?: SessionFileActionOptions) => Promise<void>;
   onSelectConnection: (connectionId: string) => void;
   onSelectPacket: (packetId: string) => void;
   onSelectSession: (sessionId: string) => void;
@@ -142,6 +155,7 @@ export function Sidebar({
   onConnectConnection,
   onCreateConnection,
   onDisconnect,
+  onExportAsyncApiDraft,
   onExportPackets,
   onImportBrowserFile,
   onLoadSamplePayload,
@@ -470,6 +484,7 @@ export function Sidebar({
             <SessionPersistencePanel
               currentSession={currentSession}
               currentSessionPackets={currentSessionPackets}
+              onExportAsyncApiDraft={onExportAsyncApiDraft}
               onExportPackets={onExportPackets}
               onImportBrowserFile={onImportBrowserFile}
               onLoadSessionFile={onLoadSessionFile}

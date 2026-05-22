@@ -46,6 +46,7 @@ import {
   loadSocketLensFileFromBrowserFile,
   loadSocketLensFileFromTauriDialog,
   saveSocketLensFile,
+  saveTextFile,
 } from "@/lib/session-file-storage";
 import { registerProxyEventListeners, type ProxyPacketEvent } from "@/lib/proxy-events";
 import { createTechnicalDetails, createUserFacingError, type UserFacingError } from "@/lib/user-facing-errors";
@@ -60,6 +61,7 @@ import {
 } from "@/lib/tauri-commands";
 import { getJsonCommand } from "@/lib/json-payload";
 import { analyzePacketFlows } from "@/lib/flow-analysis";
+import { createAsyncApiDraftExport } from "@/lib/asyncapi-export";
 import { buildPacketRelationshipIndex } from "@/lib/packet-relationships";
 import { filterPackets } from "@/models";
 import {
@@ -1240,6 +1242,70 @@ export function App() {
     });
   }
 
+  async function handleExportAsyncApiDraft(sessionName: string, options: SessionFileActionOptions = {}) {
+    if (!currentSession || currentSessionPackets.length === 0) {
+      addLog({
+        level: "warning",
+        message: t("sessions.logs.asyncApiNeedsPackets"),
+        sessionId: currentSession?.id ?? null,
+      });
+      return;
+    }
+
+    const normalizedSessionName = sessionName.trim() || currentSession.name;
+    const redactionResult = redactSessionForExport({
+      customRules: options.redaction?.customRules,
+      enabled: options.redaction?.enabled ?? true,
+      packets: currentSessionPackets,
+      replacement: options.redaction?.replacement,
+      session: {
+        ...currentSession,
+        name: normalizedSessionName,
+      },
+    });
+    const draft = createAsyncApiDraftExport({
+      packets: redactionResult.packets,
+      redactionApplied: redactionResult.summary.applied,
+      session: redactionResult.session ?? currentSession,
+      sessionName: normalizedSessionName,
+    });
+    const result = await saveTextFile(draft.contents, draft.fileName, {
+      filters: [
+        {
+          extensions: ["yaml", "yml"],
+          name: t("sessions.files.asyncApiDialogFilter"),
+        },
+      ],
+      mimeType: "application/yaml;charset=utf-8",
+      title: t("sessions.files.asyncApiDialogTitle"),
+    });
+
+    if (result.cancelled) {
+      addLog({
+        level: "info",
+        message: t("sessions.logs.asyncApiExportCancelled"),
+        sessionId: currentSession.id,
+      });
+      return;
+    }
+
+    addLog({
+      connectionId: currentSession.connectionId,
+      level: "success",
+      message:
+        result.mode === "tauri"
+          ? t("sessions.logs.asyncApiExportedTo", {
+              events: draft.eventCount,
+              target: result.target,
+            })
+          : t("sessions.logs.asyncApiExportDownloadedAs", {
+              events: draft.eventCount,
+              target: result.target,
+            }),
+      sessionId: currentSession.id,
+    });
+  }
+
   async function handleLoadSessionFile() {
     const result = await loadSocketLensFileFromTauriDialog();
 
@@ -1343,6 +1409,7 @@ export function App() {
           onCreateConnection={handleCreateConnection}
           onClearReplayHistory={clearReplayHistory}
           onDisconnect={disconnect}
+          onExportAsyncApiDraft={handleExportAsyncApiDraft}
           onExportPackets={handleExportPackets}
           onImportBrowserFile={handleImportBrowserFile}
           onLoadSamplePayload={handleLoadSamplePayload}

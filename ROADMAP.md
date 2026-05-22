@@ -32,6 +32,7 @@ Freeze details and the readiness checklist live in [docs/v0.1.0-alpha-freeze.md]
 - Browser development mode cannot run native proxy listeners.
 - Release asset folders and brand placeholders exist under `docs/assets`; final captured screenshots and demo GIFs still need validation from real app states.
 - AI is optional and provider-dependent; it is not part of the core debugger requirement.
+- Experimental AsyncAPI export creates an inferred YAML draft only. It is not a validated API contract and needs manual review before sharing.
 - No telemetry, hosted sync, cloud workspace, account system, or monetized service exists today.
 
 ## Completed For 0.1 Alpha
@@ -74,6 +75,7 @@ The near-term plan is to make the existing workflows more reliable before expand
 - Authentication helper templates for common WebSocket handshakes.
 - Request/event collections for repeatable realtime test flows.
 - Safer redaction tools for sharing session files in issues or teams.
+- AsyncAPI draft export validation, richer schema inference, and clearer protocol-specific channel mapping.
 - Proxy-mode capture controls for binary frames and large payloads.
 - Extensible inspector hooks for protocol-specific renderers.
 - Fixture-backed MessagePack and BSON decoding if real users need those protocols.

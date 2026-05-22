@@ -72,6 +72,14 @@ Use **Export** to write only packets and metadata. Packet-only exports use `.soc
 
 Packet exports are useful when you want to share packet data without the full session object.
 
+## Export Experimental AsyncAPI Drafts
+
+Use **AsyncAPI draft** to generate an experimental AsyncAPI-like YAML file from the selected session.
+
+SocketLens infers event names, direction, one example payload per event, and a shallow payload schema from captured packets. The result is marked as inferred and is not a validated API contract.
+
+More detail: [asyncapi-export.md](asyncapi-export.md).
+
 ## Redacted Exports
 
 Session files can contain secrets captured from real traffic. Before saving or exporting, SocketLens now shows a redaction warning and a preview.

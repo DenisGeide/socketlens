@@ -159,6 +159,8 @@ Current built-ins:
 - `socketLensSessionExportAdapter`
 - `socketLensPacketExportAdapter`
 
+The experimental AsyncAPI-like YAML exporter currently lives in `apps/desktop/src/lib/asyncapi-export.ts` because it produces an inferred documentation draft, not an importable SocketLens session file. If future formats need the same lifecycle as session JSON, promote them into explicit export adapters with tests.
+
 Rules:
 
 - keep the existing SocketLens session JSON format backward-compatible,

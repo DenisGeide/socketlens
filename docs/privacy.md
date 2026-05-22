@@ -22,6 +22,7 @@ SocketLens keeps captured packets in local app memory while you debug. Packet da
 - run Proxy Mode and forward external client traffic to a target WebSocket server
 - send or replay a packet
 - save or export a session JSON file
+- export an experimental AsyncAPI draft
 - import a local session JSON file
 - copy a payload to your clipboard
 - run an AI action with a configured provider
@@ -76,7 +77,7 @@ This setting is a display privacy control, not a redaction system.
 
 ## Session Files
 
-Session files are local JSON documents. They may contain:
+Session files are local JSON documents. AsyncAPI drafts are local YAML documents inferred from captured packets. They may contain:
 
 - endpoint URLs
 - full packet payloads
