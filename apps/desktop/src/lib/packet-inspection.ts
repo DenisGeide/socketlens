@@ -36,6 +36,7 @@ const prettyJsonSizeLimit = 1_000_000;
 const packetSummaryCache = new WeakMap<Packet, PacketSummary>();
 const packetDemoMetadataCache = new WeakMap<Packet, PacketDemoMetadata | null>();
 const packetErrorCache = new WeakMap<Packet, boolean>();
+const packetReplayCache = new WeakMap<Packet, boolean>();
 const packetSearchTextCache = new WeakMap<Packet, string>();
 
 export function getPacketSummary(packet: Packet): PacketSummary {
@@ -131,14 +132,22 @@ export function isErrorPacketFast(packet: Packet) {
     return cachedResult;
   }
 
-  const payload = packet.payload.toLowerCase();
-  const result =
-    getPacketSummary(packet).status === "error" ||
-    payload.includes('"type": "error"') ||
-    payload.includes('"severity": "error"') ||
-    payload.includes("rate_limit");
+  const result = getPacketSummary(packet).status === "error" || createPayloadErrorResult(packet);
 
   packetErrorCache.set(packet, result);
+
+  return result;
+}
+
+export function isReplayPacketFast(packet: Packet) {
+  const cachedResult = packetReplayCache.get(packet);
+
+  if (cachedResult !== undefined) {
+    return cachedResult;
+  }
+
+  const result = createReplayPacketResult(packet);
+  packetReplayCache.set(packet, result);
 
   return result;
 }
@@ -176,9 +185,57 @@ function createPacketDemoMetadata(packet: Packet): PacketDemoMetadata | null {
   };
 }
 
+function createReplayPacketResult(packet: Packet) {
+  const eventName = getPacketSummary(packet).eventName.toLowerCase();
+
+  if (eventName.includes("replay")) {
+    return true;
+  }
+
+  if (!packet.payload.toLowerCase().includes("replay")) {
+    return false;
+  }
+
+  const parsed = packet.payloadKind === "json" ? parseJsonObject(packet.payload) : null;
+
+  if (!parsed) {
+    return true;
+  }
+
+  const replay = parsed.replay;
+
+  if (isRecord(replay)) {
+    return replay.source === "replay" || typeof replay.replayOf === "string";
+  }
+
+  return parsed.replayAccepted === true;
+}
+
+function createPayloadErrorResult(packet: Packet) {
+  if (packet.payloadKind !== "json") {
+    return packet.payload.toLowerCase().includes("error");
+  }
+
+  const parsed = parseJsonObject(packet.payload);
+
+  if (!parsed) {
+    return false;
+  }
+
+  const type = getStringField(parsed, "type")?.toLowerCase() ?? "";
+  const code = getStringField(parsed, "code")?.toLowerCase() ?? "";
+  const severity = getStringField(parsed, "severity")?.toLowerCase() ?? "";
+
+  return type.includes("error") || code.includes("error") || severity === "error" || severity === "warning";
+}
+
 
 function getStringField(payload: Record<string, unknown>, field: string) {
   const value = payload[field];
 
   return typeof value === "string" ? value : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

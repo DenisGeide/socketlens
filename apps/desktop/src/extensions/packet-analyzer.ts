@@ -16,9 +16,26 @@ function getPacketStatus(decoded: DecodedPacket): PacketStatus {
   const normalizedEvent = decoded.eventName.toLowerCase();
   const code = getRecordString(decoded.data, "code")?.toLowerCase() ?? "";
   const severity = getRecordString(decoded.data, "severity")?.toLowerCase() ?? "";
+  const replaySource = getNestedRecordString(decoded.data, "replay", "source")?.toLowerCase() ?? "";
 
   if (normalizedEvent.includes("error") || code.includes("error") || severity === "error" || severity === "warning") {
     return "error";
+  }
+
+  if (normalizedEvent.includes("replay") || replaySource === "replay") {
+    return "replay";
+  }
+
+  if (normalizedEvent.includes("ai.") || normalizedEvent.includes("explain")) {
+    return "ai";
+  }
+
+  if (normalizedEvent.includes("reconnect")) {
+    return "reconnect";
+  }
+
+  if (normalizedEvent.includes("presence")) {
+    return "presence";
   }
 
   if (normalizedEvent.includes("auth")) {
@@ -48,6 +65,16 @@ function getRecordString(value: unknown, field: string) {
   const fieldValue = value[field];
 
   return typeof fieldValue === "string" ? fieldValue : null;
+}
+
+function getNestedRecordString(value: unknown, field: string, nestedField: string) {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const nestedValue = value[field];
+
+  return getRecordString(nestedValue, nestedField);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -17,7 +17,17 @@ import type {
 
 export type ExtensionId = string;
 
-export type PacketStatus = "auth" | "chat" | "error" | "notification" | "heartbeat" | "ok";
+export type PacketStatus =
+  | "ai"
+  | "auth"
+  | "chat"
+  | "error"
+  | "heartbeat"
+  | "notification"
+  | "ok"
+  | "presence"
+  | "reconnect"
+  | "replay";
 
 export type PacketSummary = {
   eventName: string;

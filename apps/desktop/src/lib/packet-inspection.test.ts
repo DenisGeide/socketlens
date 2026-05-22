@@ -7,6 +7,7 @@ import {
   getPrettyPayload,
   isErrorPacketFast,
   isPingPongPacket,
+  isReplayPacketFast,
 } from "@/lib/packet-inspection";
 
 describe("packet parsing and inspection", () => {
@@ -46,6 +47,37 @@ describe("packet parsing and inspection", () => {
         }),
       ),
     ).toBe(true);
+  });
+
+  it("detects richer timeline statuses and replay markers", () => {
+    expect(
+      getPacketSummary(
+        createPacketFixture({
+          payload: JSON.stringify({ type: "launchroom.presence.cursor.updated" }),
+        }),
+      ).status,
+    ).toBe("presence");
+
+    expect(
+      getPacketSummary(
+        createPacketFixture({
+          payload: JSON.stringify({ type: "launchroom.connection.reconnect.completed" }),
+        }),
+      ).status,
+    ).toBe("reconnect");
+
+    const replayPacket = createPacketFixture({
+      payload: JSON.stringify({
+        replay: {
+          replayOf: "ack_client_original",
+          source: "replay",
+        },
+        type: "launchroom.chat.ack",
+      }),
+    });
+
+    expect(getPacketSummary(replayPacket).status).toBe("replay");
+    expect(isReplayPacketFast(replayPacket)).toBe(true);
   });
 
   it("formats valid JSON and safely handles invalid, text, and large JSON payloads", () => {

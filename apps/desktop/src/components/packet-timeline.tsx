@@ -4,20 +4,27 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Bell,
+  Bot,
+  Braces,
   CirclePause,
   CirclePlay,
   Eraser,
   FileJson2,
+  FileText,
   HeartPulse,
   KeyRound,
   MessageSquareText,
   MousePointer2,
   Play,
+  Radio,
+  RefreshCw,
+  Repeat2,
   Search,
   SendHorizontal,
   SlidersHorizontal,
   Terminal,
   type LucideIcon,
+  Users,
   X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -30,6 +37,7 @@ import {
   getPacketDemoMetadata,
   getPacketSummary,
   isErrorPacketFast,
+  isReplayPacketFast,
   type PacketStatus,
 } from "@/lib/packet-inspection";
 import { cn } from "@/lib/utils";
@@ -340,23 +348,44 @@ function TimelineEmptyState({
 }) {
   const { t } = useTranslation();
   const isErrorState = connectionStatus === "error";
+  const isConnecting = connectionStatus === "connecting";
   const title = hasFilters && totalCount > 0
     ? t("packets.empty.filteredTitle")
-    : isConnected
+    : isConnecting
+      ? t("packets.empty.connectingTitle")
+      : isConnected
       ? t("packets.empty.waitingTitle")
       : t("packets.empty.title");
   const description = hasFilters && totalCount > 0
     ? t("packets.empty.filteredDescription")
-    : isConnected
+    : isConnecting
+      ? t("packets.empty.connectingDescription")
+      : isConnected
       ? t("packets.empty.waitingDescription")
       : isErrorState
         ? t("packets.empty.errorDescription")
         : t("packets.empty.description");
 
   return (
-    <div className="flex h-full min-h-[16rem] flex-col items-center justify-center rounded-md border border-dashed border-border/80 bg-[linear-gradient(180deg,hsl(var(--panel)/0.62),hsl(var(--background)/0.36))] px-6 text-center">
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-md border border-primary/30 bg-primary/10 text-primary">
-        {isConnected ? <SendHorizontal className="h-5 w-5" /> : <MousePointer2 className="h-5 w-5" />}
+    <div className="relative flex h-full min-h-[16rem] flex-col items-center justify-center overflow-hidden rounded-md border border-dashed border-border/80 bg-[linear-gradient(180deg,hsl(var(--panel)/0.72),hsl(var(--background)/0.38))] px-6 text-center">
+      <div className="pointer-events-none absolute inset-x-8 top-8 grid grid-cols-6 gap-2 opacity-30">
+        {Array.from({ length: 18 }).map((_, index) => (
+          <span
+            // Static shimmer bars keep the loading state visible without adding timers to the timeline.
+            key={index}
+            className="h-1 rounded-full bg-muted"
+            style={{ opacity: 0.2 + (index % 4) * 0.12 }}
+          />
+        ))}
+      </div>
+      <div className="relative mb-3 flex h-10 w-10 items-center justify-center rounded-md border border-primary/30 bg-primary/10 text-primary shadow-[0_0_35px_hsl(var(--primary)/0.12)]">
+        {isConnecting ? (
+          <Radio className="h-5 w-5 animate-pulse" />
+        ) : isConnected ? (
+          <SendHorizontal className="h-5 w-5" />
+        ) : (
+          <MousePointer2 className="h-5 w-5" />
+        )}
       </div>
       {isConnected ? (
         <Badge variant="default" className="mb-3">
@@ -428,9 +457,25 @@ const PacketTimelineRow = memo(function PacketTimelineRow({
   const isInbound = packet.direction === "inbound";
   const summary = getPacketSummary(packet);
   const demoMetadata = getPacketDemoMetadata(packet);
-  const directionTone = isInbound
-    ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
-    : "border-amber-300/30 bg-amber-300/10 text-amber-100";
+  const isError = summary.status === "error" || isErrorPacketFast(packet);
+  const isReplay = isReplayPacketFast(packet);
+  const eventParts = splitEventName(summary.eventName);
+  const directionTone = getDirectionTone(packet.direction);
+  const protocolLabel = getProtocolLabel(packet, t);
+  const rowTone = isError
+    ? "border-destructive/45 bg-[linear-gradient(90deg,hsl(var(--destructive)/0.12),hsl(var(--panel)/0.86)_34%)]"
+    : demoMetadata?.highlight
+      ? "border-primary/60 bg-[linear-gradient(90deg,hsl(var(--primary)/0.14),hsl(var(--panel)/0.86)_42%)] shadow-[0_14px_42px_hsl(var(--primary)/0.08)]"
+      : selected
+        ? "border-primary/70 bg-[linear-gradient(90deg,hsl(var(--primary)/0.12),hsl(var(--panel)/0.9)_44%)] shadow-[0_0_0_1px_hsl(var(--primary)/0.28),0_16px_40px_hsl(var(--primary)/0.08)]"
+        : "border-border/70 bg-panel/72 hover:border-border hover:bg-panel/95";
+  const railTone = isError
+    ? "bg-destructive"
+    : demoMetadata?.highlight || selected
+      ? "bg-primary"
+      : isInbound
+        ? "bg-emerald-300/75"
+        : "bg-amber-200/75";
   const demoBadgeLabel = demoMetadata?.highlight && demoMetadata.stepId
     ? t(`investorDemo.steps.${demoMetadata.stepId}.highlight`, { defaultValue: t("packets.demo.highlight") })
     : t("packets.demo.simulated");
@@ -438,30 +483,20 @@ const PacketTimelineRow = memo(function PacketTimelineRow({
   return (
     <button
       type="button"
+      aria-pressed={selected}
       className={cn(
-        "group relative mb-2 grid h-[4.75rem] w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 overflow-hidden rounded-md border p-2.5 pl-3.5 text-left transition",
-        demoMetadata?.highlight
-          ? "border-primary/60 bg-primary/10 shadow-[0_14px_42px_hsl(var(--primary)/0.08)]"
-          : selected
-            ? "border-primary/70 bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.3),0_16px_40px_hsl(var(--primary)/0.08)]"
-            : "border-border/70 bg-panel/70 hover:border-border hover:bg-panel",
+        "group relative mb-2 grid h-[4.75rem] w-full grid-cols-[2.25rem_minmax(0,1fr)_auto] items-start gap-2 overflow-hidden rounded-md border p-2.5 pl-3.5 text-left transition-[background,border-color,box-shadow,transform]",
+        "hover:-translate-y-px focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/70",
+        rowTone,
         selected && demoMetadata?.highlight ? "ring-1 ring-primary/45" : "",
       )}
       onClick={() => onSelectPacket(packet.id)}
     >
+      <span className={cn("absolute inset-y-2 left-0 w-1 rounded-r-full shadow-[0_0_20px_currentColor]", railTone)} />
+      {selected ? <span className="pointer-events-none absolute inset-0 rounded-md ring-1 ring-inset ring-primary/40" /> : null}
       <span
         className={cn(
-          "absolute inset-y-2 left-0 w-1 rounded-r-full",
-          demoMetadata?.highlight
-            ? "bg-primary"
-            : isInbound
-              ? "bg-emerald-300/75"
-              : "bg-amber-200/75",
-        )}
-      />
-      <span
-        className={cn(
-          "mt-0.5 flex h-8 w-8 items-center justify-center rounded-md border shadow-[inset_0_0_0_1px_hsl(var(--background)/0.25)]",
+          "mt-0.5 flex h-8 w-8 items-center justify-center rounded-md border shadow-[inset_0_0_0_1px_hsl(var(--background)/0.25),0_10px_24px_hsl(var(--background)/0.18)] transition group-hover:scale-[1.03]",
           directionTone,
         )}
         title={isInbound ? t("packets.direction.incomingTitle") : t("packets.direction.outgoingTitle")}
@@ -470,41 +505,57 @@ const PacketTimelineRow = memo(function PacketTimelineRow({
       </span>
 
       <span className="min-w-0">
-        <span className="mb-1 flex min-w-0 flex-wrap items-center gap-1.5">
-          <Badge variant="outline" className={cn("shrink-0", directionTone)}>
+        <span className="mb-1 flex min-w-0 items-center gap-1.5 overflow-hidden">
+          <Badge variant="outline" className={cn("shrink-0 border-opacity-80", directionTone)}>
             {isInbound ? t("packets.direction.incoming") : t("packets.direction.outgoing")}
           </Badge>
           <StatusBadge status={summary.status} />
+          <ProtocolBadge label={protocolLabel} payloadKind={packet.payloadKind} />
+          {isReplay ? (
+            <Badge variant="outline" className="shrink-0 border-accent/35 bg-accent/10 text-accent">
+              <Repeat2 className="h-3 w-3" />
+              {t("packets.marker.replay")}
+            </Badge>
+          ) : null}
+          {isError ? (
+            <Badge variant="outline" className="shrink-0 border-destructive/35 bg-destructive/10 text-destructive">
+              <AlertCircle className="h-3 w-3" />
+              {t("packets.marker.error")}
+            </Badge>
+          ) : null}
           {demoMetadata ? (
-            <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">
+            <Badge variant="outline" className="shrink-0 border-primary/25 bg-primary/10 text-primary">
               {t("packets.demo.simulated")}
             </Badge>
           ) : null}
           {demoMetadata?.highlight ? (
-            <Badge variant="default" className="max-w-[16.25rem] truncate">
+            <Badge variant="default" className="min-w-0 max-w-[16.25rem] truncate">
               {demoBadgeLabel}
             </Badge>
           ) : null}
         </span>
-        <span className="mb-0.5 block truncate font-mono text-[0.8rem] font-semibold text-foreground">
-          {summary.eventName}
+        <span className="mb-0.5 flex min-w-0 items-baseline gap-1.5 font-mono">
+          {eventParts.namespace ? (
+            <span className="truncate text-[0.68rem] font-medium text-muted-foreground/85">{eventParts.namespace}</span>
+          ) : null}
+          <span className="truncate text-[0.82rem] font-semibold text-foreground">{eventParts.name}</span>
         </span>
-        <span className="block line-clamp-1 rounded-md border border-border/55 bg-code/70 px-2 py-0.5 break-all font-mono text-[0.7rem] leading-5 text-muted-foreground">
+        <span className="block line-clamp-1 rounded-md border border-border/55 bg-code/80 px-2 py-0.5 break-all font-mono text-[0.7rem] leading-5 text-muted-foreground shadow-[inset_0_1px_0_hsl(var(--foreground)/0.03)]">
           {showPayloadPreview ? summary.preview : t("packets.previewHidden")}
         </span>
       </span>
 
-      <span className="flex flex-col items-end gap-1.5 whitespace-nowrap">
-        <time className="font-mono text-[0.7rem] text-muted-foreground">{formatTime(packet.timestamp)}</time>
+      <span className="flex min-w-[5.5rem] flex-col items-end gap-1 whitespace-nowrap">
+        <time className="rounded-sm bg-background/40 px-1.5 py-0.5 font-mono text-[0.68rem] text-muted-foreground">
+          {formatTime(packet.timestamp)}
+        </time>
         <span className="font-mono text-[0.7rem] text-muted-foreground">{formatBytes(packet.sizeBytes)}</span>
-        {packet.payloadKind === "json" ? (
-          <span className="inline-flex items-center gap-1 text-xs text-accent">
-            <FileJson2 className="h-3 w-3" />
-            {t("packets.kind.json")}
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground">{packet.payloadKind}</span>
-        )}
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            isError ? "bg-destructive shadow-[0_0_14px_hsl(var(--destructive)/0.65)]" : selected ? "bg-primary" : "bg-muted-foreground/45",
+          )}
+        />
       </span>
     </button>
   );
@@ -513,22 +564,71 @@ const PacketTimelineRow = memo(function PacketTimelineRow({
 function StatusBadge({ status }: { status: PacketStatus }) {
   const { t } = useTranslation();
   const config = {
+    ai: { icon: Bot, labelKey: "packets.status.ai", className: "border-fuchsia-300/25 bg-fuchsia-300/10 text-fuchsia-200" },
     auth: { icon: KeyRound, labelKey: "packets.status.auth", className: "border-sky-300/25 bg-sky-300/10 text-sky-200" },
     chat: { icon: MessageSquareText, labelKey: "packets.status.chat", className: "border-emerald-300/25 bg-emerald-300/10 text-emerald-200" },
     error: { icon: AlertCircle, labelKey: "packets.status.error", className: "border-destructive/35 bg-destructive/10 text-destructive" },
     heartbeat: { icon: HeartPulse, labelKey: "packets.status.heartbeat", className: "border-amber-300/25 bg-amber-300/10 text-amber-100" },
     notification: { icon: Bell, labelKey: "packets.status.notification", className: "border-violet-300/25 bg-violet-300/10 text-violet-200" },
     ok: { icon: FileJson2, labelKey: "packets.status.ok", className: "border-border/70 bg-muted/20 text-muted-foreground" },
+    presence: { icon: Users, labelKey: "packets.status.presence", className: "border-cyan-300/25 bg-cyan-300/10 text-cyan-200" },
+    reconnect: { icon: RefreshCw, labelKey: "packets.status.reconnect", className: "border-blue-300/25 bg-blue-300/10 text-blue-200" },
+    replay: { icon: Repeat2, labelKey: "packets.status.replay", className: "border-accent/35 bg-accent/10 text-accent" },
   } satisfies Record<PacketStatus, { className: string; icon: typeof FileJson2; labelKey: string }>;
   const item = config[status];
   const Icon = item.icon;
 
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium", item.className)}>
+    <span className={cn("sl-badge inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium", item.className)}>
       <Icon className="h-3 w-3" />
       {t(item.labelKey)}
     </span>
   );
+}
+
+function ProtocolBadge({ label, payloadKind }: { label: string; payloadKind: Packet["payloadKind"] }) {
+  const Icon = payloadKind === "json" ? Braces : payloadKind === "binary" ? Radio : FileText;
+
+  return (
+    <Badge variant="outline" className="shrink-0 border-border/60 bg-background/35 text-muted-foreground">
+      <Icon className="h-3 w-3" />
+      {label}
+    </Badge>
+  );
+}
+
+function getDirectionTone(direction: Packet["direction"]) {
+  return direction === "inbound"
+    ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
+    : "border-amber-300/30 bg-amber-300/10 text-amber-100";
+}
+
+function getProtocolLabel(packet: Packet, t: ReturnType<typeof useTranslation>["t"]) {
+  if (packet.payloadKind === "json") {
+    return t("packets.protocol.json");
+  }
+
+  if (packet.payloadKind === "binary") {
+    return t("packets.protocol.binary");
+  }
+
+  return t("packets.protocol.text");
+}
+
+function splitEventName(eventName: string) {
+  const parts = eventName.split(".");
+
+  if (parts.length <= 1) {
+    return {
+      name: eventName,
+      namespace: null,
+    };
+  }
+
+  return {
+    name: parts[parts.length - 1] ?? eventName,
+    namespace: parts.slice(0, -1).join("."),
+  };
 }
 
 function usePacketRowHeight() {
