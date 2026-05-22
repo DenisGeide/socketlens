@@ -1,128 +1,130 @@
-# Final Manual QA Checklist
+# Manual QA Checklist
 
-Use this checklist before public alpha releases, after large UI changes, or when validating a fresh clone.
+Use this checklist before public alpha releases, after large UI changes, or when validating SocketLens from a fresh clone.
 
-Record every item as:
+Every scenario uses the same format:
+
+- **Command / Action**: what to run or click.
+- **Expected Result**: what should happen.
+- **Common Failure**: what usually goes wrong.
+- **Fix Suggestion**: what to try first.
+
+Record each scenario as:
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-Run commands from the repository root.
+Run all commands from the repository root.
 
 ## 0. Test Environment
 
-Record the environment before testing:
+**Command / Action**
+
+```bash
+node -v
+npm -v
+cargo --version
+```
+
+Record:
 
 ```text
 QA date:
 OS:
-Node version:
-npm version:
-Rust/Cargo version:
 Browser:
 Desktop/Tauri tested: [ ] Yes  [ ] No
 ```
 
-Expected result:
+**Expected Result**
 
-- Node matches `package.json` engines: `20.19.0+` on Node 20 or `22.12.0+`.
+- Node.js matches `package.json`: Node `20.19.0+` on the 20.x line, or `22.12.0+`.
 - npm is `10+`.
-- Rust/Cargo is available if desktop/proxy/release build is tested.
+- Cargo is available if desktop mode, proxy mode, or native release builds are tested.
+
+**Common Failure**
+
+- `cargo` is not recognized.
+- Node.js is older than the supported engine.
+
+**Fix Suggestion**
+
+- Install Rust from `https://rustup.rs/` for desktop/proxy testing.
+- Install a supported Node.js version before running `npm install`.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-## 1. Fresh Install
+## 1. Install
+
+**Command / Action**
 
 ```bash
 npm install
 ```
 
-Expected result:
+**Expected Result**
 
-- dependencies install without resolution errors,
-- `node_modules` exists,
-- `package-lock.json` remains the lockfile,
-- no manual package-manager switching is required.
+- Dependencies install without resolution errors.
+- `node_modules` exists.
+- `package-lock.json` remains the lockfile.
+- No package-manager switch is required.
 
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
+**Common Failure**
 
-## 2. One-Click Launchers
+- npm reports engine warnings or dependency resolution errors.
+- User tries pnpm/yarn commands by mistake.
 
-Windows:
+**Fix Suggestion**
 
-```bat
-launchers\start-web.bat
-launchers\start-echo-server.bat
-```
-
-macOS/Linux:
-
-```bash
-sh ./launchers/start-web.sh
-sh ./launchers/start-echo-server.sh
-```
-
-Expected result:
-
-- launcher prints SocketLens title/status,
-- if `node_modules` is missing, it runs `npm install` or clearly explains what is needed,
-- web launcher starts `npm run dev`,
-- echo launcher starts `npm run dev:echo`.
-
-Desktop launcher:
-
-```bat
-launchers\start-desktop.bat
-```
-
-```bash
-sh ./launchers/start-desktop.sh
-```
-
-Expected result:
-
-- starts `npm run dev:desktop`,
-- if Rust/Cargo/Tauri prerequisites are missing, the error is understandable.
+- Use npm only.
+- Upgrade Node.js/npm to the versions listed in `package.json`.
+- Delete only generated install output if needed, then retry `npm install`.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-## 3. Automated Checks
+## 2. Automated Checks
+
+**Command / Action**
 
 ```bash
 npm run check
 npm run release:prepare
 ```
 
-Expected result:
-
-- clean, encoding check, lint, typecheck, tests, build, and final clean pass,
-- release metadata validation passes,
-- no broken Cyrillic encoding is reported.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-Native backend check, if Cargo is available:
+Optional native backend check if Cargo is installed:
 
 ```bash
 cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
 ```
 
-Expected result: Rust backend compiles without errors. Warnings should be reviewed before release notes are finalized.
+**Expected Result**
+
+- Encoding audit, lint, typecheck, tests, builds, and cleanup pass.
+- Release metadata validation passes.
+- Rust backend compiles when the native toolchain is available.
+
+**Common Failure**
+
+- Vite reports a build error.
+- TypeScript fails because of a broken import.
+- Cargo is missing on machines that only test web mode.
+
+**Fix Suggestion**
+
+- Fix TypeScript/build errors before continuing QA.
+- Mark Cargo-only checks as skipped only when desktop/proxy are not part of the test environment.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-## 4. Web Startup
+## 3. App Startup - Web Mode
+
+**Command / Action**
 
 ```bash
 npm run dev
@@ -134,12 +136,50 @@ Open:
 http://127.0.0.1:1420
 ```
 
-Expected result:
+**Expected Result**
 
-- SocketLens loads without a blank screen,
-- top bar, sidebar, timeline, inspector, and logs are visible,
-- Russian is the default UI language on a clean profile,
-- browser mode clearly marks native-only proxy features as unavailable or limited.
+- SocketLens loads without a blank screen.
+- Top bar, sidebar, packet timeline, payload inspector, and logs are visible.
+- Browser mode clearly marks native-only proxy behavior as unavailable or limited.
+
+**Common Failure**
+
+- `Port 1420 is already in use`.
+- Browser shows an old cached state.
+
+**Fix Suggestion**
+
+- Stop the previous Vite terminal or process that owns port `1420`.
+- Hard refresh the browser or clear SocketLens local storage for first-run QA.
+
+```text
+[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
+```
+
+## 4. App Startup - Desktop Mode
+
+**Command / Action**
+
+```bash
+npm run dev:desktop
+```
+
+**Expected Result**
+
+- Tauri opens the SocketLens desktop app.
+- Direct Mode works.
+- Native-only controls are available.
+- Proxy Mode can access the Rust backend.
+
+**Common Failure**
+
+- Rust/Cargo or Tauri OS prerequisites are missing.
+- The dev server on port `1420` is already running separately.
+
+**Fix Suggestion**
+
+- Install Rust/Cargo and Tauri prerequisites.
+- Close any existing `npm run dev` session before starting desktop mode, because Tauri starts Vite through its `beforeDevCommand`.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
@@ -147,44 +187,61 @@ Expected result:
 
 ## 5. First-Run Onboarding
 
-Start from a clean browser profile or clear app storage for SocketLens.
+**Command / Action**
 
-Expected result:
+- Start from a clean browser profile or clear SocketLens local storage.
+- Open SocketLens.
+- Review the welcome/onboarding content.
+- Dismiss onboarding.
+- Restart onboarding from Settings/Help if available.
 
-- onboarding/welcome content is visible but does not permanently dominate the workspace,
-- "Try SocketLens in 2 minutes" explains Demo, Direct, Proxy, Replay, and Inspector at a glance,
-- onboarding can be dismissed,
-- progress persists after reload,
-- onboarding can be restarted from Settings/Help.
+**Expected Result**
 
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
+- A new user can understand Demo Mode, Direct Mode, Proxy Mode, Replay, and Payload Inspector quickly.
+- Onboarding does not permanently dominate the workspace.
+- Dismissed/progress state persists after reload.
 
-## 6. Investor Demo Mode
+**Common Failure**
 
-Click **Start Investor Demo** / **Запустить демо**.
+- Onboarding is not visible on a clean profile.
+- Dismissed state does not persist.
 
-Expected result:
+**Fix Suggestion**
 
-- demo starts without any server,
-- packets appear in the timeline,
-- traffic is clearly marked as simulated/demo,
-- auth, chat, presence, notification, heartbeat, reconnect, error, AI-like stream, and replay example packets appear,
-- selected packets open in the inspector,
-- Pretty, Raw, and Metadata tabs work.
+- Clear local storage and retry.
+- Check Settings/Help restart action if the first-run state was already completed.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-Click reset demo.
+## 6. Demo Mode
 
-Expected result:
+**Command / Action**
 
-- demo packets clear or return to a calm state,
-- the app remains usable,
-- no duplicate demo timers keep adding packets.
+- Click **Start Investor Demo**.
+- Select several generated packets.
+- Open Pretty, Raw, and Metadata tabs.
+- Reset the demo.
+
+**Expected Result**
+
+- Demo starts without any server.
+- Demo traffic is clearly marked as simulated.
+- Timeline shows realistic auth, chat, presence, notification, heartbeat, reconnect, error, streaming AI-like, and replay-example packets.
+- Inspector updates when a packet is selected.
+- Reset stops the demo and prevents duplicate timers.
+
+**Common Failure**
+
+- No packets appear.
+- Packets keep appearing after reset.
+- Selected packet does not open in the inspector.
+
+**Fix Suggestion**
+
+- Click reset, reload the app, and start the demo once.
+- Check filters are not hiding all packets.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
@@ -192,19 +249,28 @@ Expected result:
 
 ## 7. Echo Server
 
+**Command / Action**
+
 In a second terminal:
 
 ```bash
 npm run dev:echo
 ```
 
-Expected result:
+**Expected Result**
 
-```text
-ws://127.0.0.1:17787
-```
+- Echo server starts on `ws://127.0.0.1:17787`.
+- Terminal stays open and prints server status.
 
-The server prints startup status and keeps running.
+**Common Failure**
+
+- Port `17787` is already in use.
+- Dependencies were not installed.
+
+**Fix Suggestion**
+
+- Stop the old echo-server terminal/process.
+- Run `npm install` from the repository root.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
@@ -212,21 +278,14 @@ The server prints startup status and keeps running.
 
 ## 8. Direct Mode
 
-Connect Direct Mode to:
+**Command / Action**
+
+- Start the app with `npm run dev` or `npm run dev:desktop`.
+- Start the echo server with `npm run dev:echo`.
+- Connect Direct Mode to:
 
 ```text
 ws://127.0.0.1:17787
-```
-
-Expected result:
-
-- status becomes connected,
-- a welcome/server packet appears,
-- diagnostics show the endpoint,
-- manual send controls are enabled.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
 Send:
@@ -235,226 +294,35 @@ Send:
 { "command": "ping" }
 ```
 
-Expected result:
+**Expected Result**
 
-- outbound ping appears,
-- inbound echo appears,
-- `command.pong` appears,
-- inspector works for each packet.
+- Status becomes connected.
+- A welcome/server packet appears.
+- Manual send controls are enabled.
+- Outbound ping, inbound echo, and `command.pong` packets appear.
+- Disconnect changes status and disables send/replay actions.
 
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
+**Common Failure**
 
-Disconnect.
+- Invalid URL message.
+- Connection refused.
+- Send button remains disabled.
 
-Expected result:
+**Fix Suggestion**
 
-- status changes to disconnected,
-- send/replay actions become unavailable,
-- no new packets appear after disconnect.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-## 9. Manual Send And Replay
-
-While connected to the echo server:
-
-1. Send the ping example.
-2. Select the previous outgoing packet.
-3. Edit the payload.
-4. Replay the packet.
-5. Replay the last packet from history.
-
-Expected result:
-
-- replay is enabled only while connected,
-- a new outbound packet appears for replay,
-- response packets appear from the echo server,
-- replay history records the action,
-- disconnected state blocks replay with a clear message.
+- Use `ws://127.0.0.1:17787`, not `http://`.
+- Confirm `npm run dev:echo` is still running.
+- Disconnect and reconnect after changing the URL.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-## 10. Filters And Search
+## 9. Socket.IO Demo
 
-Search for:
+**Command / Action**
 
-```text
-ping
-```
-
-Expected result: result count updates and clearing search restores all packets.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-Toggle:
-
-- Incoming,
-- Outgoing,
-- JSON only,
-- Errors only,
-- Hide heartbeat,
-- Hide ping/pong.
-
-Expected result: each filter updates the timeline without broken empty states.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-Test smart filter:
-
-```text
-payload.command == "ping"
-```
-
-Expected result: matching packets remain visible.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-Test invalid smart filter:
-
-```text
-payload.command ===
-```
-
-Expected result: SocketLens shows a clear validation error and does not crash.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-Save a filter preset and mark it as favorite.
-
-Expected result: preset remains available locally after reload.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-## 11. Packet Inspector
-
-Select JSON, text, error, and replay packets.
-
-Expected result:
-
-- Pretty JSON formats valid JSON,
-- Raw keeps original payload content,
-- Metadata shows event, direction, timestamp, size, connection id, session id, packet id,
-- invalid JSON falls back safely,
-- copy payload works,
-- large payloads remain scrollable.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-## 12. Bookmarks, Tags, And Notes
-
-Select a packet and:
-
-1. bookmark it,
-2. add a tag,
-3. add a note,
-4. mark it suspicious.
-
-Expected result:
-
-- timeline marker updates without clutter,
-- inspector shows annotations,
-- annotations persist when the session is saved and imported.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-## 13. Sessions, Export, And Redaction
-
-With packets in the current session, open the Session Files panel.
-
-Expected result in browser mode:
-
-- save downloads a `.socketlens-session.json` file,
-- export downloads packet JSON,
-- AsyncAPI draft export is clearly marked experimental,
-- load imports a saved SocketLens session or packet export.
-
-Expected result in desktop mode:
-
-- native file dialogs are used.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-Redaction check:
-
-1. Send a payload containing a token-like value.
-2. Open Session Files.
-3. Keep redaction enabled.
-4. Preview/export.
-
-Expected result:
-
-- sensitive-looking values are replaced in the exported copy,
-- payload structure is preserved where possible,
-- the active in-app session is not mutated,
-- disabling redaction with sensitive-looking data asks for explicit confirmation.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-Corrupted import:
-
-1. Create or choose a non-SocketLens JSON file.
-2. Import it.
-
-Expected result: import is rejected with a friendly error.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-## 14. Environments
-
-Open the environment manager.
-
-Expected result:
-
-- Local, Staging, and Production presets exist,
-- variables can be created, edited, duplicated, and deleted,
-- connection profiles can use variables.
-
-Test interpolation:
-
-```text
-{{base_url}}?token={{auth_token}}
-```
-
-Expected result:
-
-- resolved WebSocket URL is validated,
-- secret values are not printed in logs,
-- import/export works locally,
-- exported environment JSON is treated as sensitive because it may contain values.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-## 15. Socket.IO Demo
-
-Start the Socket.IO demo:
+Start the Socket.IO demo server:
 
 ```bash
 npm run dev:socketio
@@ -466,137 +334,304 @@ Connect Direct Mode to:
 ws://127.0.0.1:17810/socket.io/?EIO=4&transport=websocket
 ```
 
-Send:
+Send namespace connect:
 
 ```text
 40/chat,
 ```
 
-Then send:
+Send an event:
 
 ```text
 42/chat,1["chat.message",{"text":"Hello from SocketLens","room":"launch"}]
 ```
 
-Expected result:
+**Expected Result**
 
-- packet is labeled as Socket.IO,
-- namespace `/chat` is visible,
-- event name `chat.message` is visible,
-- acknowledgement id `1` is visible,
-- Raw view keeps the original frame.
+- Packets are labeled as Socket.IO.
+- Namespace `/chat` is visible.
+- Event name `chat.message` is visible.
+- Acknowledgement id `1` is visible.
+- Raw view keeps the original Socket.IO frame.
 
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
+**Common Failure**
 
-## 16. Proxy Mode
+- Socket.IO packets show only as raw WebSocket frames.
+- Server is not reachable.
 
-Browser mode check:
+**Fix Suggestion**
 
-```bash
-npm run dev
-```
-
-Expected result: Proxy Mode explains that native proxy capture requires desktop/Tauri.
+- Confirm `npm run dev:socketio` is running.
+- Send `40/chat,` before sending the event frame.
+- Verify the URL includes `EIO=4&transport=websocket`.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-Desktop check:
+## 10. Replay
 
-```bash
-npm run dev:desktop
-```
+**Command / Action**
 
-Expected result:
+- Connect to the echo server in Direct Mode.
+- Send the ping example.
+- Select the previous outgoing packet.
+- Edit the payload.
+- Replay the selected packet.
+- Replay the last packet from replay history.
+- Disconnect and try replay again.
 
-- Tauri opens,
-- proxy controls are available,
-- backend status is visible.
+**Expected Result**
 
-If Rust/Cargo or Tauri prerequisites are missing, mark this as skipped with environment notes.
+- Replay is enabled only while connected.
+- Edited replay creates a new outbound packet.
+- Echo server returns response packets.
+- Replay history records successful replay actions.
+- Disconnected state blocks replay with a clear message.
 
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
+**Common Failure**
 
-With `npm run dev:echo` running, start proxy target:
+- Replay button is disabled unexpectedly.
+- Replay sends nothing silently.
 
-```text
-ws://127.0.0.1:17787
-```
+**Fix Suggestion**
 
-Expected result:
-
-- proxy status becomes running,
-- local proxy URL is visible,
-- target URL is visible,
-- connection count starts at zero.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-Connect an external client to the local proxy URL:
-
-```bash
-node -e "const WebSocket = require('ws'); const ws = new WebSocket('PASTE_PROXY_URL_HERE'); ws.on('open', () => ws.send(JSON.stringify({ command: 'ping', source: 'manual-proxy-test' }))); ws.on('message', (data) => { console.log(data.toString()); ws.close(); }); ws.on('error', (error) => { console.error(error.message); process.exitCode = 1; });"
-```
-
-Expected result:
-
-- outbound and inbound proxy packets appear in SocketLens,
-- proxy logs record client connection/close,
-- stopping proxy cleans up state.
+- Select an outgoing packet.
+- Confirm the WebSocket connection is active.
+- Fix invalid JSON or switch to Raw text before replaying.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-## 17. Diagnostics
+## 11. Filters
 
-Open Diagnostics and copy/export diagnostics.
+**Command / Action**
 
-Expected result:
+Search:
 
-- app version is visible,
-- platform/runtime information is visible,
-- active mode, environment, connection status, proxy status, counters, memory limit, and AI status are included,
-- sensitive payload data is excluded by default.
+```text
+ping
+```
+
+Toggle:
+
+- Incoming
+- Outgoing
+- JSON only
+- Errors only
+- Hide heartbeat
+- Hide ping/pong
+
+Test smart filter:
+
+```text
+payload.command == "ping"
+```
+
+Test invalid smart filter:
+
+```text
+payload.command ===
+```
+
+**Expected Result**
+
+- Search and chips update the result count.
+- Clearing filters restores the timeline.
+- Smart filter keeps matching packets visible.
+- Invalid filters show a friendly validation error and do not crash the app.
+
+**Common Failure**
+
+- Timeline appears empty after testing filters.
+- Invalid filter breaks search state.
+
+**Fix Suggestion**
+
+- Click clear filters.
+- Disable errors-only/JSON-only if the current packets do not match.
+- Reload only if the UI remains inconsistent after clearing filters.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-## 18. i18n
+## 12. Grouping
 
-Open Settings and switch to **English**.
+**Command / Action**
 
-Expected result:
+- Start Demo Mode or a noisy Direct Mode session.
+- Enable packet grouping if it is not already enabled.
+- Inspect repeated heartbeat/chat/reconnect/auth groups.
+- Expand and collapse a group.
+- Turn grouping off.
 
-- UI changes immediately,
-- no reload is required,
-- packet payloads, raw JSON, URLs, logs from captured traffic, and user-entered values are not translated.
+**Expected Result**
+
+- Repeated events can be grouped without deleting packets.
+- Expanding a group shows original packets in order.
+- Turning grouping off restores the normal packet list.
+- Selection and inspector still work.
+
+**Common Failure**
+
+- No groups appear.
+- Expanded group order looks wrong.
+
+**Fix Suggestion**
+
+- Generate more demo packets or wait for repeated echo/heartbeat traffic.
+- Clear filters that may hide packets required for grouping.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-Switch back to **Русский**.
+## 13. Environments
 
-Expected result:
+**Command / Action**
 
-- Russian UI returns,
-- setting persists after reload,
-- no mojibake or garbled Cyrillic appears.
+- Open the environment manager.
+- Review Local, Staging, and Production presets.
+- Create a variable.
+- Duplicate and delete an environment.
+- Test a connection URL template:
+
+```text
+{{base_url}}?token={{auth_token}}
+```
+
+- Import/export environments.
+
+**Expected Result**
+
+- Variables interpolate before connecting.
+- Resolved WebSocket URLs are validated.
+- Secret-like values are not printed in logs.
+- Import/export is local-only.
+
+**Common Failure**
+
+- URL remains unresolved.
+- Resolved URL is invalid.
+
+**Fix Suggestion**
+
+- Ensure `base_url` includes `ws://` or `wss://`.
+- Ensure every `{{variable}}` exists in the active environment.
+- Treat exported environment JSON as sensitive if it contains tokens.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-## 19. Settings Persistence
+## 14. Session Export / Import
+
+**Command / Action**
+
+- Create packets through Demo Mode or Direct Mode.
+- Open Session Files.
+- Save a SocketLens session.
+- Export packets.
+- Import the saved session.
+- Import a corrupted or unrelated JSON file.
+
+**Expected Result**
+
+- Session JSON can be saved and loaded later.
+- Loaded packets appear in the timeline.
+- Exported packet JSON is readable.
+- Corrupted import is rejected with a friendly error.
+- Browser mode uses downloads/uploads; desktop mode can use native dialogs.
+
+**Common Failure**
+
+- Browser blocks downloads.
+- Imported file does not appear in the timeline.
+
+**Fix Suggestion**
+
+- Allow downloads for localhost.
+- Confirm the file is a SocketLens session/export file.
+- Use desktop mode if native file dialogs are required.
+
+```text
+[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
+```
+
+## 15. Redaction
+
+**Command / Action**
+
+- Send or load a payload containing token-like values, for example:
+
+```json
+{ "authorization": "Bearer demo-secret-token", "cookie": "sessionid=demo" }
+```
+
+- Open Session Files.
+- Keep redaction enabled.
+- Preview/export redacted data.
+- Verify the active in-app session remains unchanged.
+
+**Expected Result**
+
+- Exported copy redacts sensitive-looking values.
+- Payload structure is preserved where possible.
+- Original session is not mutated without confirmation.
+- Disabling redaction for sensitive-looking data requires explicit confirmation.
+
+**Common Failure**
+
+- Token-like value appears in exported data.
+- Redaction mutates active packet data.
+
+**Fix Suggestion**
+
+- Add a custom redaction rule for the missed field.
+- Treat this as release-blocking if built-in token/cookie/header redaction fails.
+
+```text
+[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
+```
+
+## 16. i18n
+
+**Command / Action**
+
+- Open Settings.
+- Switch interface language to English.
+- Switch back to Russian.
+- Select a packet with JSON payload.
+
+**Expected Result**
+
+- UI language changes instantly without reload.
+- Selected language persists after reload.
+- Buttons, labels, settings, empty states, validation messages, and static UI copy are translated.
+- Packet payloads, raw JSON, URLs, captured traffic logs, user-entered values, and session files are not translated.
+- No mojibake or question-mark replacement appears in Russian UI.
+
+**Common Failure**
+
+- Some UI text stays in the previous language.
+- Payload content is translated by mistake.
+- Russian text renders as question marks or mojibake.
+
+**Fix Suggestion**
+
+- Check the translation key in `apps/desktop/src/i18n/locales`.
+- Keep captured/user data outside the translation layer.
+- Run `npm run encoding:check`.
+
+```text
+[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
+```
+
+## 17. Settings Persistence
+
+**Command / Action**
 
 Change:
 
@@ -605,45 +640,144 @@ Change:
 - auto-scroll default,
 - packet retention limit,
 - default mode,
-- payload preview privacy option.
+- privacy toggles,
+- language.
 
 Reload the app.
 
-Expected result: settings persist and controls reflect saved values.
+**Expected Result**
+
+- Settings persist locally.
+- Controls reflect saved values after reload.
+- Packet payloads/session files are not modified by UI settings.
+
+**Common Failure**
+
+- Settings reset on reload.
+- Compact mode creates clipped UI.
+
+**Fix Suggestion**
+
+- Confirm local storage is enabled.
+- Test again in a clean profile.
+- Treat clipped layout at 100% zoom as a UI bug.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-## 20. AI Disabled And Provider Errors
+## 18. Diagnostics
 
-Open Settings -> AI Provider.
+**Command / Action**
 
-Expected result:
+- Open Diagnostics.
+- Copy diagnostics bundle.
+- Export diagnostics if available.
 
-- AI is disabled by default on a clean profile,
-- privacy copy is visible,
-- SocketLens works without AI.
+**Expected Result**
+
+- Diagnostics include app version, platform info, backend status, active mode, active environment, connection status, proxy status, packet counters, memory/packet limit info, and AI status.
+- Sensitive payload content is excluded by default.
+
+**Common Failure**
+
+- Diagnostics include raw payload or tokens.
+- Backend status is misleading in browser mode.
+
+**Fix Suggestion**
+
+- Treat sensitive diagnostics output as release-blocking.
+- Browser mode should explicitly show native backend unavailable/limited instead of pretending proxy support is active.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-Select a packet and click **Explain selected packet**.
+## 19. AI Disabled State
 
-Expected result:
+**Command / Action**
 
-- if AI is disabled, SocketLens shows a provider-not-configured state,
-- no packet data is sent automatically,
-- Investor Demo may show an offline sample explanation clearly marked as demo.
+- Open Settings -> AI Provider on a clean profile.
+- Confirm AI is disabled.
+- Select a packet.
+- Click Explain selected packet.
+- Optionally configure an unavailable Ollama URL and validate.
+
+**Expected Result**
+
+- AI is disabled by default.
+- Privacy copy is visible.
+- SocketLens works fully without AI.
+- No packet data is sent automatically.
+- Explain action shows a provider-not-configured or provider-unavailable state.
+- Provider errors are human-readable and actionable.
+
+**Common Failure**
+
+- AI appears enabled by default.
+- Explain action sends data without a user click.
+- Error only says `Failed to fetch`.
+
+**Fix Suggestion**
+
+- Reset AI settings and retest from clean storage.
+- Improve provider error mapping before release.
+- Verify packet data is sent only after an explicit user action.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-Configure Ollama with an unavailable URL and validate.
+## 20. Proxy Mode
 
-Expected result: provider unavailable error is human-readable and actionable.
+Run this only when the Tauri backend is available.
+
+**Command / Action**
+
+Start desktop mode:
+
+```bash
+npm run dev:desktop
+```
+
+Start echo server:
+
+```bash
+npm run dev:echo
+```
+
+Start proxy with target:
+
+```text
+ws://127.0.0.1:17787
+```
+
+Connect an external client to the local proxy URL shown by SocketLens:
+
+```bash
+node -e "const WebSocket = require('ws'); const ws = new WebSocket('PASTE_PROXY_URL_HERE'); ws.on('open', () => ws.send(JSON.stringify({ command: 'ping', source: 'manual-proxy-test' }))); ws.on('message', (data) => { console.log(data.toString()); ws.close(); }); ws.on('error', (error) => { console.error(error.message); process.exitCode = 1; });"
+```
+
+**Expected Result**
+
+- Proxy status becomes running/live.
+- Target URL and local proxy URL are visible.
+- Connection count updates when the external client connects.
+- Forwarded frames appear in the timeline.
+- Proxy logs record start, client connection, close, and stop.
+- Stopping proxy cleans up state.
+
+**Common Failure**
+
+- Proxy controls are unavailable in browser mode.
+- External client connects to target URL instead of local proxy URL.
+- No packets appear after proxy starts.
+
+**Fix Suggestion**
+
+- Use `npm run dev:desktop`; browser mode cannot run the Rust proxy.
+- Copy the local proxy URL from SocketLens and use that URL in the external client.
+- Confirm the target echo server is running.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
@@ -651,104 +785,120 @@ Expected result: provider unavailable error is human-readable and actionable.
 
 ## 21. Error Handling
 
-Invalid URL:
+**Command / Action**
+
+Test invalid URL:
 
 ```text
 http://127.0.0.1:17787
 ```
 
-Expected result: SocketLens rejects it with a friendly validation message.
+Stop the echo server and connect to:
 
 ```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
+ws://127.0.0.1:17787
 ```
 
-Echo server unavailable:
-
-1. Stop `npm run dev:echo`.
-2. Connect to `ws://127.0.0.1:17787`.
-
-Expected result: connection fails gracefully and suggests checking the server.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-Invalid JSON:
+Test invalid JSON in JSON send mode:
 
 ```json
 { "command": "ping",
 ```
 
-Expected result: JSON mode blocks send or shows a validation error, while Raw text mode remains available.
+**Expected Result**
+
+- Invalid URLs are rejected with a friendly validation message.
+- Connection failure suggests checking the server/URL.
+- Invalid JSON does not crash the app.
+- Raw text mode remains available.
+- Server disconnect changes status without infinite reconnect loops.
+
+**Common Failure**
+
+- Raw stack trace appears in the UI.
+- App keeps reconnecting forever.
+- Duplicate packet listeners produce duplicate packets.
+
+**Fix Suggestion**
+
+- Treat raw stack traces and infinite reconnect loops as release-blocking.
+- Restart the app and verify only one active connection/listener exists.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-Server disconnect:
+## 22. Documentation Links
 
-1. Connect to echo server.
-2. Stop the echo-server terminal.
+**Command / Action**
 
-Expected result: SocketLens changes to disconnected/error state and does not enter an infinite reconnect loop.
-
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
-
-## 22. Docs And README
-
-Verify public docs:
+Open and skim:
 
 - [README.md](../README.md)
 - [docs/getting-started.md](getting-started.md)
-- [docs/troubleshooting.md](troubleshooting.md)
 - [docs/project-structure.md](project-structure.md)
 - [docs/architecture.md](architecture.md)
 - [docs/extension-points.md](extension-points.md)
 - [docs/contributor-guide.md](contributor-guide.md)
+- [docs/troubleshooting.md](troubleshooting.md)
 - [docs/privacy.md](privacy.md)
 - [docs/security-model.md](security-model.md)
 
-Expected result:
+**Expected Result**
 
-- commands match `package.json`,
-- links resolve,
-- alpha limitations are visible,
-- no fake production claims,
-- no broken Cyrillic encoding,
-- contributor extension points are understandable.
+- Commands match `package.json`.
+- Links resolve.
+- Alpha limitations are visible.
+- No fake production claims exist.
+- No broken Cyrillic encoding appears.
+
+**Common Failure**
+
+- README references a script that does not exist.
+- Docs describe a feature as complete when it is experimental.
+
+**Fix Suggestion**
+
+- Update docs in the same change that changes behavior.
+- Keep experimental features explicitly labeled.
 
 ```text
 [ ] Pass  [ ] Fail  [ ] Skipped  Notes:
 ```
 
-## 23. Release Readiness Sign-Off
+## 23. Final Sign-Off
 
-Final required command:
+**Command / Action**
+
+Run final source check:
 
 ```bash
 npm run check
 ```
 
-Optional native release build, if the platform has the Tauri toolchain:
+Optional native release build if desktop artifacts are part of this QA pass:
 
 ```bash
 npm run release:build
 ```
 
-Expected result:
+**Expected Result**
 
-- full source check passes,
-- native build either passes or is explicitly skipped with environment notes,
-- known limitations are documented in release notes.
+- Full check passes.
+- Native build either passes or is explicitly skipped with environment notes.
+- Known limitations are documented before release.
 
-```text
-[ ] Pass  [ ] Fail  [ ] Skipped  Notes:
-```
+**Common Failure**
 
-Final sign-off:
+- QA passes manually but automated checks fail.
+- Native build fails because the local machine does not have Tauri prerequisites.
+
+**Fix Suggestion**
+
+- Do not mark the release ready until `npm run check` passes.
+- If native artifacts are not part of this QA pass, document that clearly.
+
+Final record:
 
 ```text
 Release candidate:

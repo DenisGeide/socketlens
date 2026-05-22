@@ -579,7 +579,11 @@ Before opening a pull request:
 npm run check
 ```
 
-Contributor workflow details live in [docs/development.md](docs/development.md). Manual release QA lives in [docs/manual-qa.md](docs/manual-qa.md).
+Contributor workflow details live in [docs/development.md](docs/development.md).
+
+## Manual QA
+
+Use [docs/manual-qa.md](docs/manual-qa.md) before release freezes or after major UI/workflow changes. It covers install, startup, Demo Mode, Direct Mode, Echo Server, Socket.IO, replay, filters, grouping, environments, session export/import, redaction, i18n, settings persistence, diagnostics, AI disabled state, and Proxy Mode when the Tauri backend is available.
 
 ## Troubleshooting
 
