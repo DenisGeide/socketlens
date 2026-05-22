@@ -6,24 +6,35 @@
 [![Release](https://github.com/DenisGeide/socketlens/actions/workflows/release.yml/badge.svg)](https://github.com/DenisGeide/socketlens/actions/workflows/release.yml)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE)
 
-**Project status: v0.1.0-alpha**
+**Project status: Alpha, `v0.1.0-alpha`**
 
-SocketLens is a local-first WebSocket debugger for developers building realtime apps. It helps you connect to WebSocket endpoints, inspect frames, replay outbound messages, save sessions, and demo realtime traffic without a production backend.
+SocketLens is a local-first, desktop-grade WebSocket debugging workspace for developers building realtime apps. It helps you connect to WebSocket endpoints, inspect frames, filter noisy streams, replay outbound messages, save/redact sessions, and demo realtime traffic without a production backend.
 
-This is an alpha release. It is usable for local development and demos, but it is not a stable commercial product yet.
+This is an alpha release. It is usable for local development, demos, and contributor testing, but it is not a stable commercial product yet.
 
 ## What Problem SocketLens Solves
 
-Realtime applications are hard to debug with generic browser tools. Auth handshakes, chat events, notifications, heartbeats, retries, and errors often appear as scattered logs instead of a readable event flow.
+Realtime applications are hard to debug with generic browser tools. A single WebSocket can carry auth handshakes, chat messages, notifications, heartbeats, reconnects, retries, binary frames, protocol envelopes, and errors through the same stream.
+
+That makes common debugging questions painful:
+
+- What event just happened?
+- Was this frame incoming or outgoing?
+- Which request caused this response?
+- Is this heartbeat noise or a real issue?
+- Can I replay the outbound message safely?
+- Can I share this session without leaking tokens?
 
 SocketLens gives that traffic a focused workspace:
 
 - a packet timeline for inbound and outbound frames,
 - a payload inspector for Pretty, Raw, and Metadata views,
-- manual send and replay tools,
-- local session files,
+- smart filters, grouping, and search,
+- manual send and replay workflows,
+- local session files with export redaction,
 - an offline demo mode,
-- a native proxy mode for inspecting traffic from another client.
+- a native proxy mode for inspecting traffic from another client,
+- source-level extension points for protocols, filters, exporters, replay, and optional AI providers.
 
 ## Features
 
@@ -34,16 +45,20 @@ What works in `v0.1.0-alpha`:
 - **Proxy Mode**: native Tauri/Rust proxy MVP for external clients.
 - **Packet Timeline**: virtualized list with direction, event name, timestamp, payload preview, size, badges, filters, and search.
 - **Payload Inspector**: Pretty JSON, Raw text, Metadata, copy support, and safe handling of invalid JSON.
+- **Filters and Search**: text/regex search, event search, direction filters, JSON/errors-only filters, heartbeat/ping-pong hiding, smart payload conditions, and saved presets.
+- **Packet Grouping**: repeated events, heartbeat bursts, reconnect flows, auth flows, and related request/response groups can be collapsed without deleting packets.
+- **Bookmarks, Tags, and Notes**: mark packets locally and keep annotations in saved/imported SocketLens session files.
 - **Socket.IO Decoding**: detects Engine.IO/Socket.IO frames, event names, namespaces, acknowledgements, and protocol badges while keeping Raw payloads available.
 - **GraphQL WS Decoding**: detects common GraphQL WebSocket subscription envelopes, operation names, lifecycle labels, and protocol badges.
-- **Manual Send and Replay**: send JSON or raw text, reuse previous outgoing packets, and replay while connected.
+- **Manual Send and Replay**: send JSON or raw text, reuse previous outgoing packets, edit before replay, and replay while connected.
 - **Environments**: Local, Staging, and Production variables with `{{base_url}}` / `{{auth_token}}` interpolation.
-- **Session Files**: save/load SocketLens session JSON, export packets, and create experimental inferred AsyncAPI-like YAML drafts.
+- **Session Files**: save/load SocketLens session JSON, export packets, redact sensitive values before sharing, and create experimental inferred AsyncAPI-like YAML drafts.
 - **Echo Server**: local TypeScript WebSocket server on `ws://127.0.0.1:17787`.
 - **Socket.IO Demo**: local TypeScript Socket.IO server for testing decoded events on `ws://127.0.0.1:17810/socket.io/?EIO=4&transport=websocket`.
 - **Settings**: theme, compact mode, auto-scroll, packet retention, language, AI provider, and privacy options.
 - **Localization**: Russian by default, English available in Settings.
 - **Optional AI**: disabled by default, supports OpenAI-compatible endpoints and Ollama when configured.
+- **Extension Points**: typed contracts for `PacketDecoder`, `PacketAnalyzer`, `FilterEngine`, `ExportAdapter`, `AIProvider`, and `ReplayStrategy`.
 
 Current alpha limitations:
 
@@ -51,6 +66,8 @@ Current alpha limitations:
 - Proxy Mode requires native desktop mode and is still an MVP.
 - Browser mode cannot start the native Rust proxy.
 - Rust/Cargo and Tauri prerequisites are required for desktop mode.
+- Runtime remote plugins and marketplace-style plugin loading are not implemented.
+- MessagePack, BSON, and Protobuf are roadmap/foundation work, not supported user-facing decoders yet.
 - No telemetry, accounts, hosted sync, cloud workspace, or paid service exists in this alpha.
 - Public screenshots must be captured from real implemented behavior.
 
@@ -317,6 +334,21 @@ Expected result: SocketLens labels the packet as `Socket.IO`, shows `chat.messag
 
 More detail: [docs/socketio.md](docs/socketio.md).
 
+## Protocol Understanding
+
+SocketLens keeps Raw payloads available and layers protocol understanding on top.
+
+Current protocol-aware behavior:
+
+- raw WebSocket text/JSON/binary fallback,
+- JSON event name inference from common fields such as `type`, `event`, and `command`,
+- Socket.IO / Engine.IO frame detection,
+- GraphQL over WebSocket envelope detection for common subscription messages.
+
+This is intentionally conservative. If SocketLens is not sure, it falls back to a readable raw packet instead of inventing a decoded event.
+
+More detail: [docs/socketio.md](docs/socketio.md), [docs/graphql-ws.md](docs/graphql-ws.md), and [docs/adding-a-decoder.md](docs/adding-a-decoder.md).
+
 ## Demo Mode
 
 Demo Mode lets a new user see SocketLens working without a server.
@@ -345,6 +377,47 @@ Use it when you want to connect SocketLens directly to a server:
 Direct Mode is the easiest real workflow to test today.
 
 More detail: [docs/direct-mode.md](docs/direct-mode.md).
+
+## Filters and Search
+
+The timeline is built for noisy realtime streams.
+
+Available filters include:
+
+- payload/event/direction text search,
+- regex search,
+- direction filters,
+- event-name filter,
+- JSON-only filter,
+- errors-only filter,
+- hide heartbeat,
+- hide ping/pong,
+- size range filters,
+- simple JSON-path-like conditions such as:
+
+```text
+payload.type != "heartbeat"
+payload.event == "chat.message"
+payload.user.id == "123"
+```
+
+Filter presets can be saved and favorited locally. Invalid smart filters show user-facing errors instead of crashing the timeline.
+
+## Replay
+
+Replay is one of the main SocketLens workflows.
+
+Current replay behavior:
+
+- replay selected outbound packets,
+- edit payload before replay,
+- replay the last packet from history,
+- replay a selected sequence when available,
+- configure replay delay controls,
+- see replay status and replay history,
+- prevent replay when no active connection exists.
+
+Replay never silently sends data: the UI keeps disconnected and invalid states explicit.
 
 ## Environments
 
@@ -384,6 +457,23 @@ Limitations:
 
 More detail: [docs/proxy-mode.md](docs/proxy-mode.md).
 
+## Sessions, Export, and Redaction
+
+SocketLens sessions are local debugging artifacts. They can be saved, loaded, imported, exported as packet-only JSON, or exported as an experimental inferred AsyncAPI-like YAML draft.
+
+Before saving or exporting, SocketLens can redact common sensitive values from the exported copy:
+
+- bearer tokens and token-like fields,
+- cookies and `Set-Cookie` values,
+- authorization headers,
+- API keys and password-like fields,
+- endpoint URL credentials and query strings,
+- custom literal or regex redaction rules.
+
+Redaction preserves payload shape where possible and does not mutate the active in-app session unless the user explicitly changes session data.
+
+More detail: [docs/sessions.md](docs/sessions.md), [docs/privacy.md](docs/privacy.md), and [docs/asyncapi-export.md](docs/asyncapi-export.md).
+
 ## AI Mode
 
 AI is optional and disabled by default.
@@ -416,6 +506,23 @@ Do not send production secrets, customer content, credentials, or private payloa
 
 More detail: [docs/privacy.md](docs/privacy.md), [docs/security-model.md](docs/security-model.md), and [SECURITY.md](SECURITY.md).
 
+## Extension Points
+
+SocketLens is designed so contributors can add focused capabilities without rewriting the core capture, timeline, or storage flow.
+
+Current source-level extension contracts:
+
+- `PacketDecoder`: decode protocol payloads and produce event names/previews.
+- `PacketAnalyzer`: classify decoded packets as auth, chat, error, notification, heartbeat, replay, or ok.
+- `FilterEngine`: apply fast packet filtering and search.
+- `ExportAdapter`: create exportable session/packet formats.
+- `AIProvider`: add optional AI providers without making AI required.
+- `ReplayStrategy`: prepare replay payloads and replay history records.
+
+These are local TypeScript contracts, not a remote plugin marketplace. SocketLens does not execute remote plugins.
+
+More detail: [docs/extension-points.md](docs/extension-points.md), [docs/contributor-guide.md](docs/contributor-guide.md), and [docs/plugins.md](docs/plugins.md).
+
 ## Project Structure
 
 ```text
@@ -423,6 +530,7 @@ apps/desktop
   src/              React, TypeScript, TailwindCSS, Zustand, i18n
   src/components   app shell, sidebar, timeline, inspector, settings, onboarding
   src/demo         demo and investor-demo traffic generation
+  src/extensions   decoders, analyzers, filters, exporters, AI providers, replay contracts
   src/lib          WebSocket, proxy, AI, session, validation, formatting helpers
   src/models       typed domain models and pure data helpers
   src/store        Zustand stores
