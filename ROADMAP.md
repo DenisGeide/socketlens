@@ -66,6 +66,7 @@ The near-term plan is to make the existing workflows more reliable before expand
 - Session schema versioning and migration helpers.
 - More protocol-aware payload detection for common realtime event conventions.
 - Deeper GraphQL over WebSocket support: operation/result linking, query previews, and optional schema-aware helpers without turning SocketLens into a full GraphQL IDE.
+- Binary decoder work for Protobuf, MessagePack, and BSON. MessagePack/BSON currently have documented stubs only; raw binary fallback remains the user-facing behavior until real fixture-backed decoders exist.
 - Improved diagnostics for TLS, localhost binding, CORS-like client mistakes, and server close frames.
 
 ### 0.3 Advanced Realtime Tooling
@@ -75,6 +76,7 @@ The near-term plan is to make the existing workflows more reliable before expand
 - Safer redaction tools for sharing session files in issues or teams.
 - Proxy-mode capture controls for binary frames and large payloads.
 - Extensible inspector hooks for protocol-specific renderers.
+- Fixture-backed MessagePack and BSON decoding if real users need those protocols.
 
 ### Later
 

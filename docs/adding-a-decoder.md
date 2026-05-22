@@ -21,6 +21,13 @@ Built-in decoder classes:
 - `RawBinaryDecoder`
 - `FallbackDecoder`
 
+Planned binary decoder stubs:
+
+- `ExperimentalMessagePackDecoderStub`
+- `ExperimentalBsonDecoderStub`
+
+These stubs are source-level placeholders only. They are not part of the default decoding registry and their `canDecode()` path returns `false` until real decoding is implemented and tested.
+
 Selection is handled by `DecoderRegistry`.
 
 ## Decoder Contract
@@ -70,6 +77,8 @@ Do not give a broad decoder a high priority unless it can identify packets confi
 
 Future binary protocol decoders should extend `BinaryDecoder`.
 
+SocketLens currently keeps unknown binary packets in the raw binary fallback. MessagePack and BSON are documented as planned work only. Do not add UI claims, protocol badges, or README feature bullets until a decoder can parse real payloads with tests.
+
 Example skeleton:
 
 ```ts
@@ -113,6 +122,14 @@ This keeps packet consumers stable. Timeline, inspector, filters, and session ex
 4. Add unit tests in `apps/desktop/src/extensions/packet-decoder.test.ts`.
 5. Add protocol badge translation only if the UI needs a distinct badge.
 6. Add docs if the user-visible behavior changes.
+
+For MessagePack or BSON specifically:
+
+1. Replace or expand the matching experimental stub.
+2. Keep `canDecodeBinary()` conservative.
+3. Add real fixture packets.
+4. Prove unknown binary still falls back to `RawBinaryDecoder`.
+5. Only then add protocol badges or README feature claims.
 
 ## Fallback Behavior
 

@@ -47,7 +47,7 @@ Built-in decoder classes:
 - `RawBinaryDecoder`
 - `FallbackDecoder`
 
-Future binary formats such as Protobuf, MessagePack, and BSON should extend `BinaryDecoder` instead of changing timeline or inspector components.
+Future binary formats such as Protobuf, MessagePack, and BSON should extend `BinaryDecoder` instead of changing timeline or inspector components. MessagePack and BSON currently have experimental source-level stubs only; they are not registered in the default decoder list and should not be described as supported user-facing features.
 
 Example:
 

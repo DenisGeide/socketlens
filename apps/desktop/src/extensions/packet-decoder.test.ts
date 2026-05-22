@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { BinaryDecoder, DecoderRegistry, decodePacket, defaultFilterEngine, defaultPacketAnalyzer, type DecodedPacket } from "@/extensions";
+import {
+  BinaryDecoder,
+  DecoderRegistry,
+  decodePacket,
+  defaultDecoderRegistry,
+  defaultFilterEngine,
+  defaultPacketAnalyzer,
+  experimentalBsonDecoderStub,
+  experimentalMessagePackDecoderStub,
+  plannedBinaryDecoders,
+  type DecodedPacket,
+} from "@/extensions";
 import { defaultFilterState, inferPayloadKind, type Packet } from "@/models";
 
 describe("extension contracts", () => {
@@ -289,6 +300,47 @@ describe("extension contracts", () => {
       metadata: {
         protocol: "messagepack",
       },
+    });
+  });
+
+  it("keeps planned MessagePack and BSON decoders out of default decoding", () => {
+    const binaryPacket = createPacketFixture({
+      payload: "binary-placeholder-payload",
+      payloadKind: "binary",
+    });
+
+    expect(defaultDecoderRegistry.getDecoders().map((decoder) => decoder.id)).not.toEqual(
+      expect.arrayContaining(["socketlens.decoder.messagepack", "socketlens.decoder.bson"]),
+    );
+    expect(plannedBinaryDecoders.map((decoder) => decoder.id)).toEqual([
+      "socketlens.decoder.messagepack",
+      "socketlens.decoder.bson",
+    ]);
+    expect(experimentalMessagePackDecoderStub.canDecode(binaryPacket)).toBe(false);
+    expect(experimentalBsonDecoderStub.canDecode(binaryPacket)).toBe(false);
+
+    const decoded = decodePacket(binaryPacket);
+
+    expect(decoded).toMatchObject({
+      decoderId: "socketlens.decoder.binary",
+      eventName: "binary.frame",
+      payloadKind: "binary",
+      tags: ["binary"],
+    });
+  });
+
+  it("falls back to raw binary even if planned binary stubs are passed to a registry", () => {
+    const decoded = new DecoderRegistry([...plannedBinaryDecoders]).decode(
+      createPacketFixture({
+        payload: "maybe-messagepack-or-bson",
+        payloadKind: "binary",
+      }),
+    );
+
+    expect(decoded).toMatchObject({
+      decoderId: "socketlens.decoder.binary",
+      eventName: "binary.frame",
+      payloadKind: "binary",
     });
   });
 });

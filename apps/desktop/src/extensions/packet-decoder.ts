@@ -6,6 +6,8 @@ export const graphQlWsDecoderId = "socketlens.decoder.graphqlws";
 export const jsonDecoderId = "socketlens.decoder.json";
 export const textDecoderId = "socketlens.decoder.text";
 export const binaryDecoderId = "socketlens.decoder.binary";
+export const messagePackDecoderId = "socketlens.decoder.messagepack";
+export const bsonDecoderId = "socketlens.decoder.bson";
 export const fallbackDecoderId = "socketlens.decoder.fallback";
 
 type SocketIoEnginePacketType = "close" | "message" | "noop" | "open" | "ping" | "pong" | "upgrade" | "unknown";
@@ -323,6 +325,44 @@ export class RawBinaryDecoder extends BinaryDecoder {
   }
 }
 
+export abstract class PlannedBinaryDecoder extends BinaryDecoder {
+  abstract readonly protocol: "bson" | "messagepack";
+
+  protected override canDecodeBinary() {
+    return false;
+  }
+
+  protected override decodeBinary(packet: Packet): DecodedPacket {
+    return {
+      data: packet.payload,
+      decoderId: binaryDecoderId,
+      eventName: "binary.frame",
+      metadata: {
+        plannedDecoder: this.id,
+        plannedProtocol: this.protocol,
+        implemented: false,
+      },
+      payloadKind: "binary",
+      preview: truncateDecodedPreview(packet.payload),
+      tags: ["binary", "planned-decoder", this.protocol],
+    };
+  }
+}
+
+export class ExperimentalMessagePackDecoderStub extends PlannedBinaryDecoder {
+  readonly id = messagePackDecoderId;
+  readonly label = "MessagePack decoder stub (not implemented)";
+  readonly priority = 55;
+  readonly protocol = "messagepack" as const;
+}
+
+export class ExperimentalBsonDecoderStub extends PlannedBinaryDecoder {
+  readonly id = bsonDecoderId;
+  readonly label = "BSON decoder stub (not implemented)";
+  readonly priority = 50;
+  readonly protocol = "bson" as const;
+}
+
 export class FallbackDecoder implements PacketDecoder {
   readonly id = fallbackDecoderId;
   readonly label = "Raw fallback packet decoder";
@@ -373,8 +413,14 @@ export const socketIoPacketDecoder = new SocketIoDecoder();
 export const graphQlWsPacketDecoder = new GraphqlWsDecoder();
 export const jsonPacketDecoder = new JsonDecoder();
 export const binaryPacketDecoder = new RawBinaryDecoder();
+export const experimentalMessagePackDecoderStub = new ExperimentalMessagePackDecoderStub();
+export const experimentalBsonDecoderStub = new ExperimentalBsonDecoderStub();
 export const fallbackPacketDecoder = new FallbackDecoder();
 export const textPacketDecoder = fallbackPacketDecoder;
+export const plannedBinaryDecoders: PacketDecoder[] = [
+  experimentalMessagePackDecoderStub,
+  experimentalBsonDecoderStub,
+];
 
 export const defaultPacketDecoders: PacketDecoder[] = [
   socketIoPacketDecoder,
