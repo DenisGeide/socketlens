@@ -266,6 +266,23 @@ cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
 
 Cargo must be installed for this command.
 
+## Diagnostics Bundle
+
+SocketLens includes a diagnostics panel in the left sidebar. Open **Diagnostics** or use the command palette action **Open Diagnostics**.
+
+Use it when filing bugs or checking a broken setup. The panel shows:
+
+- app version and platform info,
+- Tauri backend status,
+- active mode and environment,
+- connection and proxy state,
+- packet counters and retention limit,
+- AI provider status.
+
+Click **Copy diagnostics** to copy a JSON bundle or **Export** to download it.
+
+The diagnostics bundle excludes packet payloads, environment variable values, provider secrets, and recent log messages by default. It includes redacted URLs and counters only, so it is safer to share in bug reports. Still review the JSON before posting it publicly.
+
 ## Still Stuck
 
 Open an issue with:
@@ -275,5 +292,6 @@ Open an issue with:
 - whether you used `npm run dev` or `npm run dev:desktop`,
 - exact command that failed,
 - WebSocket URL shape with secrets removed,
+- copied diagnostics bundle,
 - relevant SocketLens log panel messages,
 - screenshots for UI issues.

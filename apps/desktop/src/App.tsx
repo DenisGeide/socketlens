@@ -26,6 +26,7 @@ import { SettingsPage } from "@/components/settings-page";
 import { Sidebar } from "@/components/sidebar";
 import { ToastViewport } from "@/components/toast-viewport";
 import { TopBar } from "@/components/top-bar";
+import { appMetadata } from "@/config/app-metadata";
 import { localEchoServerUrl } from "@/config/runtime-defaults";
 import { getWebSocketReadyStateLabel } from "@/lib/friendly-errors";
 import { createDemoPayload } from "@/dev/demo-payload";
@@ -101,6 +102,7 @@ export function App() {
   const { i18n, t } = useTranslation();
   const backendStatusCheckedRef = useRef(false);
   const [nativeBackendState, setNativeBackendState] = useState<NativeBackendState>("checking");
+  const [nativeBackendVersion, setNativeBackendVersion] = useState<string | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [currentView, setCurrentView] = useState<AppView>("workspace");
   const [diagnosticsOpenSignal, setDiagnosticsOpenSignal] = useState(0);
@@ -165,6 +167,10 @@ export function App() {
   } = useUiStore();
 
   const visiblePackets = useMemo(() => filterPackets(packets, filterState), [filterState, packets]);
+  const activeEnvironment = useMemo(
+    () => getActiveEnvironment(environments, activeEnvironmentId),
+    [activeEnvironmentId, environments],
+  );
   const outgoingPackets = useMemo(() => packets.filter((packet) => packet.direction === "outbound"), [packets]);
   const currentSession = useMemo(
     () => sessions.find((session) => session.id === selectedSessionId) ?? sessions[0] ?? null,
@@ -199,47 +205,82 @@ export function App() {
   const canStartInvestorDemo = !demoMode.isActive && !isConnected && status !== "connecting";
   const diagnostics = useMemo(
     () => ({
+      activeConnection: connections.find((connection) => connection.id === activeConnectionId) ?? null,
       activeSessionId,
+      activeEnvironment,
+      activeMode:
+        demoMode.isActive || investorDemo.isActive
+          ? ("demo" as const)
+          : proxyStatus?.isRunning
+            ? ("proxy" as const)
+            : ("direct" as const),
+      aiProvider: settings.aiProvider,
+      appName: appMetadata.name,
+      appVersion: appMetadata.version,
       backendState: nativeBackendState,
-      endpointUrl: demoMode.isActive ? activeDemoEndpointUrl : endpointUrl,
+      backendVersion: nativeBackendVersion,
+      currentSession,
+      currentSessionPackets,
+      endpointUrl: demoMode.isActive || investorDemo.isActive ? activeDemoEndpointUrl : endpointUrl,
+      isConnected,
       lastDisconnectReason,
       lastError: error ?? proxyError?.message ?? null,
       lastErrorDetails: errorDetails ?? proxyError?.technicalDetails ?? null,
       lastReconnectAttemptAt,
-      mode: demoMode.isActive ? ("demo" as const) : proxyStatus?.isRunning ? ("proxy" as const) : ("direct" as const),
-      proxyActiveConnections: proxyStatus?.activeConnections ?? 0,
+      logCount: logs.length,
+      packetRetentionLimit: settings.packetRetentionLimit,
+      packets,
       proxyPacketCount,
+      proxyStatus,
       reconnectAttempts,
+      runtime: getRuntimeDiagnostics(),
+      selectedConnection: connections.find((connection) => connection.id === selectedConnectionId) ?? null,
       selectedSessionId,
+      sessions,
       socketReadyState: getWebSocketReadyStateLabel(socket?.readyState),
-      status: investorDemo.isActive
+      status,
+      statusLabel: investorDemo.isActive
         ? t("status.investorDemo")
         : demoMode.isActive
           ? t("status.demo")
           : proxyStatus?.isRunning
             ? t("sidebar.proxy")
             : t(`status.${status}`, status),
+      visiblePacketCount: visiblePackets.length,
     }),
     [
       activeSessionId,
+      activeConnectionId,
+      activeEnvironment,
       activeDemoEndpointUrl,
+      connections,
+      currentSession,
+      currentSessionPackets,
       demoMode.isActive,
       endpointUrl,
       error,
       errorDetails,
+      isConnected,
       lastDisconnectReason,
       lastReconnectAttemptAt,
+      logs.length,
       nativeBackendState,
+      nativeBackendVersion,
+      packets,
       proxyError,
       proxyPacketCount,
-      proxyStatus?.activeConnections,
-      proxyStatus?.isRunning,
+      proxyStatus,
       reconnectAttempts,
+      selectedConnectionId,
       selectedSessionId,
+      sessions,
+      settings.aiProvider,
+      settings.packetRetentionLimit,
       socket?.readyState,
       status,
       investorDemo.isActive,
       t,
+      visiblePackets.length,
     ],
   );
   const proxyRunningRef = useRef(false);
@@ -589,6 +630,7 @@ export function App() {
     void getBackendStatus().then((result) => {
       if (result.ok) {
         setNativeBackendState("ready");
+        setNativeBackendVersion(result.data.health.version);
         setProxyStatus(result.data.proxy);
         addLog({
           level: "info",
@@ -618,6 +660,7 @@ export function App() {
         });
       }
       setNativeBackendState(result.error.code === "tauri_unavailable" ? "unavailable" : "error");
+      setNativeBackendVersion(null);
     });
   }, [addLog, addToast, t]);
 
@@ -1409,6 +1452,16 @@ function isEditableTarget(target: EventTarget | null) {
     target.tagName === "TEXTAREA" ||
     target.tagName === "SELECT"
   );
+}
+
+function getRuntimeDiagnostics() {
+  return {
+    language: navigator.language,
+    online: navigator.onLine,
+    platform: navigator.platform || "unknown",
+    userAgent: navigator.userAgent,
+    viewport: `${window.innerWidth}x${window.innerHeight}`,
+  };
 }
 
 function getProxyCommandError(error: NativeCommandError, t: ReturnType<typeof useTranslation>["t"]) {

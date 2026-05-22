@@ -56,7 +56,7 @@ describe("environment variables", () => {
     const environment = createPresetEnvironment("local", 1);
 
     expect(redactEnvironmentSecrets("ws://127.0.0.1:17787?token=local-demo-token", environment)).toBe(
-      "ws://127.0.0.1:17787?token=••••",
+      "ws://127.0.0.1:17787?token=****",
     );
   });
 

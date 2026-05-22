@@ -295,7 +295,7 @@ export function redactEnvironmentSecrets(value: string, environment: AppEnvironm
       continue;
     }
 
-    redactedValue = redactedValue.split(variable.value).join("••••");
+    redactedValue = redactedValue.split(variable.value).join("****");
   }
 
   return redactedValue;
