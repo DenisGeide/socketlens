@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Bookmark,
   Cable,
   Database,
   Download,
@@ -130,7 +131,7 @@ export function App() {
     socket,
     status,
   } = useConnectionStore();
-  const { addPacket, addPackets, clearPackets, packets } = usePacketStore();
+  const { addPacket, addPackets, clearPackets, packets, updatePacketAnnotations } = usePacketStore();
   const { importSession, renameSession, sessions, updateSessionStatus, recordPacket } = useSessionStore();
   const activeEnvironmentId = useEnvironmentStore((state) => state.activeEnvironmentId);
   const environments = useEnvironmentStore((state) => state.environments);
@@ -397,6 +398,27 @@ export function App() {
 
     commands.push(
       {
+        description: t("commandPalette.actions.toggleBookmark.description"),
+        disabled: Boolean(!selectedPacket),
+        disabledReason: selectedPacket ? undefined : t("commandPalette.disabled.selectPacket"),
+        group: t("commandPalette.groups.packets"),
+        icon: Bookmark,
+        id: "packets:toggle-bookmark",
+        keywords: ["bookmark", "note", "tag", "packet"],
+        run: () => {
+          if (!selectedPacket) {
+            return;
+          }
+
+          updatePacketAnnotations(selectedPacket.id, {
+            bookmarked: !(selectedPacket.annotations?.bookmarked ?? false),
+          });
+        },
+        title: selectedPacket?.annotations?.bookmarked
+          ? t("commandPalette.actions.toggleBookmark.removeTitle")
+          : t("commandPalette.actions.toggleBookmark.title"),
+      },
+      {
         description: t("commandPalette.actions.replaySelected.description"),
         disabled: Boolean(replayDisabledReason),
         disabledReason: replayDisabledReason,
@@ -524,6 +546,7 @@ export function App() {
     status,
     t,
     updateFilterState,
+    updatePacketAnnotations,
   ]);
 
   useEffect(() => {
@@ -597,6 +620,27 @@ export function App() {
       setNativeBackendState(result.error.code === "tauri_unavailable" ? "unavailable" : "error");
     });
   }, [addLog, addToast, t]);
+
+  useEffect(() => {
+    function handlePacketBookmarkShortcut(event: KeyboardEvent) {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.key.toLowerCase() !== "b") {
+        return;
+      }
+
+      if (isEditableTarget(event.target) || !selectedPacket) {
+        return;
+      }
+
+      event.preventDefault();
+      updatePacketAnnotations(selectedPacket.id, {
+        bookmarked: !(selectedPacket.annotations?.bookmarked ?? false),
+      });
+    }
+
+    window.addEventListener("keydown", handlePacketBookmarkShortcut);
+
+    return () => window.removeEventListener("keydown", handlePacketBookmarkShortcut);
+  }, [selectedPacket, updatePacketAnnotations]);
 
   useEffect(() => {
     let disposed = false;
@@ -1256,6 +1300,7 @@ export function App() {
           onReconnectConnection={(connectionId) => void reconnect(connectionId)}
           onSaveSession={handleSaveCurrentSession}
           onSelectConnection={selectConnection}
+          onSelectPacket={selectPacket}
           onSelectSession={handleSelectSession}
           onSendPayload={handleSendPayload}
           onSetComposerError={setComposerError}
@@ -1275,7 +1320,14 @@ export function App() {
           proxyTargetUrl={proxyTargetUrl}
         />
       }
-      inspector={<PayloadInspector packet={selectedPacket} packets={currentSessionPackets} session={currentSession} />}
+      inspector={
+        <PayloadInspector
+          packet={selectedPacket}
+          packets={currentSessionPackets}
+          session={currentSession}
+          onUpdatePacketAnnotations={updatePacketAnnotations}
+        />
+      }
       bottomPanel={<LogPanel logs={logs} status={demoMode.isActive ? "demo" : status} onClearLogs={clearLogs} />}
     >
       <CommandPalette commands={commandPaletteCommands} isOpen={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
@@ -1344,6 +1396,19 @@ function createPacketFromProxyEvent(event: ProxyPacketEvent): Packet {
     sizeBytes: event.sizeBytes,
     timestamp: event.timestamp,
   };
+}
+
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return (
+    target.isContentEditable ||
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.tagName === "SELECT"
+  );
 }
 
 function getProxyCommandError(error: NativeCommandError, t: ReturnType<typeof useTranslation>["t"]) {

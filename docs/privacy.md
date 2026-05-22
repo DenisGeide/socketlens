@@ -80,6 +80,7 @@ Session files are local JSON documents. They may contain:
 
 - endpoint URLs
 - full packet payloads
+- packet bookmarks, notes, suspicious markers, and tags
 - timestamps
 - packet metadata
 - close reasons
@@ -96,7 +97,7 @@ Before saving or exporting, SocketLens shows a warning and redaction preview. Re
 - endpoint URL credentials and query strings
 - custom rules that you enter manually
 
-Redaction preserves payload structure where possible and does not mutate the active in-app session. If you disable redaction and SocketLens detects sensitive-looking data, the UI asks for explicit confirmation before writing a raw copy. Always review exported files before sharing them.
+Redaction preserves payload structure where possible and does not mutate the active in-app session. User-entered packet notes and tags are exported with sessions; custom redaction rules also apply to those notes and tags. If you disable redaction and SocketLens detects sensitive-looking data, the UI asks for explicit confirmation before writing a raw copy. Always review exported files before sharing them.
 
 In the native Tauri app, file reads and writes happen after the user selects a path through the file dialog. In browser development mode, exports use browser downloads and imports use user-selected file uploads.
 

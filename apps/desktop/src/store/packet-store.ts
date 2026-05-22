@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import type { EntityId, Packet } from "@/models";
+import {
+  createPacketAnnotations,
+  hasPacketAnnotations,
+  normalizePacketAnnotations,
+  type EntityId,
+  type Packet,
+  type PacketAnnotations,
+} from "@/models";
 import { useSettingsStore } from "@/store/settings-store";
 import { useUiStore } from "@/store/ui-store";
 
@@ -9,6 +16,7 @@ type PacketStore = {
   clearPackets: (sessionId?: EntityId | null) => void;
   flushPendingPackets: () => void;
   packets: Packet[];
+  updatePacketAnnotations: (packetId: EntityId, patch: Partial<PacketAnnotations>) => void;
   trimToRetentionLimit: () => void;
 };
 
@@ -71,6 +79,37 @@ export const usePacketStore = create<PacketStore>((set) => {
     flushPendingPackets,
 
     packets: [],
+
+    updatePacketAnnotations: (packetId, patch) => {
+      flushPendingPackets();
+
+      set((state) => ({
+        packets: state.packets.map((packet) => {
+          if (packet.id !== packetId) {
+            return packet;
+          }
+
+          const currentAnnotations = normalizePacketAnnotations(packet.annotations) ?? createPacketAnnotations({ updatedAt: 0 });
+          const nextAnnotations = createPacketAnnotations({
+            ...currentAnnotations,
+            ...patch,
+            updatedAt: Date.now(),
+          });
+
+          if (!hasPacketAnnotations(nextAnnotations)) {
+            const packetWithoutAnnotations = { ...packet };
+            delete packetWithoutAnnotations.annotations;
+
+            return packetWithoutAnnotations;
+          }
+
+          return {
+            ...packet,
+            annotations: nextAnnotations,
+          };
+        }),
+      }));
+    },
 
     trimToRetentionLimit: () => {
       flushPendingPackets();

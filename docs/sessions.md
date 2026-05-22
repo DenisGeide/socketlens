@@ -47,6 +47,14 @@ Each packet contains:
 - payload text
 - size in bytes
 - timestamp
+- optional annotations:
+  - bookmarked
+  - suspicious marker
+  - note
+  - tags
+  - updated timestamp
+
+Annotations are local UI metadata. They do not change captured payloads, but they are saved in SocketLens session and packet export files so imported sessions keep bookmarks, notes, and tags.
 
 ## Save a Session
 
@@ -77,6 +85,8 @@ By default, the exported copy redacts common sensitive values:
 - endpoint URL credentials and query strings
 
 Redaction preserves the JSON shape where possible. For example, a `token` field stays in place, but its value becomes `[REDACTED]`. The active in-app session is not changed; only the saved/exported JSON copy is modified.
+
+Packet notes and tags are treated as user-entered metadata. Built-in token/cookie detection focuses on captured traffic, while custom redaction rules also apply to notes and tags before export.
 
 You can add custom redaction rules in the Session Files panel:
 
@@ -149,7 +159,14 @@ Full session files use:
       "payloadKind": "json",
       "payload": "{ \"command\": \"ping\" }",
       "sizeBytes": 21,
-      "timestamp": 1779364860000
+      "timestamp": 1779364860000,
+      "annotations": {
+        "bookmarked": true,
+        "suspicious": false,
+        "note": "Useful baseline ping response.",
+        "tags": ["baseline", "ping"],
+        "updatedAt": 1779364920000
+      }
     }
   ]
 }

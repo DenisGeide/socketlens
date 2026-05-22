@@ -1,5 +1,5 @@
 import { redactUrlForDisplay } from "./connection";
-import type { Packet } from "./packet";
+import { hasPacketAnnotations, type Packet, type PacketAnnotations } from "./packet";
 import type { SocketLensRedactionMetadata } from "./session-file";
 import type { Session } from "./session";
 
@@ -208,26 +208,66 @@ export function createSocketLensRedactionMetadata(
 
 function redactPacket(packet: Packet, context: RedactionContext, stats: RedactionStats): Packet {
   const payloadResult = redactPayload(packet.payload, context);
-  const changed = payloadResult.replacements > 0;
+  const annotationResult = redactPacketAnnotations(packet.annotations, context);
+  const replacements = payloadResult.replacements + annotationResult.replacements;
+  const changed = replacements > 0;
 
   if (changed) {
     stats.redactedPacketCount += 1;
-    stats.replacements += payloadResult.replacements;
+    stats.replacements += replacements;
 
     if (!stats.previewPacket) {
       stats.previewPacket = {
-        after: payloadResult.value,
-        before: packet.payload,
+        after: payloadResult.replacements > 0 ? payloadResult.value : JSON.stringify(annotationResult.annotations, null, 2),
+        before: payloadResult.replacements > 0 ? packet.payload : JSON.stringify(packet.annotations, null, 2),
         packetId: packet.id,
-        replacements: payloadResult.replacements,
+        replacements,
       };
     }
   }
 
-  return {
+  const redactedPacket = {
     ...packet,
     payload: payloadResult.value,
     sizeBytes: encoder.encode(payloadResult.value).byteLength,
+  };
+
+  if (annotationResult.annotations) {
+    redactedPacket.annotations = annotationResult.annotations;
+  } else {
+    delete redactedPacket.annotations;
+  }
+
+  return redactedPacket;
+}
+
+function redactPacketAnnotations(
+  annotations: PacketAnnotations | undefined,
+  context: RedactionContext,
+): { annotations: PacketAnnotations | undefined; replacements: number } {
+  if (!annotations) {
+    return {
+      annotations,
+      replacements: 0,
+    };
+  }
+
+  const noteResult = redactString(annotations.note, context, { customOnly: true });
+  let replacements = noteResult.replacements;
+  const tags = annotations.tags.map((tag) => {
+    const tagResult = redactString(tag, context, { customOnly: true });
+    replacements += tagResult.replacements;
+    return tagResult.value;
+  });
+  const nextAnnotations = {
+    ...annotations,
+    note: noteResult.value,
+    tags,
+  };
+
+  return {
+    annotations: hasPacketAnnotations(nextAnnotations) ? nextAnnotations : undefined,
+    replacements,
   };
 }
 

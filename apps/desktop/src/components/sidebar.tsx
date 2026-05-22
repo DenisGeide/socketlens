@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertCircle,
+  Bookmark,
   Cable,
   CheckCircle2,
   ChevronDown,
   Clock3,
   Database,
+  Flag,
   History,
   Layers3,
   Play,
@@ -14,6 +16,7 @@ import {
   RefreshCw,
   SendHorizontal,
   Square,
+  Tag,
   Unplug,
   X,
   type LucideIcon,
@@ -32,6 +35,7 @@ import { RetentionSettingsPanel } from "@/components/retention-settings-panel";
 import { SessionPersistencePanel } from "@/components/session-persistence-panel";
 import { localEchoServerCommand, localEchoServerUrl } from "@/config/runtime-defaults";
 import { formatBytes, formatDuration, formatTime } from "@/lib/format";
+import { getPacketSummary } from "@/lib/packet-inspection";
 import type { NativeBackendState, ProxyStatus } from "@/lib/tauri-commands";
 import { createTechnicalDetails, createUserFacingError, type UserFacingError } from "@/lib/user-facing-errors";
 import { translateWebSocketValidationMessage } from "@/lib/validation-messages";
@@ -41,6 +45,7 @@ import {
   hasEnvironmentVariables,
   interpolateEnvironmentVariables,
   redactEnvironmentSecrets,
+  hasPacketAnnotations,
   validateWebSocketUrl,
 } from "@/models";
 import { useEnvironmentStore } from "@/store/environment-store";
@@ -88,6 +93,7 @@ type SidebarProps = {
   onReconnectConnection: (connectionId: string) => void;
   onSaveSession: (sessionName: string) => Promise<void>;
   onSelectConnection: (connectionId: string) => void;
+  onSelectPacket: (packetId: string) => void;
   onSelectSession: (sessionId: string) => void;
   onSendPayload: (payload: string, options?: { clearDraft?: boolean; source?: SendSource; sourcePacketId?: string | null }) => boolean;
   onSetComposerError: (composerError: string | null) => void;
@@ -146,6 +152,7 @@ export function Sidebar({
   onReconnectConnection,
   onSaveSession,
   onSelectConnection,
+  onSelectPacket,
   onSelectSession,
   onSendPayload,
   onSetComposerError,
@@ -193,6 +200,10 @@ export function Sidebar({
   const canStartInvestorDemo = !isDemoActive && !isConnected && !isBusy;
   const canConnect = !isDemoActive && !isConnected && !isBusy;
   const activeDirectPacketCount = activeConnection ? currentSessionPackets.length : 0;
+  const annotatedPackets = useMemo(
+    () => currentSessionPackets.filter((packet) => hasPacketAnnotations(packet.annotations)),
+    [currentSessionPackets],
+  );
 
   useEffect(() => {
     if (proxyStatus?.isRunning) {
@@ -415,6 +426,19 @@ export function Sidebar({
           <SidebarSection icon={Layers3} title={t("retention.title")}>
             <RetentionSettingsPanel packetCount={packets.length} />
           </SidebarSection>
+
+          <SidebarSection
+            badge={<Badge variant="secondary">{annotatedPackets.length}</Badge>}
+            defaultOpen={annotatedPackets.length > 0}
+            icon={Bookmark}
+            title={t("sidebar.bookmarks.title")}
+          >
+            <PacketBookmarksPanel
+              packets={annotatedPackets}
+              selectedPacketId={selectedPacket?.id ?? null}
+              onSelectPacket={onSelectPacket}
+            />
+          </SidebarSection>
         </PanelContent>
 
         {captureMode === "direct" ? (
@@ -584,6 +608,81 @@ function SidebarSection({ badge, children, defaultOpen = false, icon: Icon, open
       </summary>
       <div className="space-y-2 border-t border-border/60 p-2">{children}</div>
     </details>
+  );
+}
+
+type PacketBookmarksPanelProps = {
+  onSelectPacket: (packetId: string) => void;
+  packets: Packet[];
+  selectedPacketId: string | null;
+};
+
+function PacketBookmarksPanel({ onSelectPacket, packets, selectedPacketId }: PacketBookmarksPanelProps) {
+  const { t } = useTranslation();
+
+  if (packets.length === 0) {
+    return (
+      <p className="sl-copy rounded-md border border-dashed border-border/80 px-3 py-3 text-xs text-muted-foreground">
+        {t("sidebar.bookmarks.empty")}
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {packets.slice(0, 24).map((packet) => {
+        const summary = getPacketSummary(packet);
+        const annotations = packet.annotations;
+        const selected = packet.id === selectedPacketId;
+
+        return (
+          <button
+            key={packet.id}
+            type="button"
+            className={[
+              "w-full rounded-md border p-2 text-left transition",
+              selected
+                ? "border-primary/60 bg-primary/10 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.25)]"
+                : "border-border/70 bg-muted/20 hover:border-border hover:bg-muted/35",
+            ].join(" ")}
+            onClick={() => onSelectPacket(packet.id)}
+          >
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <span className="min-w-0 truncate font-mono text-xs font-semibold text-foreground">{summary.eventName}</span>
+              <time className="shrink-0 font-mono text-[0.68rem] text-muted-foreground">{formatTime(packet.timestamp)}</time>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {annotations?.bookmarked ? (
+                <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">
+                  <Bookmark className="h-3 w-3 fill-current" />
+                  {t("sidebar.bookmarks.bookmarked")}
+                </Badge>
+              ) : null}
+              {annotations?.suspicious ? (
+                <Badge variant="outline" className="border-destructive/35 bg-destructive/10 text-destructive">
+                  <Flag className="h-3 w-3 fill-current" />
+                  {t("sidebar.bookmarks.suspicious")}
+                </Badge>
+              ) : null}
+              {annotations?.tags.slice(0, 3).map((tag) => (
+                <Badge key={tag} variant="outline" className="border-border/70 bg-background/35 text-muted-foreground">
+                  <Tag className="h-3 w-3" />
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+            {annotations?.note ? (
+              <p className="mt-1.5 line-clamp-2 text-[0.72rem] leading-4 text-muted-foreground">{annotations.note}</p>
+            ) : null}
+          </button>
+        );
+      })}
+      {packets.length > 24 ? (
+        <p className="text-[0.72rem] text-muted-foreground">
+          {t("sidebar.bookmarks.more", { count: packets.length - 24 })}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

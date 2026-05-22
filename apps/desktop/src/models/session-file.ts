@@ -1,5 +1,5 @@
 import { createEntityId, type EntityId } from "./ids";
-import type { Packet, PacketDirection, PacketPayloadKind } from "./packet";
+import { normalizePacketAnnotations, type Packet, type PacketDirection, type PacketPayloadKind } from "./packet";
 import { getSessionName, type Session, type SessionStatus } from "./session";
 
 export const socketLensSessionFileFormat = "socketlens.session";
@@ -565,9 +565,12 @@ function parsePacket(value: unknown):
     };
   }
 
+  const annotations = normalizePacketAnnotations(value.annotations);
+
   return {
     ok: true,
     packet: {
+      ...(annotations ? { annotations } : {}),
       connectionId,
       direction,
       id,

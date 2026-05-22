@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addSocketLensRedactionMetadata,
   createImportedSessionSnapshot,
+  createPacketAnnotations,
   createPacketExportFile,
   createSession,
   createSessionFile,
@@ -22,6 +23,13 @@ const session = createSession({
 
 const packets: Packet[] = [
   createPacketFixture({
+    annotations: createPacketAnnotations({
+      bookmarked: true,
+      note: "Investigate auth timing",
+      suspicious: true,
+      tags: ["auth", "latency"],
+      updatedAt: 3500,
+    }),
     direction: "inbound",
     id: "packet-newest",
     payload: JSON.stringify({ type: "chat.message", text: "Newest" }),
@@ -67,6 +75,12 @@ describe("session serialization", () => {
       expect(parsed.file.metadata.packetCount).toBe(2);
       expect(parsed.file.metadata.format).toBe(socketLensSessionFileFormat);
       expect(parsed.file.packets.map((packet) => packet.id)).toEqual(["packet-newest", "packet-oldest"]);
+      expect(parsed.file.packets[0]?.annotations).toMatchObject({
+        bookmarked: true,
+        note: "Investigate auth timing",
+        suspicious: true,
+        tags: ["auth", "latency"],
+      });
       expect("session" in parsed.file ? parsed.file.session.name : null).toBe("Release QA");
     }
   });
@@ -155,6 +169,7 @@ describe("session serialization", () => {
     expect(snapshot.session.packetsSent).toBe(1);
     expect(new Set(snapshot.packets.map((packet) => packet.sessionId))).toEqual(new Set([snapshot.session.id]));
     expect(new Set(snapshot.packets.map((packet) => packet.connectionId))).toEqual(new Set([snapshot.session.connectionId]));
+    expect(snapshot.packets.find((packet) => packet.payload.includes("Newest"))?.annotations?.bookmarked).toBe(true);
   });
 });
 

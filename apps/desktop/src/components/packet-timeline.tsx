@@ -4,6 +4,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Bell,
+  Bookmark,
   Bot,
   Braces,
   BookmarkPlus,
@@ -14,6 +15,7 @@ import {
   Eraser,
   FileJson2,
   FileText,
+  Flag,
   HeartPulse,
   KeyRound,
   Layers2,
@@ -27,6 +29,7 @@ import {
   SendHorizontal,
   SlidersHorizontal,
   Star,
+  Tag as TagIcon,
   Terminal,
   Trash2,
   type LucideIcon,
@@ -51,6 +54,7 @@ import { cn } from "@/lib/utils";
 import {
   createEntityId,
   getFilterValidationIssues,
+  hasPacketAnnotations,
   type ConnectionStatus,
   type FilterPreset,
   type FilterState,
@@ -771,6 +775,7 @@ const PacketTimelineGroupRow = memo(function PacketTimelineGroupRow({
   const groupTone = getGroupTone(group.kind);
   const GroupIcon = getGroupIcon(group.kind);
   const direction = group.directions.length === 1 ? group.directions[0] : null;
+  const annotatedPacketCount = group.packets.filter((packet) => hasPacketAnnotations(packet.annotations)).length;
   const timelineWindow =
     group.firstTimestamp === group.lastTimestamp
       ? formatTime(group.lastTimestamp)
@@ -819,6 +824,12 @@ const PacketTimelineGroupRow = memo(function PacketTimelineGroupRow({
               : t("packets.group.mixedDirection")}
           </Badge>
           <StatusBadge status={group.status} />
+          {annotatedPacketCount > 0 ? (
+            <Badge variant="outline" className="shrink-0 border-primary/25 bg-primary/10 text-primary">
+              <Bookmark className="h-3 w-3" />
+              {t("packets.annotation.count", { count: annotatedPacketCount })}
+            </Badge>
+          ) : null}
         </span>
         <span className="mb-0.5 flex min-w-0 items-baseline gap-1.5 font-mono">
           {eventParts.namespace ? (
@@ -861,6 +872,7 @@ const PacketTimelineRow = memo(function PacketTimelineRow({
   const isInbound = packet.direction === "inbound";
   const summary = getPacketSummary(packet);
   const demoMetadata = getPacketDemoMetadata(packet);
+  const annotations = packet.annotations;
   const isError = summary.status === "error" || isErrorPacketFast(packet);
   const isReplay = isReplayPacketFast(packet);
   const eventParts = splitEventName(summary.eventName);
@@ -935,6 +947,24 @@ const PacketTimelineRow = memo(function PacketTimelineRow({
           {demoMetadata?.highlight ? (
             <Badge variant="default" className="min-w-0 max-w-[16.25rem] truncate">
               {demoBadgeLabel}
+            </Badge>
+          ) : null}
+          {annotations?.bookmarked ? (
+            <Badge variant="outline" className="shrink-0 border-primary/30 bg-primary/10 text-primary">
+              <Bookmark className="h-3 w-3 fill-current" />
+              {t("packets.annotation.bookmark")}
+            </Badge>
+          ) : null}
+          {annotations?.suspicious ? (
+            <Badge variant="outline" className="shrink-0 border-destructive/35 bg-destructive/10 text-destructive">
+              <Flag className="h-3 w-3 fill-current" />
+              {t("packets.annotation.suspicious")}
+            </Badge>
+          ) : null}
+          {annotations && annotations.tags.length > 0 ? (
+            <Badge variant="outline" className="shrink-0 border-primary/25 bg-primary/10 text-primary">
+              <TagIcon className="h-3 w-3" />
+              {t("packets.annotation.tags", { count: annotations.tags.length })}
             </Badge>
           ) : null}
         </span>

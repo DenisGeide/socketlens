@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createPacketAnnotations,
   createSession,
   createSessionRedactionPreview,
   createSocketLensRedactionMetadata,
@@ -53,6 +54,11 @@ describe("session redaction", () => {
 
   it("redacts raw auth text and custom literal rules", () => {
     const packet = createPacketFixture({
+      annotations: createPacketAnnotations({
+        bookmarked: true,
+        note: "Customer acme-private saw this retry.",
+        tags: ["acme-private", "retry"],
+      }),
       payload: "Authorization: Bearer raw-token\ncustomer=acme-private\nCookie: sid=secret",
       payloadKind: "text",
     });
@@ -65,6 +71,8 @@ describe("session redaction", () => {
     expect(result.packets[0]?.payload).toContain("Authorization: [REDACTED]");
     expect(result.packets[0]?.payload).toContain("customer=[REDACTED]");
     expect(result.packets[0]?.payload).toContain("Cookie: [REDACTED]");
+    expect(result.packets[0]?.annotations?.note).toBe("Customer [REDACTED] saw this retry.");
+    expect(result.packets[0]?.annotations?.tags).toEqual(["[REDACTED]", "retry"]);
     expect(result.summary.customRuleCount).toBe(1);
     expect(result.summary.previewPacket?.packetId).toBe("packet-a");
   });

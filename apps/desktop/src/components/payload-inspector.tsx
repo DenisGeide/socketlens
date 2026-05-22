@@ -1,30 +1,37 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
   ArrowDownLeft,
   ArrowUpRight,
+  Bookmark,
   Braces,
   Check,
   Clock3,
   Copy,
+  Flag,
   FileText,
   Inbox,
+  Plus,
   Ruler,
   Tag,
   TextCursorInput,
   Waypoints,
+  X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AiAnalysisPanel } from "@/components/ai-analysis-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PanelContent, PanelHeader, PanelTitle } from "@/components/ui/panel";
+import { Textarea } from "@/components/ui/textarea";
 import { formatBytes, formatDateTime } from "@/lib/format";
 import { getPacketEventName, getPrettyPayload, truncatePreview } from "@/lib/packet-inspection";
-import type { Packet, Session } from "@/models";
+import { createPacketAnnotations, type Packet, type PacketAnnotations, type Session } from "@/models";
 
 type PayloadInspectorProps = {
+  onUpdatePacketAnnotations: (packetId: string, patch: Partial<PacketAnnotations>) => void;
   packet: Packet | null;
   packets: Packet[];
   session: Session | null;
@@ -35,7 +42,7 @@ type CopyState = "idle" | "copied" | "failed";
 
 const renderedPayloadLimit = 200_000;
 
-export function PayloadInspector({ packet, packets, session }: PayloadInspectorProps) {
+export function PayloadInspector({ onUpdatePacketAnnotations, packet, packets, session }: PayloadInspectorProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<InspectorTab>("pretty");
   const [copyState, setCopyState] = useState<CopyState>("idle");
@@ -116,12 +123,165 @@ export function PayloadInspector({ packet, packets, session }: PayloadInspectorP
               {activeTab === "raw" ? <RawTab rawPayload={rawPayload} /> : null}
               {activeTab === "metadata" ? <MetadataTab eventName={eventName ?? "unknown.event"} packet={packet} /> : null}
               <div className="mt-4">
+                <PacketAnnotationsPanel packet={packet} onUpdatePacketAnnotations={onUpdatePacketAnnotations} />
+              </div>
+              <div className="mt-4">
                 <AiAnalysisPanel packet={packet} packets={packets} session={session} />
               </div>
             </div>
           </div>
         )}
       </PanelContent>
+    </div>
+  );
+}
+
+type PacketAnnotationsPanelProps = {
+  onUpdatePacketAnnotations: (packetId: string, patch: Partial<PacketAnnotations>) => void;
+  packet: Packet;
+};
+
+function PacketAnnotationsPanel({ onUpdatePacketAnnotations, packet }: PacketAnnotationsPanelProps) {
+  const { t } = useTranslation();
+  const annotations = packet.annotations ?? createPacketAnnotations({ updatedAt: 0 });
+  const [noteDraft, setNoteDraft] = useState(annotations.note);
+  const [tagDraft, setTagDraft] = useState("");
+  const hasUnsavedNote = noteDraft.trim() !== annotations.note;
+
+  useEffect(() => {
+    setNoteDraft(packet.annotations?.note ?? "");
+    setTagDraft("");
+  }, [packet.id, packet.annotations?.note]);
+
+  function updateAnnotations(patch: Partial<PacketAnnotations>) {
+    onUpdatePacketAnnotations(packet.id, patch);
+  }
+
+  function addTag(rawTag = tagDraft) {
+    const nextTag = rawTag.trim();
+
+    if (!nextTag) {
+      setTagDraft("");
+      return;
+    }
+
+    updateAnnotations({
+      tags: [...annotations.tags, nextTag],
+    });
+    setTagDraft("");
+  }
+
+  function removeTag(tag: string) {
+    updateAnnotations({
+      tags: annotations.tags.filter((item) => item !== tag),
+    });
+  }
+
+  function handleTagKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter" && event.key !== ",") {
+      return;
+    }
+
+    event.preventDefault();
+    addTag();
+  }
+
+  return (
+    <div className="rounded-md border border-border/70 bg-background/45 p-2.5">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground">
+            <Bookmark className="h-3.5 w-3.5" />
+            {t("inspector.annotations.title")}
+          </p>
+          <p className="mt-1 text-[0.72rem] leading-4 text-muted-foreground">{t("inspector.annotations.description")}</p>
+        </div>
+        <Badge variant={annotations.bookmarked || annotations.suspicious ? "default" : "outline"}>
+          {annotations.bookmarked
+            ? t("inspector.annotations.bookmarked")
+            : annotations.suspicious
+              ? t("inspector.annotations.suspicious")
+              : t("inspector.annotations.emptyState")}
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          type="button"
+          variant={annotations.bookmarked ? "secondary" : "ghost"}
+          size="sm"
+          onClick={() => updateAnnotations({ bookmarked: !annotations.bookmarked })}
+        >
+          <Bookmark className={annotations.bookmarked ? "h-4 w-4 fill-current" : "h-4 w-4"} />
+          {annotations.bookmarked ? t("inspector.annotations.removeBookmark") : t("inspector.annotations.bookmark")}
+        </Button>
+        <Button
+          type="button"
+          variant={annotations.suspicious ? "secondary" : "ghost"}
+          size="sm"
+          onClick={() => updateAnnotations({ suspicious: !annotations.suspicious })}
+        >
+          <Flag className={annotations.suspicious ? "h-4 w-4 fill-current" : "h-4 w-4"} />
+          {annotations.suspicious ? t("inspector.annotations.clearSuspicious") : t("inspector.annotations.markSuspicious")}
+        </Button>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        <label className="text-xs font-medium text-muted-foreground">
+          {t("inspector.annotations.tags")}
+          <div className="mt-1 flex gap-2">
+            <Input
+              className="h-8"
+              value={tagDraft}
+              placeholder={t("inspector.annotations.tagPlaceholder")}
+              spellCheck={false}
+              onChange={(event) => setTagDraft(event.target.value)}
+              onKeyDown={handleTagKeyDown}
+            />
+            <Button type="button" variant="ghost" size="sm" disabled={!tagDraft.trim()} onClick={() => addTag()}>
+              <Plus className="h-4 w-4" />
+              {t("inspector.annotations.addTag")}
+            </Button>
+          </div>
+        </label>
+        {annotations.tags.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {annotations.tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-xs text-primary"
+              >
+                <Tag className="h-3 w-3" />
+                {tag}
+                <button
+                  type="button"
+                  className="rounded-sm text-primary/75 hover:text-primary"
+                  title={t("inspector.annotations.removeTag", { tag })}
+                  onClick={() => removeTag(tag)}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <label className="text-xs font-medium text-muted-foreground">
+          {t("inspector.annotations.note")}
+          <Textarea
+            className="mt-1 min-h-20 resize-y text-xs leading-5"
+            value={noteDraft}
+            placeholder={t("inspector.annotations.notePlaceholder")}
+            onChange={(event) => setNoteDraft(event.target.value)}
+          />
+        </label>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[0.72rem] leading-4 text-muted-foreground">{t("inspector.annotations.shortcutHint")}</p>
+          <Button type="button" variant="secondary" size="sm" disabled={!hasUnsavedNote} onClick={() => updateAnnotations({ note: noteDraft })}>
+            {t("inspector.annotations.saveNote")}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
