@@ -1,5 +1,6 @@
 import { Activity, Cable, CircleDot, Command, Eraser, RotateCcw, Settings, Sparkles, Square, Unplug } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { GitHubStarButton } from "@/components/github-star-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -72,6 +73,7 @@ export function TopBar({
           <Activity className="h-3.5 w-3.5 text-accent" />
           {t("topbar.frames", { count: capturedCount })}
         </div>
+        <GitHubStarButton />
         <Button variant="ghost" size="sm" disabled={capturedCount === 0} onClick={onClearCapturedFrames}>
           <Eraser className="h-4 w-4" />
           {t("actions.clear")}

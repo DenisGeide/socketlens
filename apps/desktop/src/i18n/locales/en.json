@@ -38,6 +38,8 @@
   "commandPalette.title": "Command palette",
   "commandPalette.placeholder": "Search actions, sessions, environments...",
   "commandPalette.shortcut": "Ctrl K",
+  "github.star": "Star",
+  "github.starTooltip": "Star SocketLens on GitHub",
   "commandPalette.unavailable": "Unavailable: {{reason}}",
   "commandPalette.empty.title": "No commands found",
   "commandPalette.empty.description": "Try searching for connect, demo, replay, filters, session, or diagnostics.",
