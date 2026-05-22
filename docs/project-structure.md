@@ -232,3 +232,15 @@ AI is optional and disabled by default.
 - Native-only behavior belongs in `src-tauri`.
 - Simulated traffic belongs in `demo`.
 - Documentation belongs in `docs`.
+
+## Related
+
+- [Documentation Index](README.md)
+- [Architecture](architecture.md)
+- [Contributor Guide](contributor-guide.md)
+- [Function Inventory](function-inventory.md)
+
+## Next Steps
+
+- Understand packet flow: [Architecture](architecture.md)
+- Extend safely: [Contributor Guide](contributor-guide.md)

@@ -127,3 +127,16 @@ Demo connections are not written to persistent direct connection history.
 ## Limitations
 
 Direct Mode sees only traffic sent through SocketLens. If another browser tab or app is already using a WebSocket connection, use Proxy Mode when you need to observe that external client.
+
+## Related
+
+- [Quickstart](quickstart.md)
+- [Replay](replay.md)
+- [Filters](filters.md)
+- [Sessions](sessions.md)
+- [Troubleshooting](troubleshooting.md)
+
+## Next Steps
+
+- Test replay: [Replay](replay.md)
+- Inspect external clients: [Proxy Mode](proxy-mode.md)

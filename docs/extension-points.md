@@ -212,3 +212,17 @@ Avoid adding these until there is a clear product need:
 - enterprise policy systems.
 
 For `v0.1.0-alpha`, extension points are source-level contracts for contributors.
+
+## Related
+
+- [Contributor Guide](contributor-guide.md)
+- [Architecture](architecture.md)
+- [Adding a Decoder](adding-a-decoder.md)
+- [Adding a Filter](adding-a-filter.md)
+- [Adding an AI Provider](adding-ai-provider.md)
+- [Plugins](plugins.md)
+
+## Next Steps
+
+- Add protocol understanding: [Adding a Decoder](adding-a-decoder.md)
+- Add packet search behavior: [Adding a Filter](adding-a-filter.md)

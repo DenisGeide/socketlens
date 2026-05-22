@@ -908,3 +908,14 @@ Native artifacts ready: [ ] Yes  [ ] No  [ ] Not part of this release
 Known failures:
 Release blocking: [ ] Yes  [ ] No
 ```
+
+## Related
+
+- [Installation](installation.md)
+- [Quickstart](quickstart.md)
+- [Troubleshooting](troubleshooting.md)
+- [Final Alpha Summary](final-alpha-summary.md)
+
+## Next Steps
+
+If this checklist fails, fix blockers before release and update [Final Alpha Summary](final-alpha-summary.md).

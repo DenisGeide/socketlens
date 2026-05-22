@@ -176,3 +176,16 @@ If an external client connects but packets do not appear:
 - watch the connection count and logs in SocketLens.
 
 See [troubleshooting.md](troubleshooting.md).
+
+## Related
+
+- [Direct Mode](direct-mode.md)
+- [Diagnostics](diagnostics.md)
+- [Architecture](architecture.md)
+- [Troubleshooting](troubleshooting.md)
+- [Manual QA](manual-qa.md)
+
+## Next Steps
+
+- Copy a safe bug report bundle: [Diagnostics](diagnostics.md)
+- Understand the Rust bridge: [Architecture](architecture.md)

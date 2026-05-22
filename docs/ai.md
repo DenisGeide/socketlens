@@ -175,3 +175,15 @@ Add new actions by updating:
 - privacy documentation if new data is sent
 
 Keep AI optional. Capture, timeline, inspector, replay, session persistence, demo mode, and proxy mode must continue to work with provider set to **Disabled**.
+
+## Related
+
+- [Privacy](privacy.md)
+- [Security Model](security-model.md)
+- [Adding an AI Provider](adding-ai-provider.md)
+- [Function Inventory](function-inventory.md)
+
+## Next Steps
+
+- Add a provider safely: [Adding an AI Provider](adding-ai-provider.md)
+- Review data flow: [Privacy](privacy.md)

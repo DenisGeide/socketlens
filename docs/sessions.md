@@ -216,3 +216,16 @@ Imported files are validated before entering app state. SocketLens rejects:
 Session files may contain sensitive payloads and endpoint URLs. SocketLens applies safe export redaction by default, but exported files are still debugging artifacts. Review them before sharing.
 
 See [privacy.md](privacy.md).
+
+## Related
+
+- [Redaction](redaction.md)
+- [Privacy](privacy.md)
+- [AsyncAPI Export](asyncapi-export.md)
+- [Manual QA](manual-qa.md)
+- [Function Inventory](function-inventory.md)
+
+## Next Steps
+
+- Learn safe sharing: [Redaction](redaction.md)
+- Validate export/import: [Manual QA](manual-qa.md)

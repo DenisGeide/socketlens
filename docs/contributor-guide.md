@@ -191,3 +191,17 @@ Known limitations:
 - Add a safe export adapter with tests.
 
 Avoid starting with cloud sync, accounts, telemetry, marketplace plugins, broad proxy rewrites, or enterprise policy systems.
+
+## Related
+
+- [Architecture](architecture.md)
+- [Architecture Rules](architecture-rules.md)
+- [Extension Points](extension-points.md)
+- [Function Inventory](function-inventory.md)
+- [Manual QA](manual-qa.md)
+
+## Next Steps
+
+- Add a decoder: [Adding a Decoder](adding-a-decoder.md)
+- Add a filter: [Adding a Filter](adding-a-filter.md)
+- Add an AI provider: [Adding an AI Provider](adding-ai-provider.md)

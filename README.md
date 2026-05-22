@@ -8,204 +8,93 @@
 
 **Project status: Alpha, `v0.1.0-alpha`**
 
-SocketLens is a local-first, desktop-grade WebSocket debugging workspace for developers building realtime apps. It helps you connect to WebSocket endpoints, inspect frames, filter noisy streams, replay outbound messages, save/redact sessions, and demo realtime traffic without a production backend.
+SocketLens is a local-first WebSocket debugging workspace for developers building realtime applications.
 
-This is an alpha release. It is usable for local development, demos, and contributor testing, but it is not a stable commercial product yet.
+It gives WebSocket traffic a proper developer-tool workspace: a packet timeline, payload inspector, filters, replay, session export/redaction, demo traffic, and an optional desktop proxy.
 
-## What Problem SocketLens Solves
+## Why SocketLens Exists
 
-Realtime applications are hard to debug with generic browser tools. A single WebSocket can carry auth handshakes, chat messages, notifications, heartbeats, reconnects, retries, binary frames, protocol envelopes, and errors through the same stream.
+Browser DevTools can show WebSocket frames, but debugging real realtime systems usually needs more than a raw frame table:
 
-That makes common debugging questions painful:
+- auth, chat, presence, notifications, heartbeat, retries, reconnects, and errors share the same stream;
+- noisy heartbeat traffic hides the frame that actually matters;
+- replaying an outbound message is awkward;
+- sharing a useful debug session can leak tokens or cookies;
+- protocol envelopes such as Socket.IO or GraphQL WS make raw payloads harder to read;
+- external clients cannot always be inspected from the browser that owns DevTools.
 
-- What event just happened?
-- Was this frame incoming or outgoing?
-- Which request caused this response?
-- Is this heartbeat noise or a real issue?
-- Can I replay the outbound message safely?
-- Can I share this session without leaking tokens?
-
-SocketLens gives that traffic a focused workspace:
-
-- a packet timeline for inbound and outbound frames,
-- a payload inspector for Pretty, Raw, and Metadata views,
-- smart filters, grouping, and search,
-- manual send and replay workflows,
-- local session files with export redaction,
-- an offline demo mode,
-- a native proxy mode for inspecting traffic from another client,
-- source-level extension points for protocols, filters, exporters, replay, and optional AI providers.
-
-## Features
-
-What works in `v0.1.0-alpha`:
-
-- **Demo Mode**: synthetic offline traffic clearly marked as simulated.
-- **Direct Mode**: connect SocketLens directly to `ws://` or `wss://` endpoints.
-- **Proxy Mode**: native Tauri/Rust proxy MVP for external clients.
-- **Packet Timeline**: virtualized list with direction, event name, timestamp, payload preview, size, badges, filters, and search.
-- **Payload Inspector**: Pretty JSON, Raw text, Metadata, copy support, and safe handling of invalid JSON.
-- **Filters and Search**: text/regex search, event search, direction filters, JSON/errors-only filters, heartbeat/ping-pong hiding, smart payload conditions, and saved presets.
-- **Packet Grouping**: repeated events, heartbeat bursts, reconnect flows, auth flows, and related request/response groups can be collapsed without deleting packets.
-- **Bookmarks, Tags, and Notes**: mark packets locally and keep annotations in saved/imported SocketLens session files.
-- **Socket.IO Decoding**: detects Engine.IO/Socket.IO frames, event names, namespaces, acknowledgements, and protocol badges while keeping Raw payloads available.
-- **GraphQL WS Decoding**: detects common GraphQL WebSocket subscription envelopes, operation names, lifecycle labels, and protocol badges.
-- **Manual Send and Replay**: send JSON or raw text, reuse previous outgoing packets, edit before replay, and replay while connected.
-- **Environments**: Local, Staging, and Production variables with `{{base_url}}` / `{{auth_token}}` interpolation.
-- **Session Files**: save/load SocketLens session JSON, export packets, redact sensitive values before sharing, and create experimental inferred AsyncAPI-like YAML drafts.
-- **Echo Server**: local TypeScript WebSocket server on `ws://127.0.0.1:17787`.
-- **Socket.IO Demo**: local TypeScript Socket.IO server for testing decoded events on `ws://127.0.0.1:17810/socket.io/?EIO=4&transport=websocket`.
-- **Settings**: theme, compact mode, auto-scroll, packet retention, language, AI provider, and privacy options.
-- **Localization**: Russian by default, English available in Settings.
-- **Optional AI**: disabled by default, supports OpenAI-compatible endpoints and Ollama when configured.
-- **Extension Points**: typed contracts for `PacketDecoder`, `PacketAnalyzer`, `FilterEngine`, `ExportAdapter`, `AIProvider`, and `ReplayStrategy`.
-
-Current alpha limitations:
-
-- Desktop builds are unsigned.
-- Proxy Mode requires native desktop mode and is still an MVP.
-- Browser mode cannot start the native Rust proxy.
-- Rust/Cargo and Tauri prerequisites are required for desktop mode.
-- Runtime remote plugins and marketplace-style plugin loading are not implemented.
-- MessagePack, BSON, and Protobuf are roadmap/foundation work, not supported user-facing decoders yet.
-- No telemetry, accounts, hosted sync, cloud workspace, or paid service exists in this alpha.
-- Public screenshots must be captured from real implemented behavior.
+SocketLens is built for that workflow: inspect packets, understand event flow, replay messages, save clean sessions, and extend protocol understanding without rewriting the core.
 
 ## Screenshots
 
-These screenshots are a guided visual tour of real implemented SocketLens behavior.
+Screenshots below are captured from implemented SocketLens behavior. Screenshot guidance lives in [docs/screenshots.md](docs/screenshots.md).
 
-### Main Workspace
+| Main workspace | Demo mode |
+|---|---|
+| ![SocketLens main UI](docs/assets/screenshots/main-ui.png) | ![SocketLens demo mode](docs/assets/screenshots/demo-mode.png) |
 
-The core layout is a desktop-style debugging workspace: connection tools on the left, packet timeline in the center, payload inspector on the right, and logs at the bottom.
+| Direct mode | Proxy mode |
+|---|---|
+| ![SocketLens direct mode](docs/assets/screenshots/direct-mode.png) | ![SocketLens proxy mode](docs/assets/screenshots/proxy-mode.png) |
 
-![SocketLens main UI](docs/assets/screenshots/main-ui.png)
+| Payload inspector | Settings |
+|---|---|
+| ![SocketLens packet inspector](docs/assets/screenshots/packet-inspector.png) | ![SocketLens settings](docs/assets/screenshots/settings.png) |
 
-### Guided Product Tour
+## Feature Overview
 
-<table>
-  <tr>
-    <td width="50%">
-      <strong>Investor Demo Mode</strong><br>
-      Offline simulated traffic for first-run demos. Useful when someone wants to understand SocketLens without starting a server.<br><br>
-      <img src="docs/assets/screenshots/demo-mode.png" alt="SocketLens Investor Demo Mode">
-    </td>
-    <td width="50%">
-      <strong>Direct WebSocket Mode</strong><br>
-      SocketLens connects directly to a <code>ws://</code> or <code>wss://</code> endpoint. This screenshot shows the local echo server flow.<br><br>
-      <img src="docs/assets/screenshots/direct-mode.png" alt="SocketLens Direct WebSocket Mode">
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <strong>Proxy Mode</strong><br>
-      Native desktop proxy mode creates a local proxy URL. External clients connect to SocketLens, and forwarded frames appear in the timeline.<br><br>
-      <img src="docs/assets/screenshots/proxy-mode.png" alt="SocketLens Proxy Mode">
-    </td>
-    <td width="50%">
-      <strong>Payload Inspector</strong><br>
-      Selecting a packet opens formatted JSON, raw payload, metadata, copy, and optional AI explain controls. AI is disabled by default.<br><br>
-      <img src="docs/assets/screenshots/packet-inspector.png" alt="SocketLens Payload Inspector">
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <strong>Settings</strong><br>
-      Settings are local: language, environments, visual density, packet retention, AI provider, and privacy controls.<br><br>
-      <img src="docs/assets/screenshots/settings.png" alt="SocketLens Settings">
-    </td>
-    <td width="50%">
-      <strong>One-click Launchers</strong><br>
-      Launchers provide a friendlier way to start web mode, desktop mode, and the local echo server. They run <code>npm install</code> automatically on first launch if dependencies are missing.<br><br>
-      <img src="docs/assets/screenshots/launcher-terminal.png" alt="SocketLens launcher terminal"><br><br>
-      <img src="docs/assets/screenshots/launcher-shortcuts.png" alt="SocketLens Windows shortcuts">
-    </td>
-  </tr>
-</table>
+What works in `v0.1.0-alpha`:
 
-Screenshot capture guidance lives in [docs/screenshots.md](docs/screenshots.md). Screenshot-ready demo states live in [docs/demo-states.md](docs/demo-states.md). Interface-area explanations live in [docs/ui-guide.md](docs/ui-guide.md).
+- **Demo Mode**: simulated offline traffic clearly marked as demo data.
+- **Direct Mode**: connect directly to `ws://` or `wss://` endpoints.
+- **Proxy Mode**: Tauri/Rust local proxy MVP for external clients.
+- **Packet Timeline**: virtualized frame list with direction, event name, timestamp, size, preview, badges, grouping, search, and filters.
+- **Payload Inspector**: Pretty JSON, Raw, Metadata, copy, large view, and safe invalid JSON handling.
+- **Manual Send and Replay**: send JSON/raw text, reuse outgoing packets, edit before replay, replay selected packets or sequences while connected.
+- **Filters and Grouping**: text/regex search, event filters, JSON/errors-only filters, hide heartbeat/ping-pong, smart payload conditions, presets, and grouping.
+- **Sessions and Redaction**: save/load session JSON, export packets, redact sensitive values before sharing, and export experimental AsyncAPI-like drafts.
+- **Environments**: Local/Staging/Production variables and connection profiles with `{{base_url}}` interpolation.
+- **Protocol Understanding**: initial Socket.IO and GraphQL over WebSocket decoding with raw fallback.
+- **Diagnostics**: copy/export a privacy-safe diagnostic bundle.
+- **Optional AI**: disabled by default; OpenAI-compatible and Ollama providers can explain selected packet/session context after explicit user action.
+- **Extension Points**: typed contracts for decoders, analyzers, filters, exporters, AI providers, plugins, and replay strategies.
 
-Demo GIF guidance lives in [docs/assets/demo/README.md](docs/assets/demo/README.md). A GIF should be embedded only after it is captured from a real SocketLens run.
-
-<details>
-<summary><strong>Asset references</strong></summary>
-
-Branding assets live in [docs/assets/branding](docs/assets/branding):
-
-- [icon.png](docs/assets/branding/icon.png)
-- [banner.png](docs/assets/branding/banner.png)
-
-Release assets live in [docs/assets/release](docs/assets/release):
-
-- [release-notes-template.md](docs/assets/release/release-notes-template.md)
-
-When replacing assets, keep the same filenames unless every README, release, and documentation reference is updated in the same change.
-
-</details>
+Current alpha limitations are listed in [Current Alpha Limitations](#current-alpha-limitations) and [docs/final-alpha-summary.md](docs/final-alpha-summary.md).
 
 ## Quick Start
-
-SocketLens uses **npm workspaces** and the committed lockfile is `package-lock.json`.
 
 Prerequisites for browser mode:
 
 - Node.js `20.19.0+` on the 20.x line, or `22.12.0+`
 - npm `10+`
 
-Prerequisites for desktop mode:
-
-- Node.js and npm
-- Rust/Cargo
-- Tauri OS prerequisites for your platform
-
-Clone and install:
+Clone, install, and run web mode:
 
 ```bash
 git clone https://github.com/DenisGeide/socketlens.git
 cd socketlens
 npm install
-```
-
-Start web mode:
-
-```bash
 npm run dev
 ```
 
-Expected result: SocketLens opens at `http://127.0.0.1:1420/`.
+Expected result:
+
+```text
+SocketLens opens at http://127.0.0.1:1420/
+```
 
 What to click first:
 
-1. Click **Start Investor Demo** or **Start demo**.
-2. Watch packets appear in the timeline.
-3. Select a packet.
-4. Open Pretty, Raw, or Metadata in the inspector.
+1. Click **Start Investor Demo**.
+2. Select a packet in the timeline.
+3. Inspect Pretty, Raw, and Metadata in the right panel.
+4. Open Manual Send after connecting to a real echo server.
 
-Then test a real local WebSocket round trip:
+More detail: [docs/installation.md](docs/installation.md), [docs/quickstart.md](docs/quickstart.md), and [docs/getting-started.md](docs/getting-started.md).
 
-```bash
-npm run dev:echo
-```
+## One-click Launchers
 
-Connect Direct Mode to:
-
-```text
-ws://127.0.0.1:17787
-```
-
-Send:
-
-```json
-{ "command": "ping" }
-```
-
-Expected result: SocketLens captures the outbound ping, the echo frame, and a `command.pong` response.
-
-## One-click Launch
-
-The repository includes branded convenience launchers under [launchers](launchers). They call the same npm scripts documented below; they are just friendlier entry points for people who prefer double-clickable files.
-
-The start launchers automatically run `npm install` on first launch if `node_modules` is missing. Node.js/npm must still be installed first. Desktop mode also requires Rust/Cargo and Tauri OS prerequisites.
+Convenience launchers live in [launchers](launchers). They call the same npm scripts documented below.
 
 Windows:
 
@@ -226,344 +115,210 @@ sh ./launchers/start-echo-server.sh
 sh ./launchers/start-desktop.sh
 ```
 
-What they do:
-
-- `launchers\install-windows.bat` / `launchers/install-unix.sh` run `npm install`.
-- `launchers\start-web.bat` / `launchers/start-web.sh` run `npm run dev`.
-- `launchers\start-echo-server.bat` / `launchers/start-echo-server.sh` run `npm run dev:echo`.
-- `launchers\start-desktop.bat` / `launchers/start-desktop.sh` run `npm run dev:desktop`.
-- `launchers\generate-shortcuts.bat` creates optional Windows desktop shortcuts for Web, Desktop, and Echo Server launchers using the SocketLens icon.
-
-The install scripts are still useful when you want to set everything up explicitly before launching.
-
-Use **SocketLens Web** first if you only want to try the app quickly. Use **SocketLens Desktop** when testing native Tauri features such as Proxy Mode or native file dialogs.
-
-## Web Mode
-
-Web mode starts the React/Vite frontend in the browser.
-
-```bash
-npm run dev
-```
-
-Expected result:
-
-- Vite starts at `http://127.0.0.1:1420/`.
-- Demo Mode works.
-- Direct Mode works for reachable `ws://` or `wss://` endpoints.
-- Native-only features show an unavailable state.
-
-Web mode does not require Rust.
-
-## Desktop Mode
-
-Desktop mode starts the Tauri app.
-
-```bash
-npm run dev:desktop
-```
-
-Expected result:
-
-- Tauri opens the SocketLens desktop app.
-- Direct Mode works.
-- Native file dialogs are available.
-- Proxy Mode can use the Rust backend.
-
-Desktop mode requires Rust/Cargo and Tauri platform prerequisites.
-
-Useful native backend check:
-
-```bash
-cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
-```
-
-## Echo Server
-
-The local echo server is the fastest way to test real WebSocket traffic.
-
-```bash
-npm run dev:echo
-```
-
-Expected result:
-
-```text
-ws://127.0.0.1:17787
-```
-
-Supported example commands:
-
-```json
-{ "command": "ping" }
-{ "command": "time" }
-{ "command": "clients" }
-{ "command": "broadcast", "message": "Hello from SocketLens" }
-{ "command": "help" }
-```
-
-The echo server accepts WebSocket connections, sends a welcome packet, echoes messages, sends periodic server messages, and responds to simple JSON commands.
-
-## Socket.IO Demo
-
-The Socket.IO demo server is for testing initial Engine.IO/Socket.IO decoding.
-
-```bash
-npm run dev:socketio
-```
-
-Connect Direct Mode to:
-
-```text
-ws://127.0.0.1:17810/socket.io/?EIO=4&transport=websocket
-```
-
-Send a namespace connect frame first:
-
-```text
-40/chat,
-```
-
-Then send an event frame:
-
-```text
-42/chat,1["chat.message",{"text":"Hello from SocketLens","room":"launch"}]
-```
-
-Expected result: SocketLens labels the packet as `Socket.IO`, shows `chat.message`, namespace `/chat`, acknowledgement id `1`, and still keeps the original frame in Raw view.
-
-More detail: [docs/socketio.md](docs/socketio.md).
-
-## Protocol Understanding
-
-SocketLens keeps Raw payloads available and layers protocol understanding on top.
-
-Current protocol-aware behavior:
-
-- raw WebSocket text/JSON/binary fallback,
-- JSON event name inference from common fields such as `type`, `event`, and `command`,
-- Socket.IO / Engine.IO frame detection,
-- GraphQL over WebSocket envelope detection for common subscription messages.
-
-This is intentionally conservative. If SocketLens is not sure, it falls back to a readable raw packet instead of inventing a decoded event.
-
-More detail: [docs/socketio.md](docs/socketio.md), [docs/graphql-ws.md](docs/graphql-ws.md), and [docs/adding-a-decoder.md](docs/adding-a-decoder.md).
+The start launchers check for `node_modules` and run `npm install` on first launch if dependencies are missing. Node.js/npm must still be installed first. Desktop mode also needs Rust/Cargo and Tauri OS prerequisites.
 
 ## Demo Mode
 
-Demo Mode lets a new user see SocketLens working without a server.
+Demo Mode is the fastest way to understand SocketLens without setup.
 
-Use it when:
+It creates simulated realtime traffic: auth, chat, presence, notification, heartbeat, reconnect, error, streaming, and replay examples. Demo traffic is clearly marked as simulated.
 
-- you just cloned the repo,
-- you want a quick GitHub or investor demo,
-- you want to test the timeline and inspector offline.
-
-Demo traffic is simulated and clearly marked as demo data. It does not connect to production services.
+Read: [docs/demo-mode.md](docs/demo-mode.md).
 
 ## Direct Mode
 
 Direct Mode means SocketLens owns the WebSocket connection.
 
-Use it when you want to connect SocketLens directly to a server:
+Start the local echo server:
 
-1. Start `npm run dev` or `npm run dev:desktop`.
-2. Create a connection.
-3. Enter a `ws://` or `wss://` URL.
-4. Connect.
-5. Send JSON or raw text from the manual send panel.
-6. Inspect inbound and outbound frames.
-
-Direct Mode is the easiest real workflow to test today.
-
-More detail: [docs/direct-mode.md](docs/direct-mode.md).
-
-## Filters and Search
-
-The timeline is built for noisy realtime streams.
-
-Available filters include:
-
-- payload/event/direction text search,
-- regex search,
-- direction filters,
-- event-name filter,
-- JSON-only filter,
-- errors-only filter,
-- hide heartbeat,
-- hide ping/pong,
-- size range filters,
-- simple JSON-path-like conditions such as:
-
-```text
-payload.type != "heartbeat"
-payload.event == "chat.message"
-payload.user.id == "123"
+```bash
+npm run dev:echo
 ```
 
-Filter presets can be saved and favorited locally. Invalid smart filters show user-facing errors instead of crashing the timeline.
-
-## Replay
-
-Replay is one of the main SocketLens workflows.
-
-Current replay behavior:
-
-- replay selected outbound packets,
-- edit payload before replay,
-- replay the last packet from history,
-- replay a selected sequence when available,
-- configure replay delay controls,
-- see replay status and replay history,
-- prevent replay when no active connection exists.
-
-Replay never silently sends data: the UI keeps disconnected and invalid states explicit.
-
-## Environments
-
-Environments let you keep reusable variables and connection profiles for Local, Staging, and Production.
-
-Example WebSocket URL template:
+Connect SocketLens to:
 
 ```text
-{{base_url}}?token={{auth_token}}
+ws://127.0.0.1:17787
 ```
 
-SocketLens resolves templates locally when you connect, validates the resulting `ws://` or `wss://` URL, and avoids logging secret variable values. Environment files can be imported/exported from Settings, but exported JSON includes variable values, so do not commit real tokens.
+Send:
 
-More detail: [docs/environments.md](docs/environments.md).
+```json
+{ "command": "ping" }
+```
+
+Expected result: SocketLens captures the outbound message and inbound echo/`command.pong` response.
+
+Read: [docs/direct-mode.md](docs/direct-mode.md).
 
 ## Proxy Mode
 
 Proxy Mode means another client connects through SocketLens.
 
-Use it when you want to inspect traffic from an external app:
+Use it when you need to inspect traffic from an external app rather than a connection owned by SocketLens.
 
-1. Start the desktop app with `npm run dev:desktop`.
-2. Start a target server, for example `npm run dev:echo`.
-3. Switch capture mode to Proxy.
-4. Set the target URL to `ws://127.0.0.1:17787`.
-5. Start the proxy.
-6. Copy the local proxy URL.
-7. Point your external WebSocket client at that local proxy URL.
+Requirements:
 
-Expected result: frames are forwarded to the target server and captured in SocketLens.
+- `npm run dev:desktop`
+- Rust/Cargo and Tauri prerequisites
+- target WebSocket server, for example `npm run dev:echo`
 
-Limitations:
+Read: [docs/proxy-mode.md](docs/proxy-mode.md) and [docs/troubleshooting.md](docs/troubleshooting.md).
 
-- Proxy Mode requires the native Tauri backend.
-- Browser mode cannot start the Rust proxy.
-- The proxy is an alpha local-development MVP, not an enterprise traffic gateway.
+## Socket.IO and GraphQL WS
 
-More detail: [docs/proxy-mode.md](docs/proxy-mode.md).
+SocketLens keeps Raw payloads available and layers conservative protocol understanding on top.
+
+Implemented protocol-aware behavior:
+
+- JSON event-name inference;
+- Socket.IO / Engine.IO frame detection;
+- GraphQL over WebSocket envelope detection;
+- safe fallback for unknown frames.
+
+Run the Socket.IO demo:
+
+```bash
+npm run dev:socketio
+```
+
+Read: [docs/socketio.md](docs/socketio.md), [docs/graphql-ws.md](docs/graphql-ws.md), and [docs/adding-a-decoder.md](docs/adding-a-decoder.md).
+
+## Environments
+
+Environments let you switch Local/Staging/Production variables without rewriting connection URLs.
+
+Example:
+
+```text
+{{base_url}}?token={{auth_token}}
+```
+
+Values are stored locally. Secret values are hidden in UI previews, but exported environment files include values, so do not commit real tokens.
+
+Read: [docs/environments.md](docs/environments.md).
+
+## Replay
+
+Replay helps reproduce outbound messages while debugging.
+
+Implemented replay behavior:
+
+- replay selected outbound packet;
+- edit payload before replay;
+- replay last outgoing packet;
+- replay selected sequence when available;
+- configure delay controls;
+- block replay while disconnected.
+
+Read: [docs/replay.md](docs/replay.md).
+
+## Filters and Grouping
+
+SocketLens is built for noisy realtime streams.
+
+Filtering includes text search, regex search, direction filters, JSON-only, errors-only, hide heartbeat, hide ping/pong, event filtering, saved presets, and simple JSON-path-like conditions.
+
+Grouping can collapse repeated events, heartbeat storms, auth flows, reconnect flows, and related packets without deleting original data.
+
+Read: [docs/filters.md](docs/filters.md) and [docs/grouping.md](docs/grouping.md).
 
 ## Sessions, Export, and Redaction
 
-SocketLens sessions are local debugging artifacts. They can be saved, loaded, imported, exported as packet-only JSON, or exported as an experimental inferred AsyncAPI-like YAML draft.
+SocketLens sessions can be saved, loaded, exported, imported, and redacted before sharing.
 
-Before saving or exporting, SocketLens can redact common sensitive values from the exported copy:
+Redaction can remove common tokens, cookies, auth headers, API keys, password-like fields, sensitive URL query values, and custom literal/regex matches from exported copies.
 
-- bearer tokens and token-like fields,
-- cookies and `Set-Cookie` values,
-- authorization headers,
-- API keys and password-like fields,
-- endpoint URL credentials and query strings,
-- custom literal or regex redaction rules.
+AsyncAPI-like export exists as an experimental inferred draft.
 
-Redaction preserves payload shape where possible and does not mutate the active in-app session unless the user explicitly changes session data.
+Read: [docs/sessions.md](docs/sessions.md), [docs/redaction.md](docs/redaction.md), and [docs/asyncapi-export.md](docs/asyncapi-export.md).
 
-More detail: [docs/sessions.md](docs/sessions.md), [docs/privacy.md](docs/privacy.md), and [docs/asyncapi-export.md](docs/asyncapi-export.md).
-
-## AI Mode
+## AI Features and Privacy
 
 AI is optional and disabled by default.
 
 Supported provider shapes:
 
-- Disabled
-- OpenAI-compatible endpoint
-- Ollama
+- Disabled;
+- OpenAI-compatible endpoint;
+- Ollama.
 
-SocketLens does not send packet data to AI providers automatically. Data is sent only after the user explicitly clicks an AI action such as explaining a selected packet, and only to the provider configured in Settings.
+SocketLens never sends packet data to AI automatically. Data is sent only after the user explicitly clicks an AI action, and only to the configured provider.
 
-The app works fully without AI.
+Read: [docs/ai.md](docs/ai.md), [docs/privacy.md](docs/privacy.md), and [docs/security-model.md](docs/security-model.md).
 
-More detail: [docs/ai.md](docs/ai.md).
+## Architecture Overview
 
-## Privacy
+SocketLens is a monorepo with:
 
-SocketLens is local-first:
+- React + TypeScript + Vite frontend;
+- Zustand stores;
+- Tailwind/shadcn-style UI;
+- Tauri desktop shell;
+- Rust backend for native proxy mode;
+- Node/TypeScript examples.
 
-- no telemetry by default,
-- no hidden analytics,
-- no account system,
-- no hosted SocketLens ingestion endpoint,
-- packet payloads stay local unless you connect to a server, run proxy mode, save/export/copy data, or explicitly run an AI action,
-- AI is disabled by default,
-- API keys are user-provided and stored locally.
+Core packet flow:
 
-Do not send production secrets, customer content, credentials, or private payloads to an AI provider unless you intentionally configured that provider and understand the data flow.
+```text
+Demo generator / Direct WebSocket / Rust proxy
+  -> Packet model
+  -> Packet store
+  -> Filter/decoder/analyzer pipeline
+  -> Timeline + Inspector + Replay + Export
+```
 
-More detail: [docs/privacy.md](docs/privacy.md), [docs/security-model.md](docs/security-model.md), and [SECURITY.md](SECURITY.md).
+Read: [docs/architecture.md](docs/architecture.md), [docs/project-structure.md](docs/project-structure.md), and [docs/function-inventory.md](docs/function-inventory.md).
 
 ## Extension Points
 
-SocketLens is designed so contributors can add focused capabilities without rewriting the core capture, timeline, or storage flow.
+SocketLens is designed so contributors can extend the product without rewriting the core.
 
-Current source-level extension contracts:
+Source-level contracts:
 
-- `PacketDecoder`: decode protocol payloads and produce event names/previews.
-- `PacketAnalyzer`: classify decoded packets as auth, chat, error, notification, heartbeat, replay, or ok.
-- `FilterEngine`: apply fast packet filtering and search.
-- `ExportAdapter`: create exportable session/packet formats.
-- `AIProvider`: add optional AI providers without making AI required.
-- `ReplayStrategy`: prepare replay payloads and replay history records.
+- `PacketDecoder`
+- `PacketAnalyzer`
+- `FilterEngine`
+- `ExportAdapter`
+- `AIProvider`
+- `ReplayStrategy`
+- local plugin registry foundation
 
-These are local TypeScript contracts, not a remote plugin marketplace. SocketLens does not execute remote plugins.
+Read: [docs/extension-points.md](docs/extension-points.md), [docs/plugins.md](docs/plugins.md), [docs/adding-a-decoder.md](docs/adding-a-decoder.md), [docs/adding-a-filter.md](docs/adding-a-filter.md), and [docs/adding-ai-provider.md](docs/adding-ai-provider.md).
 
-Contributor extension guides:
+## Documentation Map
 
-- [docs/function-inventory.md](docs/function-inventory.md): full inventory of current UI features, core logic, workflows, extension points, and alpha limitations.
-- [docs/contributor-guide.md](docs/contributor-guide.md): where new work goes and how packet flow works.
-- [docs/architecture-rules.md](docs/architecture-rules.md): review guardrails for keeping the core stable.
-- [docs/adding-a-decoder.md](docs/adding-a-decoder.md): add protocol decoding without touching timeline/inspector internals.
-- [docs/adding-a-filter.md](docs/adding-a-filter.md): add packet search/filter behavior safely.
-- [docs/adding-ai-provider.md](docs/adding-ai-provider.md): add optional AI providers without changing privacy defaults.
-- [docs/plugins.md](docs/plugins.md): source-level local plugin foundations.
+Start here:
 
-## Project Structure
+- [Documentation index](docs/README.md)
+- [Installation](docs/installation.md)
+- [Quickstart](docs/quickstart.md)
+- [Manual QA](docs/manual-qa.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Function inventory](docs/function-inventory.md)
 
-```text
-apps/desktop
-  src/              React, TypeScript, TailwindCSS, Zustand, i18n
-  src/components   app shell, sidebar, timeline, inspector, settings, onboarding
-  src/demo         demo and investor-demo traffic generation
-  src/extensions   decoders, analyzers, filters, exporters, AI providers, replay contracts
-  src/lib          WebSocket, proxy, AI, session, validation, formatting helpers
-  src/models       typed domain models and pure data helpers
-  src/store        Zustand stores
-  src/i18n         Russian and English UI translations
-  src-tauri        Rust/Tauri commands, proxy, session, state, errors
+Contributor docs:
 
-apps/landing       React/Vite landing page
-examples/echo-server
-                   Node.js TypeScript WebSocket echo server
-examples/socketio-demo
-                   Node.js TypeScript Socket.IO demo server
-examples/chat-demo Browser chat demo for local realtime testing
-docs               user, contributor, architecture, privacy, QA, release docs
-.github            CI, release workflow, issue templates, PR template
-scripts            repository hygiene and release helper scripts
-```
+- [Contributor guide](docs/contributor-guide.md)
+- [Architecture](docs/architecture.md)
+- [Architecture rules](docs/architecture-rules.md)
+- [Extension points](docs/extension-points.md)
+- [Project structure](docs/project-structure.md)
 
-More detail: [docs/project-structure.md](docs/project-structure.md) and [docs/architecture.md](docs/architecture.md).
+Trust and release docs:
+
+- [Privacy](docs/privacy.md)
+- [Security model](docs/security-model.md)
+- [Release guide](docs/release.md)
+- [Roadmap](docs/roadmap.md)
+- [Final alpha summary](docs/final-alpha-summary.md)
 
 ## Development Commands
 
 Run from the repository root.
 
 | Command | What it does |
-| --- | --- |
+|---|---|
 | `npm install` | Installs all npm workspace dependencies. |
 | `npm run dev` | Starts web mode at `http://127.0.0.1:1420/`. |
 | `npm run dev:desktop` | Starts the native Tauri desktop app. |
@@ -587,97 +342,51 @@ Before opening a pull request:
 npm run check
 ```
 
-Contributor workflow details live in [docs/development.md](docs/development.md).
+## Contributing
 
-## Manual QA
+Contributions are welcome, especially changes that improve clarity, stability, tests, documentation, first-run experience, and protocol understanding.
 
-Use [docs/manual-qa.md](docs/manual-qa.md) before release freezes or after major UI/workflow changes. It covers install, startup, Demo Mode, Direct Mode, Echo Server, Socket.IO, replay, filters, grouping, environments, session export/import, redaction, i18n, settings persistence, diagnostics, AI disabled state, and Proxy Mode when the Tauri backend is available.
+Good first contributions:
 
-## Troubleshooting
+- test the quickstart on a fresh machine;
+- improve an unclear error state;
+- add tests for packet parsing/filtering/session files;
+- add a focused decoder/analyzer rule;
+- improve docs when commands or workflows are unclear.
 
-Common issues:
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/contributor-guide.md](docs/contributor-guide.md).
 
-- **Port 1420 is already in use**: stop the existing Vite process or close the terminal that started it.
-- **Echo server is not running**: run `npm run dev:echo`, then connect to `ws://127.0.0.1:17787`.
-- **Desktop mode fails**: install Rust/Cargo and Tauri platform prerequisites.
-- **Proxy Mode unavailable**: use `npm run dev:desktop`; browser mode cannot run the Rust proxy.
-- **Invalid WebSocket URL**: use `ws://` or `wss://`.
-- **Invalid JSON**: switch to Raw text or fix the JSON before sending.
-- **Ollama unavailable**: keep AI disabled or start Ollama locally before validating provider settings.
+## Current Alpha Limitations
 
-More detail: [docs/troubleshooting.md](docs/troubleshooting.md).
-
-## Downloadable Releases
-
-Public desktop artifacts will be attached to GitHub Releases after the release workflow passes.
-
-Current alpha status:
-
-- builds are unsigned,
-- browser/web development mode is still the easiest way to try SocketLens from source,
-- desktop builds require Rust/Cargo and Tauri prerequisites when building locally,
-- release preparation is documented in [docs/release.md](docs/release.md).
-
-When artifacts are available, use the file for your OS from:
-
-```text
-https://github.com/DenisGeide/socketlens/releases
-```
+- Desktop builds are unsigned.
+- Proxy Mode requires desktop/Tauri mode and is still an MVP.
+- Browser mode cannot start the Rust proxy.
+- Runtime remote plugins and a plugin marketplace are not implemented.
+- Socket.IO and GraphQL WS support are initial decoders, not complete protocol suites.
+- MessagePack, BSON, and Protobuf are roadmap/foundation work.
+- AsyncAPI export is experimental and inferred.
+- AI is optional, disabled by default, and may be wrong.
+- No telemetry, accounts, hosted sync, cloud workspace, or paid service exists in this alpha.
 
 ## Roadmap
 
-SocketLens is currently focused on alpha stability, onboarding, and trust.
-
 Near-term priorities:
 
-- polish first-run onboarding,
-- harden Direct Mode and Proxy Mode,
-- improve replay and session file QA,
-- add validated public screenshots,
-- expand tests around packet parsing, filtering, settings, and proxy edge cases,
-- prepare signed desktop releases later.
+- polish onboarding and documentation;
+- harden Direct Mode and Proxy Mode;
+- improve replay/session QA;
+- expand decoder and filter tests;
+- prepare unsigned alpha desktop artifacts;
+- keep the core local-first and contributor-friendly.
 
-Not planned for this alpha:
+Read [docs/roadmap.md](docs/roadmap.md) and [ROADMAP.md](ROADMAP.md).
 
-- accounts,
-- telemetry,
-- cloud sync,
-- hosted packet ingestion,
-- enterprise proxy features.
+## License
 
-More detail: [ROADMAP.md](ROADMAP.md).
-
-## License AGPL-3.0
-
-SocketLens is licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`).
+SocketLens is licensed under `AGPL-3.0-only`.
 
 You can use SocketLens freely, including at work. You can fork it, modify it, and run it locally. If you distribute a modified version or run a modified network-accessible version as a service, AGPL generally requires sharing the corresponding source code for that modified version.
 
 AGPL applies to SocketLens code. It does not make your inspected WebSocket traffic, payloads, private endpoints, session files, or application code part of SocketLens.
 
 See [LICENSE](LICENSE) and [docs/license.md](docs/license.md). The documentation is educational only and is not legal advice.
-
-## Contributing
-
-Contributions are welcome, especially small changes that improve clarity, stability, tests, documentation, and first-run experience.
-
-Good first contributions:
-
-- test Quick Start on a fresh machine,
-- improve a confusing empty state or error message,
-- add focused tests for packet parsing, filtering, settings, or session files,
-- improve docs where commands are unclear,
-- test Proxy Mode on Windows, macOS, or Linux.
-
-Public launch and maintainer checklist: [docs/github-launch.md](docs/github-launch.md).
-
-Contribution flow:
-
-1. Read [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/development.md](docs/development.md).
-2. Install with `npm install`.
-3. Run the relevant mode: `npm run dev`, `npm run dev:echo`, or `npm run dev:desktop`.
-4. Keep alpha limitations honest.
-5. Update docs when behavior or setup changes.
-6. Run `npm run check` before opening a pull request.
-
-By contributing, you agree that your contribution is licensed under `AGPL-3.0-only`.

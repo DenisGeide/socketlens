@@ -295,3 +295,15 @@ Open an issue with:
 - copied diagnostics bundle,
 - relevant SocketLens log panel messages,
 - screenshots for UI issues.
+
+## Related
+
+- [Installation](installation.md)
+- [Diagnostics](diagnostics.md)
+- [Direct Mode](direct-mode.md)
+- [Proxy Mode](proxy-mode.md)
+- [Manual QA](manual-qa.md)
+
+## Next Steps
+
+If troubleshooting shows a repeatable bug, open an issue with the diagnostics bundle and the smallest reproduction steps.

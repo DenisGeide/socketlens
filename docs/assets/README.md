@@ -10,6 +10,7 @@ docs/assets/
   screenshots/   screenshot naming rules and captured product screenshots
   release/       release-note template
   demo/          demo recording guidelines and exported clips
+  diagrams/      exported architecture diagrams when Mermaid is not enough
 ```
 
 ## Current Assets
@@ -17,6 +18,7 @@ docs/assets/
 - [branding/icon.png](branding/icon.png)
 - [branding/banner.png](branding/banner.png)
 - [release/release-notes-template.md](release/release-notes-template.md)
+- [diagrams/README.md](diagrams/README.md)
 - [screenshots/main-ui.png](screenshots/main-ui.png)
 - [screenshots/demo-mode.png](screenshots/demo-mode.png)
 - [screenshots/direct-mode.png](screenshots/direct-mode.png)
