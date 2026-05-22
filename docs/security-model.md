@@ -86,9 +86,14 @@ Session save/load is explicit:
 - native desktop mode uses Tauri dialogs for user-selected paths
 - browser development mode uses browser download/upload behavior
 - imports are parsed as JSON and validated before state mutation
-- exported files are not automatically redacted
+- session and packet exports can be redacted before writing
+- redaction is enabled for exported copies by default where the export UI supports it
+- disabling redaction for sensitive-looking data requires explicit confirmation
+- redaction does not mutate the active in-app session
 
 Session files may contain full payloads, endpoint URLs, timestamps, session names, and close reasons. Treat them as sensitive.
+
+Redaction is best-effort. Review exported files before sharing them outside your machine or organization.
 
 ## Local Storage
 
@@ -156,7 +161,7 @@ The desktop app also defines a Tauri Content Security Policy in `apps/desktop/sr
 
 ## Known Limitations
 
-- Session exports are not redacted automatically.
+- Redaction is best-effort and should be reviewed before sharing exported files.
 - AI prompts include payload excerpts when the user explicitly runs an AI action.
 - Provider API keys are stored locally, not in an OS keychain yet.
 - Downloadable artifacts are currently unsigned until release signing is configured.

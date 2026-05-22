@@ -1,11 +1,11 @@
 blank_issues_enabled: true
 contact_links:
   - name: Troubleshooting
-    url: https://github.com/socketlens/socketlens/blob/main/docs/troubleshooting.md
+    url: https://github.com/DenisGeide/socketlens/blob/main/docs/troubleshooting.md
     about: Check common install, Direct Mode, Proxy Mode, Ollama, JSON, and Tauri backend issues.
   - name: Manual QA checklist
-    url: https://github.com/socketlens/socketlens/blob/main/docs/manual-qa.md
+    url: https://github.com/DenisGeide/socketlens/blob/main/docs/manual-qa.md
     about: Use this checklist before reporting broad release or workflow failures.
   - name: Security policy
-    url: https://github.com/socketlens/socketlens/blob/main/SECURITY.md
+    url: https://github.com/DenisGeide/socketlens/blob/main/SECURITY.md
     about: Report private security issues through the security policy instead of public issues.

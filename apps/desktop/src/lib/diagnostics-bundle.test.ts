@@ -33,7 +33,7 @@ describe("diagnostics bundle", () => {
       aiProvider: {
         ...defaultAppSettings.aiProvider,
         openAiCompatible: {
-          apiKey: "sk-secret-key",
+          apiKey: "fixture-provider-key",
           baseUrl: "https://api.example.com/v1?token=provider-secret",
           model: "gpt-test",
         },
@@ -78,7 +78,7 @@ describe("diagnostics bundle", () => {
     expect(bundle.packets.total.total).toBe(1);
     expect(serialized).not.toContain("super-secret-payload");
     expect(serialized).not.toContain("local-demo-token");
-    expect(serialized).not.toContain("sk-secret-key");
+    expect(serialized).not.toContain("fixture-provider-key");
     expect(serialized).not.toContain("provider-secret");
     expect(serialized).toContain("ws://user:***@example.com/socket?...");
     expect(serialized).toContain("https://api.example.com/v1?...");

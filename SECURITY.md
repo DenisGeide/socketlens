@@ -15,6 +15,7 @@ SocketLens has not shipped a stable release line yet. Security fixes are applied
 - SocketLens does not operate a hosted ingestion endpoint for captured traffic.
 - API keys and provider settings must never be hardcoded in source.
 - Session files are user-selected local JSON files and may contain full payload data.
+- Diagnostics and copied error details are for local debugging and must not include full packet payloads, provider secrets, or imported file contents by default.
 
 See [docs/privacy.md](docs/privacy.md) and [docs/security-model.md](docs/security-model.md).
 
@@ -50,6 +51,7 @@ Please report:
 - Demo values must be clearly synthetic and must not use real provider secret prefixes such as `sk_live_`.
 - Do not add telemetry or crash reporting without documentation, settings, and explicit project approval.
 - Do not log full packet payloads, authorization headers, API keys, or imported file contents.
+- Keep diagnostics bundles redacted: counters, status, and runtime metadata are fine; full payloads and provider secrets are not.
 - Keep AI optional and user-triggered.
 - Validate imported session files before loading them into app state.
 - Keep native listeners bound to localhost unless a documented user-facing setting changes that behavior.

@@ -37,7 +37,7 @@
     "active": true,
     "targets": "all",
     "publisher": "SocketLens contributors",
-    "homepage": "https://github.com/socketlens/socketlens",
+    "homepage": "https://github.com/DenisGeide/socketlens",
     "copyright": "Copyright (c) 2026 SocketLens contributors",
     "license": "AGPL-3.0-only",
     "licenseFile": "../../../LICENSE",

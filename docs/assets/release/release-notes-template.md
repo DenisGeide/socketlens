@@ -16,7 +16,7 @@ SocketLens `vX.Y.Z` is an alpha release of the local-first WebSocket debugger.
 ## Install
 
 ```bash
-git clone https://github.com/socketlens/socketlens.git
+git clone https://github.com/DenisGeide/socketlens.git
 cd socketlens
 npm install
 npm run dev

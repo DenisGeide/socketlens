@@ -166,7 +166,7 @@ function Header() {
         </nav>
         <a
           className="inline-flex h-10 items-center gap-2 rounded-md border border-line bg-white/[0.06] px-4 text-sm font-medium text-white transition hover:border-white/25 hover:bg-white/[0.10]"
-          href="https://github.com/socketlens/socketlens"
+          href="https://github.com/DenisGeide/socketlens"
         >
           <Github className="size-4" aria-hidden="true" />
           GitHub
@@ -197,7 +197,7 @@ function Hero() {
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <a
               className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-white px-5 text-sm font-semibold text-black transition hover:bg-zinc-200"
-              href="https://github.com/socketlens/socketlens"
+              href="https://github.com/DenisGeide/socketlens"
             >
               <Github className="size-4" aria-hidden="true" />
               View on GitHub
@@ -451,14 +451,14 @@ function GithubCta() {
         <div className="flex flex-col gap-3 sm:flex-row">
           <a
             className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-white px-5 text-sm font-semibold text-black transition hover:bg-zinc-200"
-            href="https://github.com/socketlens/socketlens"
+            href="https://github.com/DenisGeide/socketlens"
           >
             <Github className="size-4" aria-hidden="true" />
             Star on GitHub
           </a>
           <a
             className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-line bg-white/[0.05] px-5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/[0.10]"
-            href="https://github.com/socketlens/socketlens#quick-start"
+            href="https://github.com/DenisGeide/socketlens#quick-start"
           >
             <Download className="size-4" aria-hidden="true" />
             Quick start
@@ -495,13 +495,13 @@ function Footer() {
           <span>SocketLens - AGPL licensed WebSocket debugging.</span>
         </div>
         <div className="flex gap-5">
-          <a className="transition hover:text-white" href="https://github.com/socketlens/socketlens">
+          <a className="transition hover:text-white" href="https://github.com/DenisGeide/socketlens">
             GitHub
           </a>
-          <a className="transition hover:text-white" href="https://github.com/socketlens/socketlens/blob/main/docs/privacy.md">
+          <a className="transition hover:text-white" href="https://github.com/DenisGeide/socketlens/blob/main/docs/privacy.md">
             Privacy
           </a>
-          <a className="transition hover:text-white" href="https://github.com/socketlens/socketlens/blob/main/ROADMAP.md">
+          <a className="transition hover:text-white" href="https://github.com/DenisGeide/socketlens/blob/main/ROADMAP.md">
             Roadmap
           </a>
         </div>

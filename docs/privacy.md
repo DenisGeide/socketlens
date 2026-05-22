@@ -146,6 +146,8 @@ SocketLens logs operational events such as connection status, packet counts, fra
 
 Application logs should not include full packet payloads, authorization headers, API keys, imported file contents, provider secrets, or full endpoint query strings. If you open a bug report, remove secrets, endpoint tokens, customer data, and private payloads from screenshots or copied logs.
 
+Diagnostics bundles intentionally include status, counters, runtime details, redacted URLs, and provider configuration status. They should not include packet payload bodies, provider secrets, imported file contents, or environment variable values.
+
 SocketLens redacts URL credentials and query strings in log and AI-prompt contexts where the full URL is not needed.
 
 ## Clipboard

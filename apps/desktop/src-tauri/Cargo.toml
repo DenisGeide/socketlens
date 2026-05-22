@@ -6,8 +6,8 @@ authors = ["SocketLens contributors"]
 edition = "2021"
 rust-version = "1.77.2"
 license = "AGPL-3.0-only"
-homepage = "https://github.com/socketlens/socketlens"
-repository = "https://github.com/socketlens/socketlens"
+homepage = "https://github.com/DenisGeide/socketlens"
+repository = "https://github.com/DenisGeide/socketlens"
 
 [lib]
 name = "socketlens_lib"
