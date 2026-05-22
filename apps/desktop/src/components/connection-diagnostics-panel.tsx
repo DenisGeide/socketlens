@@ -80,35 +80,44 @@ export function ConnectionDiagnosticsPanel({ diagnostics, showHeader = true }: C
   }
 
   return (
-    <div className="rounded-md border border-border/80 bg-muted/15 p-2.5">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+    <div className="rounded-md border border-border/80 bg-muted/15 p-2">
+      <div className="mb-2 space-y-1.5">
         {showHeader ? (
           <p className="sl-section-label inline-flex min-w-0 items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
             <Bug className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">{t("diagnostics.title")}</span>
           </p>
         ) : null}
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
-          <Badge variant={diagnostics.lastError ? "outline" : "secondary"} className={diagnostics.lastError ? "border-destructive/40 text-destructive" : ""}>
+        <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5">
+          <Badge
+            variant={diagnostics.lastError ? "outline" : "secondary"}
+            className={diagnostics.lastError ? "h-7 border-destructive/40 px-2 text-destructive" : "h-7 px-2"}
+          >
             {diagnostics.activeMode}
           </Badge>
-          <Button variant="ghost" size="sm" className="min-w-0 max-w-full px-2" title={copied ? t("diagnostics.copied") : t("diagnostics.copy")} onClick={handleCopyDiagnostics}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 min-w-0 justify-center px-2 text-[0.72rem]"
+            title={copied ? t("diagnostics.copied") : t("diagnostics.copy")}
+            onClick={handleCopyDiagnostics}
+          >
             <Clipboard className="h-4 w-4 shrink-0" />
             <span className="min-w-0 truncate">{copied ? t("diagnostics.copied") : t("diagnostics.copy")}</span>
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="min-w-0 max-w-full px-2"
+            className="h-7 min-w-0 px-2 text-[0.72rem]"
             title={exported ? t("diagnostics.exported") : t("diagnostics.export")}
             onClick={handleExportDiagnostics}
           >
             <Download className="h-4 w-4 shrink-0" />
-            <span className="min-w-0 truncate">{exported ? t("diagnostics.exported") : t("diagnostics.export")}</span>
+            <span className="hidden min-w-0 truncate min-[340px]:inline">{exported ? t("diagnostics.exported") : t("diagnostics.export")}</span>
           </Button>
         </div>
       </div>
-      <div className="sl-caption grid gap-1.5 text-[0.72rem]">
+      <div className="sl-caption grid gap-1 text-[0.72rem]">
         <DiagnosticNotice>{t("diagnostics.privacyNotice")}</DiagnosticNotice>
         <DiagnosticRow icon={Gauge} label={t("diagnostics.appVersion")} value={diagnosticsBundle.app.version} />
         <DiagnosticRow icon={Globe2} label={t("diagnostics.platform")} value={diagnosticsBundle.runtime.platform} />
@@ -198,10 +207,12 @@ type DiagnosticRowProps = {
 
 function DiagnosticRow({ icon: Icon, label, mono = false, value }: DiagnosticRowProps) {
   return (
-    <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-x-1.5 gap-y-0.5 text-muted-foreground">
-      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-      <span className="min-w-0 truncate">{label}</span>
-      <span className={["col-start-2 min-w-0 truncate text-right text-foreground/90", mono ? "font-mono" : ""].join(" ")} title={value}>
+    <div className="grid min-h-6 min-w-0 grid-cols-[minmax(5.75rem,0.82fr)_minmax(0,1fr)] items-center gap-2 rounded-sm px-0.5 text-muted-foreground">
+      <span className="flex min-w-0 items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        <span className="min-w-0 truncate">{label}</span>
+      </span>
+      <span className={["min-w-0 truncate text-right font-medium text-foreground/90", mono ? "font-mono font-normal" : ""].join(" ")} title={value}>
         {value}
       </span>
     </div>
@@ -210,7 +221,7 @@ function DiagnosticRow({ icon: Icon, label, mono = false, value }: DiagnosticRow
 
 function DiagnosticNotice({ children }: { children: string }) {
   return (
-    <p className="rounded-md border border-primary/20 bg-primary/10 px-2.5 py-2 text-[0.72rem] leading-relaxed text-muted-foreground">
+    <p className="mb-1 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1.5 text-[0.72rem] leading-5 text-muted-foreground">
       {children}
     </p>
   );
