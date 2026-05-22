@@ -8,6 +8,7 @@ import { useUiStore } from "@/store/ui-store";
 
 export const demoStreamEndpointUrl = "demo://socketlens/realtime-collaboration";
 const demoTickMs = 850;
+const demoScenario = "demo-stream";
 
 let demoTimer: number | null = null;
 let demoSequence = 0;
@@ -117,7 +118,7 @@ function emitDemoPacket(connectionId: EntityId, sessionId: EntityId) {
   const packet = createPacket({
     connectionId,
     direction: demoEvent.direction,
-    payload: JSON.stringify(demoEvent.payload, null, 2),
+    payload: JSON.stringify(decorateDemoStreamPayload(demoEvent.payload, demoEvent.highlightLabel), null, 2),
     payloadKind: "json",
     sessionId,
   });
@@ -141,6 +142,7 @@ function emitDemoPacket(connectionId: EntityId, sessionId: EntityId) {
 
 type DemoEvent = {
   direction: PacketDirection;
+  highlightLabel?: string;
   logLevel: "info" | "success" | "warning" | "error";
   logMessage: string | null;
   payload: Record<string, unknown>;
@@ -155,18 +157,20 @@ function createDemoEvent(sequence: number): DemoEvent {
   const events: DemoEvent[] = [
     {
       direction: "outbound",
+      highlightLabel: "Auth refresh requested",
       logLevel: "info",
       logMessage: "Demo auth token refresh requested.",
       payload: {
         requestId,
         sentAt: timestamp,
         tokenPreview: "demo_token_preview_...d91",
-        type: "auth.refresh",
+        type: "launchroom.auth.refresh.requested",
         workspaceId,
       },
     },
     {
       direction: "inbound",
+      highlightLabel: "Auth accepted",
       logLevel: "success",
       logMessage: "Demo auth refresh accepted.",
       payload: {
@@ -174,7 +178,7 @@ function createDemoEvent(sequence: number): DemoEvent {
         receivedAt: timestamp,
         requestId,
         scopes: ["chat:read", "chat:write", "notifications:read"],
-        type: "auth.accepted",
+        type: "launchroom.auth.accepted",
         userId,
       },
     },
@@ -187,12 +191,13 @@ function createDemoEvent(sequence: number): DemoEvent {
         clientMessageId: `msg_${sequence}`,
         sentAt: timestamp,
         text: "Can someone verify the beta invite flow?",
-        type: "chat.message.send",
+        type: "launchroom.chat.message.send",
         userId,
       },
     },
     {
       direction: "inbound",
+      highlightLabel: "Chat delivered",
       logLevel: "info",
       logMessage: "Demo chat message received.",
       payload: {
@@ -205,11 +210,12 @@ function createDemoEvent(sequence: number): DemoEvent {
           id: "usr_nina",
         },
         text: "Invite flow is healthy. Median delivery is 42 ms.",
-        type: "chat.message.created",
+        type: "launchroom.chat.message.created",
       },
     },
     {
       direction: "inbound",
+      highlightLabel: "Notification routed",
       logLevel: "info",
       logMessage: "Demo notification event received.",
       payload: {
@@ -218,7 +224,7 @@ function createDemoEvent(sequence: number): DemoEvent {
         receivedAt: timestamp,
         targetUserId: userId,
         title: "New production alert assigned",
-        type: "notification.created",
+        type: "launchroom.notification.created",
       },
     },
     {
@@ -229,22 +235,51 @@ function createDemoEvent(sequence: number): DemoEvent {
         clientTime: timestamp,
         requestId,
         sequence,
-        type: "ping",
+        type: "launchroom.connection.heartbeat.ping",
       },
     },
     {
       direction: "inbound",
+      highlightLabel: "Heartbeat latency sample",
       logLevel: "success",
       logMessage: "Demo pong latency sample captured.",
       payload: {
         latencyMs: 24 + (sequence % 8) * 3,
         requestId,
         serverTime: timestamp,
-        type: "pong",
+        type: "launchroom.connection.heartbeat.pong",
       },
     },
     {
       direction: "inbound",
+      highlightLabel: "Reconnect started",
+      logLevel: "warning",
+      logMessage: "Demo reconnect event received.",
+      payload: {
+        attempt: 1,
+        detectedAt: timestamp,
+        previousSocketId: `sock_demo_${sequence}`,
+        reason: "network-handoff",
+        reconnectDelayMs: 350,
+        type: "launchroom.connection.reconnect.started",
+      },
+    },
+    {
+      direction: "inbound",
+      highlightLabel: "Reconnect completed",
+      logLevel: "success",
+      logMessage: "Demo reconnect completed.",
+      payload: {
+        downtimeMs: 690,
+        missedEventsRecovered: 1,
+        newSocketId: `sock_demo_${sequence + 1}`,
+        resumedAt: timestamp,
+        type: "launchroom.connection.reconnect.completed",
+      },
+    },
+    {
+      direction: "inbound",
+      highlightLabel: "Soft rate limit",
       logLevel: "error",
       logMessage: "Demo error frame received.",
       payload: {
@@ -253,11 +288,12 @@ function createDemoEvent(sequence: number): DemoEvent {
         receivedAt: timestamp,
         retryAfterMs: 1200,
         severity: "warning",
-        type: "error",
+        type: "launchroom.error.rate_limit.soft",
       },
     },
     {
       direction: "inbound",
+      highlightLabel: "Presence cursor",
       logLevel: "info",
       logMessage: null,
       payload: {
@@ -268,7 +304,21 @@ function createDemoEvent(sequence: number): DemoEvent {
         },
         documentId: "doc_launch_notes",
         receivedAt: timestamp,
-        type: "presence.cursor.updated",
+        type: "launchroom.presence.cursor.updated",
+      },
+    },
+    {
+      direction: "inbound",
+      highlightLabel: "AI stream delta",
+      logLevel: "info",
+      logMessage: "Demo AI-style stream chunk received.",
+      payload: {
+        chunkIndex: (sequence % 3) + 1,
+        markdownDelta: "Simulated analysis chunk: the selected event is safe to retry after backoff.",
+        provider: "offline-demo",
+        providerCalled: false,
+        receivedAt: timestamp,
+        type: "launchroom.ai.explain.delta",
       },
     },
   ];
@@ -280,4 +330,18 @@ function createDemoEvent(sequence: number): DemoEvent {
   }
 
   return event;
+}
+
+function decorateDemoStreamPayload(payload: Record<string, unknown>, highlightLabel?: string) {
+  return {
+    ...payload,
+    demo: {
+      generatedAt: new Date().toISOString(),
+      highlight: Boolean(highlightLabel),
+      highlightLabel: highlightLabel ?? null,
+      product: "SocketLens",
+      scenario: demoScenario,
+      simulated: true,
+    },
+  };
 }

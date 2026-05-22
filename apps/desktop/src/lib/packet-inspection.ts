@@ -161,14 +161,16 @@ function createPacketDemoMetadata(packet: Packet): PacketDemoMetadata | null {
 
   const demoRecord = demo as Record<string, unknown>;
 
-  if (demoRecord.simulated !== true || demoRecord.scenario !== "investor-demo") {
+  const scenario = getStringField(demoRecord, "scenario");
+
+  if (demoRecord.simulated !== true || !scenario || !scenario.includes("demo")) {
     return null;
   }
 
   return {
     highlight: demoRecord.highlight === true,
     highlightLabel: getStringField(demoRecord, "highlightLabel"),
-    scenario: "investor-demo",
+    scenario,
     simulated: true,
     stepId: getStringField(demoRecord, "stepId"),
   };

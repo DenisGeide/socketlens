@@ -260,7 +260,117 @@ export const investorDemoSteps: InvestorDemoStepDefinition[] = [
     title: "Heartbeat stays clean",
   },
   {
-    description: "Notifications and presence updates show how SocketLens groups different event types in the same session.",
+    description: "A short network blip demonstrates reconnect visibility without pretending that production traffic is involved.",
+    id: "reconnect-event",
+    metric: "3 frames",
+    packets: [
+      {
+        direction: "inbound",
+        logLevel: "warning",
+        logMessage: "Investor demo simulated a reconnect window.",
+        highlightLabel: "Connection degraded",
+        payload: ({ baseTimestamp, requestId }) => ({
+          type: "launchroom.connection.reconnect.started",
+          requestId,
+          reason: "network-handoff",
+          previousSocketId: "sock_demo_7f2b",
+          detectedAt: new Date(baseTimestamp).toISOString(),
+          clientVisible: true,
+          retryPlan: {
+            attempt: 1,
+            delayMs: 320,
+            maxAttempts: 3,
+          },
+        }),
+        selectAfterEmit: true,
+      },
+      {
+        direction: "outbound",
+        highlightLabel: "Resume request",
+        payload: ({ baseTimestamp, requestId }) => ({
+          type: "launchroom.connection.reconnect.resume",
+          requestId,
+          resumeTokenPreview: "resume_demo_...9fd2",
+          lastSeenCursor: "cur_01HXDEMOCHAT0004",
+          requestedAt: new Date(baseTimestamp + 360).toISOString(),
+        }),
+      },
+      {
+        direction: "inbound",
+        logLevel: "success",
+        logMessage: "Investor demo reconnect completed.",
+        highlightLabel: "Session resumed",
+        payload: ({ baseTimestamp, requestId }) => ({
+          type: "launchroom.connection.reconnect.completed",
+          requestId,
+          newSocketId: "sock_demo_8a11",
+          resumedAt: new Date(baseTimestamp + 520).toISOString(),
+          downtimeMs: 684,
+          missedEventsRecovered: 2,
+          connectionState: "ready",
+        }),
+      },
+    ],
+    packetsLabel: "resume flow",
+    title: "Reconnect is visible",
+  },
+  {
+    description: "Presence changes show collaborators moving through the same realtime room without mixing them with chat messages.",
+    id: "presence-events",
+    metric: "3 frames",
+    packets: [
+      {
+        direction: "inbound",
+        logMessage: "Investor demo presence snapshot received.",
+        highlightLabel: "Presence snapshot",
+        payload: ({ baseTimestamp }) => ({
+          type: "launchroom.presence.snapshot",
+          roomId: "room_investor_demo",
+          receivedAt: new Date(baseTimestamp).toISOString(),
+          activeMembers: [
+            { id: "usr_mira", displayName: "Mira Chen", state: "online" },
+            { id: "usr_nina", displayName: "Nina Patel", state: "reviewing" },
+            { id: "usr_sam", displayName: "Sam Rivera", state: "typing" },
+          ],
+          cursorVersion: 14,
+        }),
+        selectAfterEmit: true,
+      },
+      {
+        direction: "inbound",
+        highlightLabel: "Cursor movement",
+        payload: ({ baseTimestamp }) => ({
+          type: "launchroom.presence.cursor.updated",
+          roomId: "room_investor_demo",
+          userId: "usr_nina",
+          documentId: "doc_launch_notes",
+          cursor: {
+            line: 42,
+            column: 17,
+          },
+          receivedAt: new Date(baseTimestamp + 120).toISOString(),
+        }),
+      },
+      {
+        direction: "inbound",
+        highlightLabel: "Typing indicator",
+        payload: ({ baseTimestamp }) => ({
+          type: "launchroom.presence.typing.started",
+          roomId: "room_investor_demo",
+          user: {
+            id: "usr_sam",
+            displayName: "Sam Rivera",
+          },
+          startedAt: new Date(baseTimestamp + 240).toISOString(),
+          expiresAt: new Date(baseTimestamp + 3_240).toISOString(),
+        }),
+      },
+    ],
+    packetsLabel: "presence",
+    title: "Presence is separated",
+  },
+  {
+    description: "Notifications show route, priority, audience, and actions as inspectable payload data.",
     id: "notifications",
     metric: "2 frames",
     packets: [
@@ -287,20 +397,17 @@ export const investorDemoSteps: InvestorDemoStepDefinition[] = [
       },
       {
         direction: "inbound",
-        highlightLabel: "Presence update",
+        highlightLabel: "Notification read receipt",
         payload: ({ baseTimestamp }) => ({
-          type: "launchroom.presence.typing.started",
-          roomId: "room_investor_demo",
-          user: {
-            id: "usr_sam",
-            displayName: "Sam Rivera",
-          },
-          startedAt: new Date(baseTimestamp + 120).toISOString(),
-          expiresAt: new Date(baseTimestamp + 3_120).toISOString(),
+          type: "launchroom.notification.read.receipt",
+          notificationId: "ntf_investor_demo_41",
+          readerId: "usr_mira",
+          readAt: new Date(baseTimestamp + 180).toISOString(),
+          source: "workspace-inbox",
         }),
       },
     ],
-    packetsLabel: "notify + presence",
+    packetsLabel: "notify",
     title: "Notifications are inspectable",
   },
   {
@@ -343,6 +450,90 @@ export const investorDemoSteps: InvestorDemoStepDefinition[] = [
     ],
     packetsLabel: "warning path",
     title: "Errors are friendly",
+  },
+  {
+    description: "A simulated AI-style streaming response shows how chunked realtime output can be inspected without calling an AI provider.",
+    id: "ai-streaming-response",
+    metric: "5 frames",
+    packets: [
+      {
+        direction: "outbound",
+        logMessage: "Investor demo requested an offline AI-style explanation stream.",
+        highlightLabel: "Explain request",
+        payload: ({ requestId }) => ({
+          type: "launchroom.ai.explain.requested",
+          requestId,
+          provider: "offline-demo",
+          sourcePacketType: "launchroom.error.rate_limit.soft",
+          promptIntent: "explain packet safely",
+          privacy: {
+            simulated: true,
+            providerCalled: false,
+            selectedPacketOnly: true,
+          },
+        }),
+      },
+      {
+        direction: "inbound",
+        highlightLabel: "AI stream chunk 1",
+        payload: ({ baseTimestamp, requestId }) => ({
+          type: "launchroom.ai.explain.delta",
+          requestId,
+          chunkIndex: 1,
+          receivedAt: new Date(baseTimestamp + 140).toISOString(),
+          markdownDelta: "This packet looks like a soft rate limit warning.",
+          confidence: "medium",
+          provider: "offline-demo",
+        }),
+        selectAfterEmit: true,
+      },
+      {
+        direction: "inbound",
+        highlightLabel: "AI stream chunk 2",
+        payload: ({ baseTimestamp, requestId }) => ({
+          type: "launchroom.ai.explain.delta",
+          requestId,
+          chunkIndex: 2,
+          receivedAt: new Date(baseTimestamp + 300).toISOString(),
+          markdownDelta: "The retryAfterMs field suggests the client should back off before replay.",
+          confidence: "medium",
+          provider: "offline-demo",
+        }),
+      },
+      {
+        direction: "inbound",
+        highlightLabel: "AI stream chunk 3",
+        payload: ({ baseTimestamp, requestId }) => ({
+          type: "launchroom.ai.explain.delta",
+          requestId,
+          chunkIndex: 3,
+          receivedAt: new Date(baseTimestamp + 460).toISOString(),
+          markdownDelta: "No production data is used here; this is simulated demo traffic.",
+          confidence: "high",
+          provider: "offline-demo",
+        }),
+      },
+      {
+        direction: "inbound",
+        logLevel: "success",
+        logMessage: "Investor demo offline AI-style stream completed.",
+        highlightLabel: "AI stream complete",
+        payload: ({ baseTimestamp, requestId }) => ({
+          type: "launchroom.ai.explain.completed",
+          requestId,
+          completedAt: new Date(baseTimestamp + 620).toISOString(),
+          summary: "Soft rate limit warning; safe retry after backoff; no evidence of an auth failure.",
+          provider: "offline-demo",
+          tokens: {
+            prompt: 312,
+            completion: 96,
+          },
+          providerCalled: false,
+        }),
+      },
+    ],
+    packetsLabel: "stream chunks",
+    title: "AI-like streaming is visible",
   },
   {
     description: "SocketLens shows the original outbound frame and a replayed version in history, clearly marked as demo traffic.",
@@ -416,7 +607,7 @@ export const investorDemoSteps: InvestorDemoStepDefinition[] = [
   },
 ];
 
-const investorDemoTickMs = 950;
+const investorDemoTickMs = 820;
 
 let investorDemoTimer: ReturnType<typeof setInterval> | null = null;
 let investorDemoStepIndex = 0;
