@@ -1,3 +1,5 @@
+import { defaultFilterState, normalizeFilterState, type FilterState } from "./filter-state";
+
 export type AppLanguage = "ru" | "en";
 export type AppTheme = "dark" | "light" | "system";
 export type AppAiProvider = "disabled" | "openai-compatible" | "ollama";
@@ -39,11 +41,21 @@ export type AppOnboardingSettings = {
   dismissedAt: number | null;
 };
 
+export type FilterPreset = {
+  createdAt: number;
+  favorite: boolean;
+  filterState: FilterState;
+  id: string;
+  name: string;
+  updatedAt: number;
+};
+
 export type AppSettings = {
   aiProvider: AppAiProviderSettings;
   autoSelectLatestPacket: boolean;
   autoScrollDefault: boolean;
   compactMode: boolean;
+  filterPresets: FilterPreset[];
   language: AppLanguage;
   logPanelCollapsed: boolean;
   logRetentionLimit: number;
@@ -84,6 +96,7 @@ export const defaultAppSettings: AppSettings = {
   autoSelectLatestPacket: true,
   autoScrollDefault: true,
   compactMode: false,
+  filterPresets: [],
   language: "ru",
   logPanelCollapsed: true,
   logRetentionLimit: 200,
@@ -123,6 +136,7 @@ export function normalizeAppSettings(settings: Partial<AppSettings>): AppSetting
     autoSelectLatestPacket: getBooleanValue(settings.autoSelectLatestPacket, defaultAppSettings.autoSelectLatestPacket),
     autoScrollDefault: getBooleanValue(settings.autoScrollDefault, defaultAppSettings.autoScrollDefault),
     compactMode: getBooleanValue(settings.compactMode, defaultAppSettings.compactMode),
+    filterPresets: normalizeFilterPresets(settings.filterPresets),
     language: normalizeLanguage(settings.language),
     logPanelCollapsed: getBooleanValue(settings.logPanelCollapsed, defaultAppSettings.logPanelCollapsed),
     logRetentionLimit: getPositiveIntegerValue(settings.logRetentionLimit, defaultAppSettings.logRetentionLimit),
@@ -139,6 +153,45 @@ export function normalizeAppSettings(settings: Partial<AppSettings>): AppSetting
           : defaultAppSettings.privacy.showPayloadPreviewInTimeline,
     },
     theme: normalizeTheme(settings.theme),
+  };
+}
+
+function normalizeFilterPresets(value: unknown): FilterPreset[] {
+  if (!Array.isArray(value)) {
+    return defaultAppSettings.filterPresets;
+  }
+
+  return value
+    .map((preset) => normalizeFilterPreset(preset))
+    .filter((preset): preset is FilterPreset => preset !== null)
+    .slice(0, 24);
+}
+
+function normalizeFilterPreset(value: unknown): FilterPreset | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const id = getStringValue(value.id, "");
+  const name = getStringValue(value.name, "").trim();
+  const createdAt = getTimestampValue(value.createdAt, Date.now());
+  const updatedAt = getTimestampValue(value.updatedAt, createdAt);
+
+  if (!id || !name || !isRecord(value.filterState)) {
+    return null;
+  }
+
+  return {
+    createdAt,
+    favorite: getBooleanValue(value.favorite, false),
+    filterState: normalizeFilterState({
+      ...defaultFilterState,
+      ...value.filterState,
+      sessionId: null,
+    }),
+    id,
+    name,
+    updatedAt,
   };
 }
 
@@ -204,4 +257,8 @@ function getBooleanValue(value: unknown, fallback: boolean) {
 
 function getPositiveIntegerValue(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
+function getTimestampValue(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
 }

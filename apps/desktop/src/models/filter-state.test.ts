@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { defaultFilterState, filterPackets, type Packet } from "@/models";
+import { defaultFilterState, filterPackets, getFilterValidationIssues, type Packet } from "@/models";
 
 const packets: Packet[] = [
   createPacketFixture({
     id: "packet-auth",
-    payload: JSON.stringify({ type: "auth.login", userId: "user_123" }),
+    payload: JSON.stringify({ type: "auth.login", user: { id: "123" }, userId: "user_123" }),
     timestamp: 5000,
   }),
   createPacketFixture({
@@ -42,7 +42,7 @@ describe("filterPackets", () => {
     const inboundJsonWithoutHeartbeat = filterPackets(packets, {
       ...defaultFilterState,
       direction: "inbound",
-      hidePingPong: true,
+      hideHeartbeat: true,
       payloadKind: "json",
     });
 
@@ -77,6 +77,68 @@ describe("filterPackets", () => {
         searchQuery: "incoming",
       }).map((packet) => packet.id),
     ).toEqual(["packet-auth", "packet-heartbeat", "packet-error"]);
+  });
+
+  it("supports regex search, event filters, and JSON-path-like payload expressions", () => {
+    expect(
+      filterPackets(packets, {
+        ...defaultFilterState,
+        searchMode: "regex",
+        searchQuery: "hello.*socketlens",
+      }).map((packet) => packet.id),
+    ).toEqual(["packet-chat"]);
+
+    expect(
+      filterPackets(packets, {
+        ...defaultFilterState,
+        eventQuery: "chat.message",
+      }).map((packet) => packet.id),
+    ).toEqual(["packet-chat"]);
+
+    expect(
+      filterPackets(packets, {
+        ...defaultFilterState,
+        smartQuery: 'payload.user.id == "123"',
+      }).map((packet) => packet.id),
+    ).toEqual(["packet-auth"]);
+
+    expect(
+      filterPackets(packets, {
+        ...defaultFilterState,
+        smartQuery: 'payload.type != "heartbeat.ping"',
+      }).map((packet) => packet.id),
+    ).toEqual(["packet-auth", "packet-chat", "packet-error"]);
+  });
+
+  it("returns clear validation issues for invalid regex and smart filters", () => {
+    const filterState = {
+      ...defaultFilterState,
+      searchMode: "regex" as const,
+      searchQuery: "[unterminated",
+      smartQuery: "payload.type = heartbeat",
+    };
+
+    expect(getFilterValidationIssues(filterState)).toHaveLength(2);
+    expect(filterPackets(packets, filterState)).toEqual([]);
+  });
+
+  it("filters large sessions without reparsing invalid JSON or crashing", () => {
+    const largePackets = Array.from({ length: 20_000 }, (_, index) =>
+      createPacketFixture({
+        id: `packet-${index}`,
+        payload: index % 2 === 0 ? JSON.stringify({ event: "chat.message", user: { id: String(index) } }) : "{bad json",
+        timestamp: index,
+      }),
+    );
+    const startedAt = performance.now();
+    const filteredPackets = filterPackets(largePackets, {
+      ...defaultFilterState,
+      smartQuery: 'payload.event == "chat.message"',
+    });
+    const duration = performance.now() - startedAt;
+
+    expect(filteredPackets).toHaveLength(10_000);
+    expect(duration).toBeLessThan(1_000);
   });
 
   it("filters by session and packet size range", () => {

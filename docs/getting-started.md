@@ -123,6 +123,26 @@ Expected result: the timeline shows the outbound ping, an echo response, and a `
 
 Expected result: SocketLens sends the packet again and records the replay in the timeline/history.
 
+## Test Smart Filters
+
+After demo or direct traffic appears in the timeline, use the filter controls above the packet list:
+
+- text search: search payload text, event names, and direction labels
+- regex search: toggle **Regex** and enter a regular expression
+- event filter: enter an event fragment such as `chat.message`
+- smart filter: enter JSON-path-like expressions against payload data
+- presets: click **Save filter** to store the current filter locally, then star favorites
+
+Supported smart filter examples:
+
+```text
+payload.type != "heartbeat"
+payload.event == "chat.message"
+payload.user.id == "123"
+```
+
+Expected result: matching packets remain visible, invalid regex/smart filters show a clear error, and malformed JSON payloads do not crash the timeline.
+
 ## Test Desktop Mode
 
 Desktop mode starts the Tauri app:

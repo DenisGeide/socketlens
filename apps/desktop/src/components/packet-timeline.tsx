@@ -6,6 +6,7 @@ import {
   Bell,
   Bot,
   Braces,
+  BookmarkPlus,
   CirclePause,
   CirclePlay,
   Eraser,
@@ -22,7 +23,9 @@ import {
   Search,
   SendHorizontal,
   SlidersHorizontal,
+  Star,
   Terminal,
+  Trash2,
   type LucideIcon,
   Users,
   X,
@@ -41,7 +44,14 @@ import {
   type PacketStatus,
 } from "@/lib/packet-inspection";
 import { cn } from "@/lib/utils";
-import type { ConnectionStatus, FilterState, Packet } from "@/models";
+import {
+  createEntityId,
+  getFilterValidationIssues,
+  type ConnectionStatus,
+  type FilterPreset,
+  type FilterState,
+  type Packet,
+} from "@/models";
 import { useSettingsStore } from "@/store/settings-store";
 
 const packetRowHeightRem = 5.25;
@@ -78,17 +88,50 @@ export function PacketTimeline({
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const autoScrollDefault = useSettingsStore((state) => state.settings.autoScrollDefault);
+  const filterPresets = useSettingsStore((state) => state.settings.filterPresets);
   const showPayloadPreview = useSettingsStore((state) => state.settings.privacy.showPayloadPreviewInTimeline);
+  const updateSettings = useSettingsStore((state) => state.updateSettings);
   const newestPacketId = packets[0]?.id ?? null;
   const [autoScroll, setAutoScroll] = useState(autoScrollDefault);
+  const [eventDraft, setEventDraft] = useState(filterState.eventQuery);
   const [searchDraft, setSearchDraft] = useState(filterState.searchQuery);
+  const [smartDraft, setSmartDraft] = useState(filterState.smartQuery);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(560);
   const rowHeight = usePacketRowHeight();
+  const draftFilterState = useMemo(
+    () => ({
+      ...filterState,
+      eventQuery: eventDraft,
+      searchQuery: searchDraft,
+      smartQuery: smartDraft,
+    }),
+    [eventDraft, filterState, searchDraft, smartDraft],
+  );
+  const validationIssues = useMemo(() => getFilterValidationIssues(draftFilterState), [draftFilterState]);
+  const sortedFilterPresets = useMemo(
+    () =>
+      [...filterPresets].sort((left, right) => {
+        if (left.favorite !== right.favorite) {
+          return left.favorite ? -1 : 1;
+        }
+
+        return right.updatedAt - left.updatedAt;
+      }),
+    [filterPresets],
+  );
 
   useEffect(() => {
     setSearchDraft(filterState.searchQuery);
   }, [filterState.searchQuery]);
+
+  useEffect(() => {
+    setEventDraft(filterState.eventQuery);
+  }, [filterState.eventQuery]);
+
+  useEffect(() => {
+    setSmartDraft(filterState.smartQuery);
+  }, [filterState.smartQuery]);
 
   useEffect(() => {
     setAutoScroll(autoScrollDefault);
@@ -103,6 +146,26 @@ export function PacketTimeline({
 
     return () => window.clearTimeout(timeoutId);
   }, [filterState.searchQuery, onUpdateFilterState, searchDraft]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      const patch: Partial<FilterState> = {};
+
+      if (eventDraft !== filterState.eventQuery) {
+        patch.eventQuery = eventDraft;
+      }
+
+      if (smartDraft !== filterState.smartQuery) {
+        patch.smartQuery = smartDraft;
+      }
+
+      if (Object.keys(patch).length > 0) {
+        onUpdateFilterState(patch);
+      }
+    }, 180);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [eventDraft, filterState.eventQuery, filterState.smartQuery, onUpdateFilterState, smartDraft]);
 
   useLayoutEffect(() => {
     const element = scrollRef.current;
@@ -182,7 +245,62 @@ export function PacketTimeline({
 
     return { errors, inbound, outbound };
   }, [packets]);
-  const hasActiveFilters = isFilteringActive(filterState);
+  const hasActiveFilters = isFilteringActive(draftFilterState);
+
+  function saveFilterPreset() {
+    if (!hasActiveFilters || validationIssues.length > 0) {
+      return;
+    }
+
+    const now = Date.now();
+    const preset: FilterPreset = {
+      createdAt: now,
+      favorite: false,
+      filterState: {
+        ...draftFilterState,
+        sessionId: null,
+      },
+      id: createEntityId(),
+      name: createFilterPresetName(draftFilterState),
+      updatedAt: now,
+    };
+
+    updateSettings({
+      filterPresets: [preset, ...filterPresets].slice(0, 24),
+    });
+  }
+
+  function applyFilterPreset(preset: FilterPreset) {
+    setSearchDraft(preset.filterState.searchQuery);
+    setEventDraft(preset.filterState.eventQuery);
+    setSmartDraft(preset.filterState.smartQuery);
+    onUpdateFilterState({
+      ...preset.filterState,
+      sessionId: filterState.sessionId,
+    });
+  }
+
+  function toggleFilterPresetFavorite(presetId: string) {
+    const now = Date.now();
+
+    updateSettings({
+      filterPresets: filterPresets.map((preset) =>
+        preset.id === presetId
+          ? {
+              ...preset,
+              favorite: !preset.favorite,
+              updatedAt: now,
+            }
+          : preset,
+      ),
+    });
+  }
+
+  function deleteFilterPreset(presetId: string) {
+    updateSettings({
+      filterPresets: filterPresets.filter((preset) => preset.id !== presetId),
+    });
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -198,15 +316,60 @@ export function PacketTimeline({
               <Input
                 className="h-8 pl-9"
                 value={searchDraft}
-                placeholder={t("packets.searchPlaceholder")}
+                placeholder={
+                  filterState.searchMode === "regex"
+                    ? t("packets.searchRegexPlaceholder")
+                    : t("packets.searchPlaceholder")
+                }
                 onChange={(event) => setSearchDraft(event.target.value)}
               />
             </label>
+            <Button
+              variant={filterState.searchMode === "regex" ? "secondary" : "ghost"}
+              size="sm"
+              title={t("packets.regexSearch")}
+              onClick={() =>
+                onUpdateFilterState({
+                  searchMode: filterState.searchMode === "regex" ? "text" : "regex",
+                })
+              }
+            >
+              .*
+              {t("packets.regex")}
+            </Button>
             <Button variant="ghost" size="sm" disabled={!hasActiveFilters} onClick={onResetFilters}>
               <X className="h-4 w-4" />
               {t("actions.clearFilters")}
             </Button>
           </div>
+          <div className="grid gap-1.5 md:grid-cols-[minmax(10rem,0.65fr)_minmax(14rem,1fr)]">
+            <label className="relative min-w-0">
+              <Input
+                className="h-8"
+                value={eventDraft}
+                placeholder={t("packets.eventFilterPlaceholder")}
+                onChange={(event) => setEventDraft(event.target.value)}
+              />
+            </label>
+            <label className="relative min-w-0">
+              <Input
+                className="h-8 font-mono text-[0.72rem]"
+                value={smartDraft}
+                placeholder={t("packets.smartFilterPlaceholder")}
+                spellCheck={false}
+                onChange={(event) => setSmartDraft(event.target.value)}
+              />
+            </label>
+          </div>
+          {validationIssues.length > 0 ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-[0.72rem] leading-4 text-destructive-foreground">
+              {validationIssues.map((issue) => (
+                <p key={`${issue.field}:${issue.value}`}>
+                  {issue.field === "searchQuery" ? t("packets.filterErrors.regex") : t("packets.filterErrors.smart", { value: issue.value })}
+                </p>
+              ))}
+            </div>
+          ) : null}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -217,11 +380,18 @@ export function PacketTimeline({
                 filterState.direction === "all" &&
                 filterState.payloadKind === "all" &&
                 !filterState.errorsOnly &&
+                !filterState.hideHeartbeat &&
                 !filterState.hidePingPong
               }
               label={t("packets.filter.all")}
               onClick={() =>
-                onUpdateFilterState({ direction: "all", errorsOnly: false, hidePingPong: false, payloadKind: "all" })
+                onUpdateFilterState({
+                  direction: "all",
+                  errorsOnly: false,
+                  hideHeartbeat: false,
+                  hidePingPong: false,
+                  payloadKind: "all",
+                })
               }
             />
             <FilterChip
@@ -251,6 +421,35 @@ export function PacketTimeline({
               label={t("packets.filter.hidePingPong")}
               onClick={() => onUpdateFilterState({ hidePingPong: !filterState.hidePingPong })}
             />
+            <FilterChip
+              active={filterState.hideHeartbeat}
+              label={t("packets.filter.hideHeartbeat")}
+              onClick={() => onUpdateFilterState({ hideHeartbeat: !filterState.hideHeartbeat })}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <Star className="h-3.5 w-3.5" />
+              {t("packets.presets")}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!hasActiveFilters || validationIssues.length > 0}
+              onClick={saveFilterPreset}
+            >
+              <BookmarkPlus className="h-4 w-4" />
+              {t("packets.presets.save")}
+            </Button>
+            {sortedFilterPresets.slice(0, 6).map((preset) => (
+              <FilterPresetChip
+                key={preset.id}
+                preset={preset}
+                onApply={applyFilterPreset}
+                onDelete={deleteFilterPreset}
+                onToggleFavorite={toggleFilterPresetFavorite}
+              />
+            ))}
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
@@ -332,6 +531,47 @@ function FilterChip({ active, label, onClick }: FilterChipProps) {
     >
       {label}
     </button>
+  );
+}
+
+type FilterPresetChipProps = {
+  onApply: (preset: FilterPreset) => void;
+  onDelete: (presetId: string) => void;
+  onToggleFavorite: (presetId: string) => void;
+  preset: FilterPreset;
+};
+
+function FilterPresetChip({ onApply, onDelete, onToggleFavorite, preset }: FilterPresetChipProps) {
+  const { t } = useTranslation();
+
+  return (
+    <span className="inline-flex max-w-[16rem] items-center overflow-hidden rounded-md border border-border/70 bg-muted/20">
+      <button
+        type="button"
+        className="min-w-0 truncate px-2 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+        title={preset.name}
+        onClick={() => onApply(preset)}
+      >
+        {preset.favorite ? "★ " : ""}
+        {preset.name}
+      </button>
+      <button
+        type="button"
+        className="border-l border-border/70 px-1.5 py-0.5 text-muted-foreground hover:text-primary"
+        title={preset.favorite ? t("packets.presets.unfavorite") : t("packets.presets.favorite")}
+        onClick={() => onToggleFavorite(preset.id)}
+      >
+        <Star className={cn("h-3.5 w-3.5", preset.favorite ? "fill-primary text-primary" : "")} />
+      </button>
+      <button
+        type="button"
+        className="border-l border-border/70 px-1.5 py-0.5 text-muted-foreground hover:text-destructive"
+        title={t("packets.presets.delete")}
+        onClick={() => onDelete(preset.id)}
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </span>
   );
 }
 
@@ -659,8 +899,49 @@ function isFilteringActive(filterState: FilterState) {
   return (
     filterState.direction !== "all" ||
     filterState.errorsOnly ||
+    filterState.eventQuery.trim().length > 0 ||
+    filterState.hideHeartbeat ||
     filterState.hidePingPong ||
     filterState.payloadKind !== "all" ||
-    filterState.searchQuery.trim().length > 0
+    filterState.searchQuery.trim().length > 0 ||
+    filterState.smartQuery.trim().length > 0
   );
+}
+
+function createFilterPresetName(filterState: FilterState) {
+  const labels: string[] = [];
+
+  if (filterState.eventQuery.trim()) {
+    labels.push(`event:${filterState.eventQuery.trim()}`);
+  }
+
+  if (filterState.smartQuery.trim()) {
+    labels.push(filterState.smartQuery.trim());
+  }
+
+  if (filterState.searchQuery.trim()) {
+    labels.push(`${filterState.searchMode === "regex" ? "regex" : "search"}:${filterState.searchQuery.trim()}`);
+  }
+
+  if (filterState.direction !== "all") {
+    labels.push(filterState.direction);
+  }
+
+  if (filterState.payloadKind !== "all") {
+    labels.push(filterState.payloadKind);
+  }
+
+  if (filterState.errorsOnly) {
+    labels.push("errors");
+  }
+
+  if (filterState.hideHeartbeat) {
+    labels.push("no heartbeat");
+  }
+
+  if (filterState.hidePingPong) {
+    labels.push("no ping/pong");
+  }
+
+  return labels.slice(0, 2).join(" + ") || "Packet filter";
 }

@@ -1,7 +1,20 @@
 import type { Packet } from "@/models";
-import type { FilterState } from "@/models/filter-state";
-import { getPacketSearchText, isErrorPacketFast, isPingPongPacket } from "@/lib/packet-inspection";
+import {
+  compileFilterState,
+  type CompiledFilterState,
+  type FilterState,
+  type SmartFilterCondition,
+} from "@/models/filter-state";
+import {
+  getPacketSearchText,
+  getPacketSummary,
+  isErrorPacketFast,
+  isHeartbeatPacket,
+  isPingPongControlPacket,
+} from "@/lib/packet-inspection";
 import type { FilterEngine } from "@/extensions/types";
+
+const parsedPayloadCache = new WeakMap<Packet, unknown | null>();
 
 export const defaultFilterEngine: FilterEngine = {
   apply: (packets, filterState) => {
@@ -12,15 +25,25 @@ export const defaultFilterEngine: FilterEngine = {
       return packets;
     }
 
-    return packets.filter((packet) => defaultFilterEngine.matches(packet, filterState));
+    const compiledFilter = compileFilterState(filterState);
+
+    if (compiledFilter.issues.length > 0) {
+      return [];
+    }
+
+    return packets.filter((packet) => matchesDefaultFilter(packet, filterState, compiledFilter));
   },
   getSearchText: getPacketSearchText,
   id: "socketlens.filter.default",
   label: "Default packet filter engine",
-  matches: (packet, filterState) => matchesDefaultFilter(packet, filterState),
+  matches: (packet, filterState) => {
+    const compiledFilter = compileFilterState(filterState);
+
+    return compiledFilter.issues.length === 0 && matchesDefaultFilter(packet, filterState, compiledFilter);
+  },
 };
 
-function matchesDefaultFilter(packet: Packet, filterState: FilterState) {
+function matchesDefaultFilter(packet: Packet, filterState: FilterState, compiledFilter: CompiledFilterState) {
   const query = filterState.searchQuery.trim().toLowerCase();
 
   if (filterState.sessionId && packet.sessionId !== filterState.sessionId) {
@@ -39,7 +62,11 @@ function matchesDefaultFilter(packet: Packet, filterState: FilterState) {
     return false;
   }
 
-  if (filterState.hidePingPong && isPingPongPacket(packet)) {
+  if (filterState.hideHeartbeat && isHeartbeatPacket(packet)) {
+    return false;
+  }
+
+  if (filterState.hidePingPong && isPingPongControlPacket(packet)) {
     return false;
   }
 
@@ -51,7 +78,99 @@ function matchesDefaultFilter(packet: Packet, filterState: FilterState) {
     return false;
   }
 
-  return query.length === 0 || defaultFilterEngine.getSearchText(packet).includes(query);
+  if (compiledFilter.eventQuery && !getPacketSummary(packet).eventName.toLowerCase().includes(compiledFilter.eventQuery)) {
+    return false;
+  }
+
+  if (!matchesSearchQuery(packet, query, compiledFilter)) {
+    return false;
+  }
+
+  return matchesSmartConditions(packet, compiledFilter.smartConditions);
+}
+
+function matchesSearchQuery(packet: Packet, query: string, compiledFilter: CompiledFilterState) {
+  if (!query) {
+    return true;
+  }
+
+  const searchText = defaultFilterEngine.getSearchText(packet);
+
+  return compiledFilter.searchRegex ? compiledFilter.searchRegex.test(searchText) : searchText.includes(query);
+}
+
+function matchesSmartConditions(packet: Packet, conditions: SmartFilterCondition[]) {
+  if (conditions.length === 0) {
+    return true;
+  }
+
+  const payload = getParsedPayload(packet);
+
+  if (!isRecord(payload)) {
+    return false;
+  }
+
+  return conditions.every((condition) => matchesSmartCondition(payload, condition));
+}
+
+function matchesSmartCondition(payload: Record<string, unknown>, condition: SmartFilterCondition) {
+  const value = getPathValue(payload, condition.path);
+  const normalizedValue = normalizeComparableValue(value);
+  const isMatch = normalizedValue === condition.expectedValue;
+
+  return condition.operator === "==" ? isMatch : !isMatch;
+}
+
+function getParsedPayload(packet: Packet) {
+  const cachedPayload = parsedPayloadCache.get(packet);
+
+  if (cachedPayload !== undefined) {
+    return cachedPayload;
+  }
+
+  if (packet.payloadKind !== "json") {
+    parsedPayloadCache.set(packet, null);
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(packet.payload) as unknown;
+    parsedPayloadCache.set(packet, parsed);
+    return parsed;
+  } catch {
+    parsedPayloadCache.set(packet, null);
+    return null;
+  }
+}
+
+function getPathValue(payload: Record<string, unknown>, path: string[]) {
+  let current: unknown = payload;
+
+  for (const segment of path) {
+    if (!isRecord(current) && !Array.isArray(current)) {
+      return undefined;
+    }
+
+    current = (current as Record<string, unknown>)[segment];
+  }
+
+  return current;
+}
+
+function normalizeComparableValue(value: unknown) {
+  if (value === null) {
+    return "null";
+  }
+
+  if (value === undefined) {
+    return "undefined";
+  }
+
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return JSON.stringify(value);
 }
 
 function isSemanticFilterActive(filterState: FilterState) {
@@ -60,9 +179,16 @@ function isSemanticFilterActive(filterState: FilterState) {
   return (
     filterState.direction !== "all" ||
     filterState.errorsOnly ||
+    filterState.eventQuery.trim().length > 0 ||
+    filterState.hideHeartbeat ||
     filterState.hidePingPong ||
     filterState.payloadKind !== "all" ||
     filterState.searchQuery.trim().length > 0 ||
+    filterState.smartQuery.trim().length > 0 ||
     hasSizeFilter
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

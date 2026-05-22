@@ -5,6 +5,7 @@ export * from "./environment";
 export * from "./filter-state";
 export * from "./ids";
 export * from "./packet";
+export * from "./packet-filter";
 export * from "./replay-history";
 export * from "./session";
 export * from "./session-file";

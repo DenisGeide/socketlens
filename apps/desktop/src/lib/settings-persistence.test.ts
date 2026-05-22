@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultAppSettings, maxPacketRetentionLimit, minPacketRetentionLimit } from "@/models";
+import { defaultAppSettings, defaultFilterState, maxPacketRetentionLimit, minPacketRetentionLimit } from "@/models";
 import {
   createPersistedSettingsState,
   parseSettingsStorageEnvelope,
@@ -73,5 +73,38 @@ describe("settings persistence helpers", () => {
     expect("defaultEndpointUrl" in resolved).toBe(false);
     expect("locale" in resolved).toBe(false);
     expect(resolved.packetRetentionLimit).toBe(minPacketRetentionLimit);
+  });
+
+  it("persists normalized filter presets without session scope", () => {
+    const resolved = resolvePersistedSettings({
+      settings: {
+        filterPresets: [
+          {
+            createdAt: 1000,
+            favorite: true,
+            filterState: {
+              ...defaultFilterState,
+              eventQuery: "chat.message",
+              searchMode: "regex",
+              searchQuery: "hello.*world",
+              sessionId: "session-a",
+              smartQuery: 'payload.user.id == "123"',
+            },
+            id: "preset-a",
+            name: "Chat from user 123",
+            updatedAt: 2000,
+          },
+        ],
+      },
+    });
+
+    expect(resolved.filterPresets).toHaveLength(1);
+    expect(resolved.filterPresets[0]).toMatchObject({
+      favorite: true,
+      id: "preset-a",
+      name: "Chat from user 123",
+    });
+    expect(resolved.filterPresets[0]?.filterState.sessionId).toBeNull();
+    expect(resolved.filterPresets[0]?.filterState.smartQuery).toBe('payload.user.id == "123"');
   });
 });

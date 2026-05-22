@@ -64,6 +64,18 @@ export function isPingPongPacket(packet: Packet) {
   return eventName === "ping" || eventName === "pong" || eventName.includes("heartbeat");
 }
 
+export function isHeartbeatPacket(packet: Packet) {
+  const eventName = getPacketSummary(packet).eventName.toLowerCase();
+
+  return eventName.includes("heartbeat") || eventName === "heart.beat";
+}
+
+export function isPingPongControlPacket(packet: Packet) {
+  const eventName = getPacketSummary(packet).eventName.toLowerCase();
+
+  return eventName === "ping" || eventName === "pong";
+}
+
 export function getPacketSearchText(packet: Packet) {
   const cachedSearchText = packetSearchTextCache.get(packet);
 
