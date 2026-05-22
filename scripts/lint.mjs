@@ -13,6 +13,7 @@ const workspacePackages = [
   { path: "apps/desktop/package.json", requiredScripts: ["dev", "dev:desktop", "build", "build:desktop", "typecheck", "test", "lint", "clean"] },
   { path: "apps/landing/package.json", requiredScripts: ["dev", "build", "typecheck", "lint", "clean"] },
   { path: "examples/echo-server/package.json", requiredScripts: ["dev", "build", "typecheck", "lint", "clean"] },
+  { path: "examples/socketio-demo/package.json", requiredScripts: ["dev", "build", "typecheck", "lint", "clean"] },
   { path: "examples/chat-demo/package.json", requiredScripts: ["dev", "build", "typecheck", "lint", "clean"] },
 ];
 
@@ -44,6 +45,7 @@ function lintRoot() {
     "dev:desktop",
     "dev:landing",
     "dev:echo",
+    "dev:socketio",
     "build",
     "build:desktop",
     "build:landing",

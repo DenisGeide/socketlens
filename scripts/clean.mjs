@@ -12,6 +12,7 @@ const cleanTargets = [
   { path: "apps/landing/dist", scope: "apps/landing" },
   { path: "examples/chat-demo/dist", scope: "examples/chat-demo" },
   { path: "examples/echo-server/dist", scope: "examples/echo-server" },
+  { path: "examples/socketio-demo/dist", scope: "examples/socketio-demo" },
 ];
 
 let removedCount = 0;

@@ -1,7 +1,7 @@
 import type { Packet } from "@/models";
 import { defaultPacketAnalyzer } from "@/extensions/packet-analyzer";
 import { decodePacket, truncateDecodedPreview } from "@/extensions/packet-decoder";
-import type { PacketSummary } from "@/extensions/types";
+import type { DecodedPacket, PacketSummary } from "@/extensions/types";
 import { parseJsonObject } from "@/lib/json-payload";
 
 export type { PacketStatus, PacketSummary } from "@/extensions/types";
@@ -18,6 +18,7 @@ export type PrettyPayloadResult =
   | {
       formatted: string;
       kind: "formatted";
+      source: "decoded" | "payload";
     }
   | {
       kind: "invalid-json";
@@ -33,6 +34,7 @@ export type PrettyPayloadResult =
     };
 
 const prettyJsonSizeLimit = 1_000_000;
+const decodedPacketCache = new WeakMap<Packet, DecodedPacket>();
 const packetSummaryCache = new WeakMap<Packet, PacketSummary>();
 const packetDemoMetadataCache = new WeakMap<Packet, PacketDemoMetadata | null>();
 const packetErrorCache = new WeakMap<Packet, boolean>();
@@ -53,15 +55,28 @@ export function getPacketSummary(packet: Packet): PacketSummary {
 }
 
 function createPacketSummary(packet: Packet): PacketSummary {
-  const decodedPacket = decodePacket(packet);
+  const decodedPacket = getDecodedPacket(packet);
 
   return defaultPacketAnalyzer.analyze(packet, decodedPacket);
+}
+
+export function getDecodedPacket(packet: Packet): DecodedPacket {
+  const cachedPacket = decodedPacketCache.get(packet);
+
+  if (cachedPacket) {
+    return cachedPacket;
+  }
+
+  const decodedPacket = decodePacket(packet);
+  decodedPacketCache.set(packet, decodedPacket);
+
+  return decodedPacket;
 }
 
 export function isPingPongPacket(packet: Packet) {
   const eventName = getPacketSummary(packet).eventName.toLowerCase();
 
-  return eventName === "ping" || eventName === "pong" || eventName.includes("heartbeat");
+  return eventName === "ping" || eventName === "pong" || eventName.endsWith(".ping") || eventName.endsWith(".pong") || eventName.includes("heartbeat");
 }
 
 export function isHeartbeatPacket(packet: Packet) {
@@ -73,7 +88,7 @@ export function isHeartbeatPacket(packet: Packet) {
 export function isPingPongControlPacket(packet: Packet) {
   const eventName = getPacketSummary(packet).eventName.toLowerCase();
 
-  return eventName === "ping" || eventName === "pong";
+  return eventName === "ping" || eventName === "pong" || eventName.endsWith(".ping") || eventName.endsWith(".pong");
 }
 
 export function getPacketSearchText(packet: Packet) {
@@ -93,7 +108,7 @@ export function getPacketSearchText(packet: Packet) {
 }
 
 export function getPacketEventName(packet: Packet) {
-  return decodePacket(packet).eventName;
+  return getDecodedPacket(packet).eventName;
 }
 
 export function getPacketDemoMetadata(packet: Packet): PacketDemoMetadata | null {
@@ -110,6 +125,16 @@ export function getPacketDemoMetadata(packet: Packet): PacketDemoMetadata | null
 }
 
 export function getPrettyPayload(packet: Packet): PrettyPayloadResult {
+  const decodedPacket = getDecodedPacket(packet);
+
+  if (decodedPacket.decoderId === "socketlens.decoder.socketio" && decodedPacket.data !== null) {
+    return {
+      formatted: JSON.stringify(decodedPacket.data, null, 2),
+      kind: "formatted",
+      source: "decoded",
+    };
+  }
+
   if (packet.payloadKind !== "json") {
     return {
       kind: "not-json",
@@ -128,6 +153,7 @@ export function getPrettyPayload(packet: Packet): PrettyPayloadResult {
     return {
       formatted: JSON.stringify(JSON.parse(packet.payload), null, 2),
       kind: "formatted",
+      source: "payload",
     };
   } catch {
     return {

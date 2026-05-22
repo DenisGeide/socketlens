@@ -50,7 +50,13 @@ function getPacketStatus(decoded: DecodedPacket): PacketStatus {
     return "notification";
   }
 
-  if (normalizedEvent === "ping" || normalizedEvent === "pong" || normalizedEvent.includes("heartbeat")) {
+  if (
+    normalizedEvent === "ping" ||
+    normalizedEvent === "pong" ||
+    normalizedEvent.endsWith(".ping") ||
+    normalizedEvent.endsWith(".pong") ||
+    normalizedEvent.includes("heartbeat")
+  ) {
     return "heartbeat";
   }
 

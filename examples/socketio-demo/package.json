@@ -1,0 +1,23 @@
+{
+  "name": "@socketlens/socketio-demo",
+  "version": "0.1.0-alpha",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node ../../scripts/clean.mjs examples/socketio-demo",
+    "dev": "tsx src/server.ts",
+    "lint": "node ../../scripts/lint.mjs --workspace examples/socketio-demo",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^6.0.3"
+  }
+}

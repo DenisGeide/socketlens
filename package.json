@@ -9,6 +9,7 @@
     "apps/desktop",
     "apps/landing",
     "examples/echo-server",
+    "examples/socketio-demo",
     "examples/chat-demo"
   ],
   "scripts": {
@@ -16,6 +17,7 @@
     "dev:desktop": "npm run dev:desktop --workspace @socketlens/desktop",
     "dev:landing": "npm run dev --workspace @socketlens/landing",
     "dev:echo": "npm run dev --workspace @socketlens/echo-server",
+    "dev:socketio": "npm run dev --workspace @socketlens/socketio-demo",
     "dev:chat": "npm run dev --workspace @socketlens/chat-demo",
     "build": "npm run build --workspaces --if-present",
     "build:desktop": "npm run build:desktop --workspace @socketlens/desktop",

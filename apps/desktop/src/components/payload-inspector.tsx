@@ -493,7 +493,9 @@ function PrettyTab({ packet, prettyPayload }: PrettyTabProps) {
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
-        <Badge variant="secondary">{t("inspector.badges.formattedJson")}</Badge>
+        <Badge variant="secondary">
+          {t(prettyPayload.source === "decoded" ? "inspector.badges.decodedPayload" : "inspector.badges.formattedJson")}
+        </Badge>
       </div>
       {rendered.truncated ? <Notice message={t("inspector.notices.prettyTruncated")} /> : null}
       <PayloadCode value={rendered.value} />

@@ -34,10 +34,12 @@ What works in `v0.1.0-alpha`:
 - **Proxy Mode**: native Tauri/Rust proxy MVP for external clients.
 - **Packet Timeline**: virtualized list with direction, event name, timestamp, payload preview, size, badges, filters, and search.
 - **Payload Inspector**: Pretty JSON, Raw text, Metadata, copy support, and safe handling of invalid JSON.
+- **Socket.IO Decoding**: detects Engine.IO/Socket.IO frames, event names, namespaces, acknowledgements, and protocol badges while keeping Raw payloads available.
 - **Manual Send and Replay**: send JSON or raw text, reuse previous outgoing packets, and replay while connected.
 - **Environments**: Local, Staging, and Production variables with `{{base_url}}` / `{{auth_token}}` interpolation.
 - **Session Files**: save/load SocketLens session JSON and export packets.
 - **Echo Server**: local TypeScript WebSocket server on `ws://127.0.0.1:17787`.
+- **Socket.IO Demo**: local TypeScript Socket.IO server for testing decoded events on `ws://127.0.0.1:17810/socket.io/?EIO=4&transport=websocket`.
 - **Settings**: theme, compact mode, auto-scroll, packet retention, language, AI provider, and privacy options.
 - **Localization**: Russian by default, English available in Settings.
 - **Optional AI**: disabled by default, supports OpenAI-compatible endpoints and Ollama when configured.
@@ -282,6 +284,36 @@ Supported example commands:
 
 The echo server accepts WebSocket connections, sends a welcome packet, echoes messages, sends periodic server messages, and responds to simple JSON commands.
 
+## Socket.IO Demo
+
+The Socket.IO demo server is for testing initial Engine.IO/Socket.IO decoding.
+
+```bash
+npm run dev:socketio
+```
+
+Connect Direct Mode to:
+
+```text
+ws://127.0.0.1:17810/socket.io/?EIO=4&transport=websocket
+```
+
+Send a namespace connect frame first:
+
+```text
+40/chat,
+```
+
+Then send an event frame:
+
+```text
+42/chat,1["chat.message",{"text":"Hello from SocketLens","room":"launch"}]
+```
+
+Expected result: SocketLens labels the packet as `Socket.IO`, shows `chat.message`, namespace `/chat`, acknowledgement id `1`, and still keeps the original frame in Raw view.
+
+More detail: [docs/socketio.md](docs/socketio.md).
+
 ## Demo Mode
 
 Demo Mode lets a new user see SocketLens working without a server.
@@ -397,6 +429,8 @@ apps/desktop
 apps/landing       React/Vite landing page
 examples/echo-server
                    Node.js TypeScript WebSocket echo server
+examples/socketio-demo
+                   Node.js TypeScript Socket.IO demo server
 examples/chat-demo Browser chat demo for local realtime testing
 docs               user, contributor, architecture, privacy, QA, release docs
 .github            CI, release workflow, issue templates, PR template
@@ -415,6 +449,7 @@ Run from the repository root.
 | `npm run dev` | Starts web mode at `http://127.0.0.1:1420/`. |
 | `npm run dev:desktop` | Starts the native Tauri desktop app. |
 | `npm run dev:echo` | Starts the echo server at `ws://127.0.0.1:17787`. |
+| `npm run dev:socketio` | Starts the Socket.IO demo server at `ws://127.0.0.1:17810`. |
 | `npm run dev:chat` | Starts the local browser chat demo. |
 | `npm run dev:landing` | Starts the landing page. |
 | `npm run lint` | Runs repository hygiene checks. |

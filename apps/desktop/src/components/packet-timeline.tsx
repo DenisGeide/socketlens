@@ -48,6 +48,7 @@ import type { FlowAnalysis, PacketFlow, PacketFlowKind } from "@/lib/flow-analys
 import { groupTimelinePackets, type PacketTimelineGroup, type PacketTimelineItem } from "@/lib/packet-grouping";
 import {
   getPacketDemoMetadata,
+  getDecodedPacket,
   getPacketSummary,
   isErrorPacketFast,
   isReplayPacketFast,
@@ -1403,6 +1404,12 @@ function getDirectionTone(direction: Packet["direction"]) {
 }
 
 function getProtocolLabel(packet: Packet, t: ReturnType<typeof useTranslation>["t"]) {
+  const decodedPacket = getDecodedPacket(packet);
+
+  if (decodedPacket.decoderId === "socketlens.decoder.socketio") {
+    return t("packets.protocol.socketio");
+  }
+
   if (packet.payloadKind === "json") {
     return t("packets.protocol.json");
   }

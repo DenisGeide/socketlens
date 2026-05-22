@@ -32,6 +32,7 @@ export {
   decodePacket,
   defaultPacketDecoders,
   jsonPacketDecoder,
+  socketIoPacketDecoder,
   textPacketDecoder,
   truncateDecodedPreview,
 } from "@/extensions/packet-decoder";

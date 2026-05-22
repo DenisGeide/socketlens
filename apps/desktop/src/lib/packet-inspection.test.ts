@@ -90,6 +90,19 @@ describe("packet parsing and inspection", () => {
     ).toEqual({
       formatted: '{\n  "type": "chat.message",\n  "text": "Hello"\n}',
       kind: "formatted",
+      source: "payload",
+    });
+
+    expect(
+      getPrettyPayload(
+        createPacketFixture({
+          payload: '42/chat,7["chat.message",{"text":"Hello Socket.IO"}]',
+          payloadKind: "text",
+        }),
+      ),
+    ).toMatchObject({
+      kind: "formatted",
+      source: "decoded",
     });
 
     expect(
