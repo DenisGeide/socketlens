@@ -521,7 +521,14 @@ Current source-level extension contracts:
 
 These are local TypeScript contracts, not a remote plugin marketplace. SocketLens does not execute remote plugins.
 
-More detail: [docs/extension-points.md](docs/extension-points.md), [docs/contributor-guide.md](docs/contributor-guide.md), and [docs/plugins.md](docs/plugins.md).
+Contributor extension guides:
+
+- [docs/contributor-guide.md](docs/contributor-guide.md): where new work goes and how packet flow works.
+- [docs/architecture-rules.md](docs/architecture-rules.md): review guardrails for keeping the core stable.
+- [docs/adding-a-decoder.md](docs/adding-a-decoder.md): add protocol decoding without touching timeline/inspector internals.
+- [docs/adding-a-filter.md](docs/adding-a-filter.md): add packet search/filter behavior safely.
+- [docs/adding-ai-provider.md](docs/adding-ai-provider.md): add optional AI providers without changing privacy defaults.
+- [docs/plugins.md](docs/plugins.md): source-level local plugin foundations.
 
 ## Project Structure
 

@@ -46,7 +46,7 @@ npm run build
 npm run check
 ```
 
-For a more detailed contributor map, see [docs/development.md](docs/development.md).
+For a more detailed contributor map, see [docs/contributor-guide.md](docs/contributor-guide.md), [docs/architecture-rules.md](docs/architecture-rules.md), and [docs/development.md](docs/development.md).
 
 ## Where To Start
 
@@ -123,6 +123,17 @@ Maintainer label recommendations live in [.github/labels.yml](.github/labels.yml
 - `good first issue` and `difficulty:*` for contributor fit.
 
 The public launch maintainer guide is [docs/github-launch.md](docs/github-launch.md).
+
+## Extension Guides
+
+SocketLens is designed so contributors extend the debugger instead of rewriting the core. Use these guides before adding protocol, filter, export, replay, or AI behavior:
+
+- [docs/contributor-guide.md](docs/contributor-guide.md): where new work goes and how packet flow works.
+- [docs/architecture-rules.md](docs/architecture-rules.md): boundaries that keep the core stable.
+- [docs/adding-a-decoder.md](docs/adding-a-decoder.md): protocol decoder workflow.
+- [docs/adding-a-filter.md](docs/adding-a-filter.md): packet filter workflow.
+- [docs/adding-ai-provider.md](docs/adding-ai-provider.md): optional AI provider workflow.
+- [docs/plugins.md](docs/plugins.md): local source-level plugin foundations.
 
 ## Contribution flow
 

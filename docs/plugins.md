@@ -1,8 +1,10 @@
 # Local Plugin Foundations
 
-SocketLens has a lightweight source-level plugin registry for contributors who want to add protocol understanding without rewriting core UI, stores, capture logic, or session persistence.
+SocketLens has a lightweight source-level plugin registry for contributors who want to group extension capabilities without rewriting core UI, stores, capture logic, or session persistence.
 
-Status: foundation only. There is no remote plugin execution, no marketplace, and no dynamic package loading.
+Status: foundation only.
+
+There is no remote plugin execution, no marketplace, no automatic package discovery, and no dynamic loading from installed npm packages.
 
 ## What A Plugin Can Provide
 
@@ -19,20 +21,6 @@ The contracts live in:
 apps/desktop/src/extensions/types.ts
 apps/desktop/src/extensions/plugin-registry.ts
 ```
-
-## Safety Boundaries
-
-SocketLens plugins are deliberately conservative:
-
-- plugins are local TypeScript source code committed to the repository,
-- plugins are registered explicitly,
-- plugins can be enabled or disabled explicitly,
-- remote code loading is not supported,
-- marketplace/plugin download flows are not supported,
-- plugins should not access sockets, files, stores, or UI state directly,
-- plugins should return typed extension objects only.
-
-The registry rejects non-local plugin sources at runtime.
 
 ## Plugin Shape
 
@@ -52,9 +40,40 @@ export type SocketLensPlugin = {
 };
 ```
 
-## Example Plugin
+`source` must be `"local"`. The registry rejects non-local plugins.
 
-This example plugin adds a tiny text decoder and is disabled by default:
+## Built-In Core Plugin
+
+`socketLensCorePlugin` exposes built-in SocketLens capabilities:
+
+- default decoders,
+- default analyzer,
+- default filter engine,
+- built-in JSON export adapters.
+
+It is enabled by default so tests and future integrations can use the same registry path as local extensions.
+
+## When To Add A Plugin
+
+Use a plugin when a contribution bundles multiple local extension capabilities.
+
+Good examples:
+
+- a protocol decoder plus analyzer,
+- an exporter plus filter preset engine,
+- a source-level experiment that should be disabled by default.
+
+Do not use plugins for:
+
+- UI rewrites,
+- socket lifecycle changes,
+- Tauri/Rust backend commands,
+- remote code loading,
+- telemetry,
+- marketplace infrastructure,
+- account/cloud systems.
+
+## Example Plugin
 
 ```ts
 import type { PacketDecoder, SocketLensPlugin } from "@/extensions";
@@ -97,9 +116,11 @@ Register it explicitly:
 import { createPluginRegistry } from "@/extensions";
 import { examplePlugin } from "./example-plugin";
 
-const registry = createPluginRegistry([examplePlugin]);
-
-registry.enable("example.plugin.local");
+const registry = createPluginRegistry([examplePlugin], {
+  enabledPlugins: {
+    "example.plugin.local": true,
+  },
+});
 
 const decoded = registry.getDecoderRegistry().decode(packet);
 ```
@@ -114,46 +135,26 @@ registry.disable("example.plugin.local");
 registry.setEnabled("example.plugin.local", true);
 ```
 
-Or with an initial local configuration:
+Enablement is local runtime state. It is not cloud sync.
 
-```ts
-const registry = createPluginRegistry([examplePlugin], {
-  enabledPlugins: {
-    "example.plugin.local": true,
-  },
-});
-```
+## Safety Boundaries
 
-This is intentionally local-only. It is not cloud sync, not a marketplace, and not runtime remote execution.
+Plugins should:
 
-## Built-in Core Plugin
+- return typed extension objects only,
+- avoid direct store access,
+- avoid socket/file/Tauri access,
+- avoid React state,
+- keep payload parsing pure,
+- fail through fallback behavior instead of crashing the UI.
 
-`socketLensCorePlugin` exposes the built-in SocketLens extensions:
+Plugins should not:
 
-- built-in decoders,
-- default analyzer,
-- default filter engine,
-- built-in JSON export adapters.
-
-It is enabled by default and lets tests or future source-level integrations compose custom plugins with the same registry path.
-
-## When To Add A Plugin
-
-Use a plugin when the contribution is a focused extension:
-
-- a protocol decoder such as Protobuf or MessagePack,
-- a protocol-aware analyzer,
-- an export format,
-- a reusable filter engine.
-
-Do not use plugins for:
-
-- UI rewrites,
-- socket lifecycle changes,
-- Tauri/Rust backend commands,
-- remote code loading,
-- telemetry,
-- marketplace infrastructure.
+- load remote code,
+- download code from a marketplace,
+- execute user-provided scripts,
+- make network calls during registration,
+- log captured payloads or secrets.
 
 ## Testing Expectations
 
@@ -161,6 +162,20 @@ Every plugin should include tests that prove:
 
 - it is disabled when expected,
 - it registers its capabilities,
-- it does not break raw fallback behavior,
+- enable/disable works,
 - malformed packets do not crash,
-- existing packets still decode through the core path.
+- raw fallback behavior still works,
+- existing core packets still decode/filter/export.
+
+Run:
+
+```bash
+npm run test --workspace @socketlens/desktop
+npm run check
+```
+
+## Related Guides
+
+- [extension-points.md](extension-points.md)
+- [adding-a-decoder.md](adding-a-decoder.md)
+- [adding-a-filter.md](adding-a-filter.md)

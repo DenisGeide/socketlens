@@ -1,38 +1,24 @@
-# Adding a Packet Decoder
+# Adding A Packet Decoder
 
-SocketLens decoders turn raw captured packets into a stable `DecodedPacket` shape for the timeline, filters, inspector, flow analysis, and future protocol-specific UI.
+Packet decoders turn raw captured WebSocket frames into a stable `DecodedPacket` used by the timeline, inspector, filters, search, flow analysis, and future protocol-specific UI.
 
-The raw packet payload is never mutated. Raw view and session export keep the original captured payload.
+Raw packet payloads are never mutated. Raw view and session export must keep the original captured payload.
 
-## Where Decoders Live
-
-Current source-level decoder architecture lives in:
+## Files
 
 ```text
-apps/desktop/src/extensions/packet-decoder.ts
 apps/desktop/src/extensions/types.ts
+apps/desktop/src/extensions/packet-decoder.ts
+apps/desktop/src/extensions/packet-decoder.test.ts
 ```
 
-Built-in decoder classes:
+Export new decoder symbols from:
 
-- `SocketIoDecoder`
-- `GraphqlWsDecoder`
-- `JsonDecoder`
-- `RawBinaryDecoder`
-- `FallbackDecoder`
+```text
+apps/desktop/src/extensions/index.ts
+```
 
-Planned binary decoder stubs:
-
-- `ExperimentalMessagePackDecoderStub`
-- `ExperimentalBsonDecoderStub`
-
-These stubs are source-level placeholders only. They are not part of the default decoding registry and their `canDecode()` path returns `false` until real decoding is implemented and tested.
-
-Selection is handled by `DecoderRegistry`.
-
-## Decoder Contract
-
-`PacketDecoder` is the source-level extension contract:
+## Contract
 
 ```ts
 export type PacketDecoder = {
@@ -44,108 +30,119 @@ export type PacketDecoder = {
 };
 ```
 
-Rules:
+`DecodedPacket` must include:
 
-- `canDecode()` must be cheap and safe.
-- `decode()` must return a `DecodedPacket`.
-- `priority` controls decoder order. Higher priority runs first.
-- Decoders should not mutate packets.
-- Decoders should not write to stores, sockets, files, or UI state.
-- If a decoder cannot confidently parse a packet, return `false` from `canDecode()` and let fallback handle it.
+- `data`: parsed data or safe raw data,
+- `decoderId`: stable decoder id,
+- `eventName`: semantic event name,
+- `metadata`: small primitive metadata values,
+- `payloadKind`: `json`, `text`, or `binary`,
+- `preview`: compact display preview,
+- `tags`: protocol/status tags.
 
-## Decoder Priority
+## Registry Behavior
 
-Built-in order today:
+`DecoderRegistry`:
+
+1. removes the fallback decoder from normal ordering,
+2. sorts decoders by descending `priority`,
+3. calls `canDecode(packet)` until one returns `true`,
+4. calls `decode(packet)`,
+5. falls back safely if `canDecode` or `decode` throws.
+
+Current default priority order:
 
 | Decoder | Priority | Purpose |
 | --- | ---: | --- |
-| `SocketIoDecoder` | `90` | Detect Socket.IO text frames before generic text fallback. |
-| `GraphqlWsDecoder` | `80` | Detect GraphQL WebSocket JSON envelopes before generic JSON. |
+| `SocketIoDecoder` | `90` | Detect Engine.IO / Socket.IO text frames before generic text fallback. |
+| `GraphqlWsDecoder` | `80` | Detect common GraphQL WebSocket JSON envelopes before generic JSON. |
 | `JsonDecoder` | `20` | Generic JSON packets. |
-| `RawBinaryDecoder` | `10` | Generic binary packets. |
-| `FallbackDecoder` | `-1000` | Safe raw fallback for anything else. |
+| `RawBinaryDecoder` | `10` | Unknown binary packets. |
+| `FallbackDecoder` | `-1000` | Safe fallback for everything else. |
 
-For future binary protocols:
+Broad decoders should have lower priority than protocol-specific decoders. A decoder with high priority must identify packets confidently.
 
-- Protobuf decoder: use a priority above `RawBinaryDecoder`, for example `60`.
-- MessagePack decoder: use a priority above `RawBinaryDecoder`, for example `55`.
-- BSON decoder: use a priority above `RawBinaryDecoder`, for example `50`.
+## Step-By-Step
 
-Do not give a broad decoder a high priority unless it can identify packets confidently.
+1. Add a decoder class or constant in `apps/desktop/src/extensions/packet-decoder.ts`.
+2. Keep `canDecode()` cheap, deterministic, and conservative.
+3. Keep `decode()` pure: no store writes, no network calls, no file writes, no UI state.
+4. Add the decoder to `defaultPacketDecoders` only when it is ready for user-facing behavior.
+5. Export it from `apps/desktop/src/extensions/index.ts`.
+6. Add tests in `apps/desktop/src/extensions/packet-decoder.test.ts`.
+7. Update docs/README only if the behavior becomes user-visible.
 
-## Binary Decoders
-
-Future binary protocol decoders should extend `BinaryDecoder`.
-
-SocketLens currently keeps unknown binary packets in the raw binary fallback. MessagePack and BSON are documented as planned work only. Do not add UI claims, protocol badges, or README feature bullets until a decoder can parse real payloads with tests.
-
-Example skeleton:
+## Minimal Example
 
 ```ts
-import { BinaryDecoder, type DecodedPacket } from "@/extensions";
 import type { Packet } from "@/models";
+import type { DecodedPacket, PacketDecoder } from "@/extensions/types";
 
-export class MessagePackDecoder extends BinaryDecoder {
-  readonly id = "socketlens.decoder.messagepack";
-  readonly label = "MessagePack decoder";
-  readonly priority = 55;
+export const customPacketDecoder: PacketDecoder = {
+  id: "example.decoder.custom",
+  label: "Custom packet decoder",
+  priority: 60,
+  canDecode: (packet: Packet) =>
+    packet.payloadKind === "json" && packet.payload.includes('"customType"'),
+  decode: (packet: Packet): DecodedPacket => {
+    const payload = JSON.parse(packet.payload) as { customType?: string };
 
-  protected override canDecodeBinary(packet: Packet) {
-    return packet.payloadKind === "binary" && packet.payload.startsWith("msgpack:");
-  }
-
-  protected override decodeBinary(packet: Packet): DecodedPacket {
     return {
-      data: {
-        // decoded messagepack data goes here
-      },
-      decoderId: this.id,
-      eventName: "messagepack.frame",
+      data: payload,
+      decoderId: "example.decoder.custom",
+      eventName: payload.customType ? `custom.${payload.customType}` : "custom.frame",
       metadata: {
-        protocol: "messagepack",
+        protocol: "custom",
       },
-      payloadKind: "binary",
-      preview: "MessagePack frame",
-      tags: ["binary", "messagepack"],
+      payloadKind: "json",
+      preview: payload.customType ?? packet.payload,
+      tags: ["json", "custom"],
     };
-  }
-}
+  },
+};
 ```
 
-This keeps packet consumers stable. Timeline, inspector, filters, and session export continue to read the same `DecodedPacket` fields.
+## Binary Protocols
 
-## Wiring a Decoder
+Future binary protocols should extend `BinaryDecoder`.
 
-1. Add the decoder class in `apps/desktop/src/extensions/packet-decoder.ts` or split it into a focused file if it grows.
-2. Add it to `defaultPacketDecoders`.
-3. Export it from `apps/desktop/src/extensions/index.ts`.
-4. Add unit tests in `apps/desktop/src/extensions/packet-decoder.test.ts`.
-5. Add protocol badge translation only if the UI needs a distinct badge.
-6. Add docs if the user-visible behavior changes.
+Current status:
 
-For MessagePack or BSON specifically:
+- `RawBinaryDecoder` is implemented.
+- `ExperimentalMessagePackDecoderStub` exists as a source-level stub only.
+- `ExperimentalBsonDecoderStub` exists as a source-level stub only.
+- Protobuf, MessagePack, and BSON are not user-facing supported decoders yet.
 
-1. Replace or expand the matching experimental stub.
-2. Keep `canDecodeBinary()` conservative.
-3. Add real fixture packets.
-4. Prove unknown binary still falls back to `RawBinaryDecoder`.
-5. Only then add protocol badges or README feature claims.
+Rules for future binary work:
 
-## Fallback Behavior
+- keep unknown binary payloads falling back safely,
+- add real fixtures,
+- avoid UI/README claims until decoding works with tests,
+- do not add heavy dependencies unless they are necessary and justified.
 
-`DecoderRegistry` chooses the highest-priority decoder whose `canDecode()` returns `true`.
+## Tests To Add
 
-If a decoder throws while decoding, the registry returns the safe fallback decoded packet and records:
+At minimum, test:
 
-- `fallbackSourceDecoder`
-- `fallbackReason`
+- matching packet decodes correctly,
+- unrelated JSON/text/binary packets still fall back correctly,
+- malformed protocol payload does not crash,
+- event name and preview are stable,
+- metadata does not contain secrets,
+- decoder priority does not steal packets from more specific decoders.
 
-This keeps the app stable while preserving raw payload access.
+Run:
+
+```bash
+npm run test --workspace @socketlens/desktop
+npm run check
+```
 
 ## What Not To Do
 
-- Do not parse protocol payloads inside React components.
-- Do not mutate packet payloads.
+- Do not parse protocol payloads inside `PacketTimeline`, `PayloadInspector`, stores, or settings components.
+- Do not mutate `Packet.payload`.
 - Do not hide Raw view.
-- Do not add heavy dependencies unless the protocol cannot be decoded safely without them.
-- Do not claim full protocol support unless tests cover it.
+- Do not write to Zustand stores from a decoder.
+- Do not call AI, network, filesystem, or Tauri APIs from a decoder.
+- Do not claim complete protocol support without tests and docs.

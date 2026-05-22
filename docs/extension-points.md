@@ -53,7 +53,7 @@ export type SocketLensPlugin = {
 
 `PluginRegistry` can compose enabled plugin capabilities and create a `DecoderRegistry` from enabled decoders. The built-in `socketLensCorePlugin` exposes the default SocketLens decoders, analyzer, filters, and exporters through the same shape.
 
-Full guide: [docs/plugins.md](plugins.md).
+Full guide: [plugins.md](plugins.md).
 
 ## PacketDecoder
 
@@ -118,7 +118,7 @@ To wire it:
 3. Add it to `defaultPacketDecoders`.
 4. Do not parse that protocol directly in React components.
 
-Full contributor guide: [docs/adding-a-decoder.md](adding-a-decoder.md).
+Full contributor guide: [adding-a-decoder.md](adding-a-decoder.md).
 
 ## PacketAnalyzer
 
@@ -139,7 +139,7 @@ Keep analyzers deterministic and cheap. They run during timeline rendering, filt
 
 ## FilterEngine
 
-`defaultFilterEngine` owns the current search/filter behavior. `filterPackets()` in `models/filter-state.ts` delegates to it so old imports keep working.
+`defaultFilterEngine` owns the current search/filter behavior. `filterPackets()` in `models/packet-filter.ts` delegates to it so old imports keep working.
 
 Add a new filter only when it belongs to all packet views. Local UI-only filtering should stay in the component that owns it.
 
@@ -149,6 +149,8 @@ Rules:
 - keep matching synchronous and fast,
 - cache expensive derived text outside render paths when needed,
 - update `filter-state.test.ts` or extension tests.
+
+Full guide: [adding-a-filter.md](adding-a-filter.md).
 
 ## ExportAdapter
 
@@ -183,6 +185,8 @@ Rules:
 - validate settings before network calls,
 - send data only after explicit user action,
 - keep privacy warnings visible in UI.
+
+Full guide: [adding-ai-provider.md](adding-ai-provider.md).
 
 ## ReplayStrategy
 

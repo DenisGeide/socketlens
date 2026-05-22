@@ -1,21 +1,23 @@
 # Contributor Guide
 
-This guide is for contributors who want to add to SocketLens without rewriting the core.
+This guide is for contributors who want to extend SocketLens without rewriting the core.
 
-Start with:
+SocketLens should stay easy to run, local-first, and understandable. A good contribution usually adds a decoder, filter, exporter, AI provider, UI panel, test, or documentation improvement while preserving the existing packet flow.
+
+## Quick Setup
 
 ```bash
 npm install
 npm run dev
 ```
 
-For the local echo server:
+Run the local echo server in a second terminal when testing real WebSocket traffic:
 
 ```bash
 npm run dev:echo
 ```
 
-For the native desktop app and Proxy Mode:
+Run the native desktop app only when testing Tauri, native file dialogs, or Proxy Mode:
 
 ```bash
 npm run dev:desktop
@@ -23,99 +25,121 @@ npm run dev:desktop
 
 Desktop mode requires Rust/Cargo and Tauri platform prerequisites.
 
-## Where To Start
+## Mental Model
 
-| Goal | Start here |
-| --- | --- |
-| UI panel or visual polish | `apps/desktop/src/components` |
-| Packet model or session file shape | `apps/desktop/src/models` |
-| Packet decoder/analyzer/filter/exporter | `apps/desktop/src/extensions` |
-| Direct WebSocket behavior | `apps/desktop/src/store/connection-store.ts` |
-| Packet batching/retention | `apps/desktop/src/store/packet-store.ts` |
-| Session lifecycle | `apps/desktop/src/store/session-store.ts` |
-| Settings persistence | `apps/desktop/src/store/settings-store.ts`, `apps/desktop/src/lib/settings-persistence.ts` |
-| AI provider | `apps/desktop/src/extensions/ai-provider.ts`, `apps/desktop/src/lib/ai` |
-| Tauri command bridge | `apps/desktop/src/lib/tauri-commands.ts` |
-| Rust proxy | `apps/desktop/src-tauri/src/proxy.rs` |
+SocketLens has three packet sources:
 
-## Architecture Rules
+- **Demo Mode** creates simulated packets in `apps/desktop/src/demo`.
+- **Direct Mode** opens a browser/WebView `WebSocket` from `apps/desktop/src/store/connection-store.ts`.
+- **Proxy Mode** runs through the Rust/Tauri backend in `apps/desktop/src-tauri/src/proxy.rs`.
 
-- Keep captured packet payloads immutable.
-- Keep demo logic under `apps/desktop/src/demo`.
-- Keep extension contracts under `apps/desktop/src/extensions`.
-- Keep browser/Tauri APIs out of React components unless the component is a small adapter UI.
-- Keep direct WebSocket mode separate from Rust proxy mode.
-- Keep AI optional and disabled by default.
-- Do not add placeholder UI that claims unsupported behavior works.
+All three paths produce the same domain records:
 
-## Adding A New Packet Decoder
-
-1. Create a decoder in `apps/desktop/src/extensions`.
-2. Implement `PacketDecoder`.
-3. Add tests for event name, preview, tags, invalid payloads, and expected metadata.
-4. Add it to the decoder list used by `decodePacket()`.
-5. Verify the timeline and inspector still work with normal JSON/text packets.
-
-Minimal example:
-
-```ts
-import type { PacketDecoder } from "@/extensions";
-
-export const customPacketDecoder: PacketDecoder = {
-  id: "example.decoder.custom",
-  label: "Custom decoder",
-  canDecode: (packet) => packet.payloadKind === "json" && packet.payload.includes('"customType"'),
-  decode: (packet) => {
-    const payload = JSON.parse(packet.payload) as { customType?: string };
-
-    return {
-      data: payload,
-      decoderId: "example.decoder.custom",
-      eventName: payload.customType ? `custom.${payload.customType}` : "custom.frame",
-      metadata: {},
-      payloadKind: "json",
-      preview: packet.payload,
-      tags: ["json", "custom"],
-    };
-  },
-};
+```text
+Connection -> Session -> Packet -> Timeline / Inspector / Filters / Replay / Export
 ```
 
-Do not add protocol parsing inside `PacketTimeline`, `PayloadInspector`, or stores.
+That shared shape is the core. Extensions should read from it and add interpretation around it, not replace it.
 
-## Adding A New Export Format
+## Where New Work Goes
 
-1. Implement `ExportAdapter`.
-2. Keep file serialization deterministic.
-3. Do not change the existing SocketLens session JSON format unless you add versioned migration.
-4. Keep native/browser file saving in `lib/session-file-storage.ts`.
+| Change | Start here | Rule of thumb |
+| --- | --- | --- |
+| UI panel, layout, empty state, visual polish | `apps/desktop/src/components` | Keep rendering and user interaction here. Move parsing/business logic out. |
+| Shared UI primitive | `apps/desktop/src/components/ui` | Keep generic and small. |
+| Packet/session/connection/settings shape | `apps/desktop/src/models` | Pure TypeScript models and validation only. No browser/Tauri APIs. |
+| Direct WebSocket behavior | `apps/desktop/src/store/connection-store.ts` | Owns socket lifecycle and send/replay integration. |
+| Packet batching and retention | `apps/desktop/src/store/packet-store.ts` | Owns retained packet collection. |
+| Session lifecycle | `apps/desktop/src/store/session-store.ts` | Owns session records and counters. |
+| UI state, logs, filters, replay draft | `apps/desktop/src/store/ui-store.ts` | Owns selected ids and UI coordination. |
+| Settings persistence | `apps/desktop/src/store/settings-store.ts`, `apps/desktop/src/lib/settings-persistence.ts` | Persist local settings defensively. |
+| Demo traffic | `apps/desktop/src/demo` | Keep simulated/demo traffic clearly labeled. |
+| Protocol decoding | `apps/desktop/src/extensions/packet-decoder.ts` | Implement `PacketDecoder`; do not parse protocols in React. |
+| Packet classification | `apps/desktop/src/extensions/packet-analyzer.ts` | Implement cheap deterministic packet summaries/statuses. |
+| Search/filter logic | `apps/desktop/src/extensions/filter-engine.ts`, `apps/desktop/src/models/filter-state.ts` | Keep matching fast and testable. |
+| Export formats | `apps/desktop/src/extensions/export-adapter.ts`, `apps/desktop/src/models/session-file.ts` | Keep serialization deterministic and version-aware. |
+| AI provider runtime | `apps/desktop/src/extensions/ai-provider.ts`, `apps/desktop/src/lib/ai` | AI stays optional and disabled by default. |
+| Replay behavior | `apps/desktop/src/extensions/replay-strategy.ts` | Prepare payloads/history only; stores still send packets. |
+| Tauri bridge | `apps/desktop/src/lib/tauri-commands.ts`, `apps/desktop/src/lib/proxy-events.ts` | Components should not call `invoke` directly. |
+| Rust backend | `apps/desktop/src-tauri/src` | Native commands, proxy runtime, backend state, and user-safe errors. |
+| Examples | `examples/echo-server`, `examples/socketio-demo`, `examples/chat-demo` | Keep examples runnable with root npm scripts. |
 
-Good first export ideas:
+If a change does not fit one row, stop and write down the boundary before coding.
 
-- NDJSON packet export,
-- compact JSON packet export,
-- redacted JSON export.
+## Packet Flow
 
-## Adding A New AI Provider
+Direct Mode:
 
-1. Add provider runtime code under `apps/desktop/src/lib/ai/providers`.
-2. Add the provider to `apps/desktop/src/extensions/ai-provider.ts`.
-3. Validate settings before network calls.
-4. Keep API keys local.
-5. Ensure the app works fully when the provider is disabled.
+```text
+User connects to ws:// or wss://
+  -> connection-store opens WebSocket
+  -> session-store starts/updates Session
+  -> createPacket() creates typed Packet
+  -> packet-store batches and retains packets
+  -> ui-store selects, filters, logs, and tracks replay state
+  -> timeline and inspector derive display data
+```
 
-## Adding A New Filter
+Proxy Mode:
 
-1. Add state to `FilterState` only if the filter should be global.
-2. Add matching behavior to `defaultFilterEngine`.
-3. Update tests.
-4. Add UI controls in `PacketTimeline`.
+```text
+User starts proxy in desktop mode
+  -> tauri-commands.ts calls typed Rust command
+  -> proxy.rs starts local proxy listener
+  -> external client connects to local proxy URL
+  -> Rust forwards frames and emits events
+  -> proxy-events.ts maps events into stores
+  -> same timeline/inspector/session path as Direct Mode
+```
 
-If the filter is panel-specific, keep it local to that panel instead.
+Demo Mode:
 
-## Manual QA
+```text
+Demo generator creates simulated packets
+  -> packets are marked as demo traffic
+  -> same packet/session stores
+  -> same timeline/inspector/filter/replay UI
+```
 
-Before opening a PR or handing work back:
+## Decoder Registry In Plain English
+
+`DecoderRegistry` lives in `apps/desktop/src/extensions/packet-decoder.ts`.
+
+It receives a packet, orders decoders by `priority`, runs the first decoder whose `canDecode(packet)` returns `true`, and returns a stable `DecodedPacket`.
+
+Important rules:
+
+- `SocketIoDecoder` and `GraphqlWsDecoder` run before generic JSON/text fallback.
+- `JsonDecoder` handles normal JSON packets.
+- `RawBinaryDecoder` handles unknown binary packets.
+- `FallbackDecoder` keeps SocketLens stable when nothing else matches.
+- If a decoder throws, the registry falls back and records fallback metadata instead of crashing UI.
+
+More detail: [adding-a-decoder.md](adding-a-decoder.md).
+
+## How Not To Break Core
+
+Follow [architecture-rules.md](architecture-rules.md). The short version:
+
+- Do not mutate captured packet payloads.
+- Do not put protocol parsing inside React components.
+- Do not make AI required for capture, replay, sessions, filters, or inspector.
+- Do not call Tauri `invoke` directly from components.
+- Do not merge Demo, Direct, and Proxy lifecycle code.
+- Do not add UI that claims an unsupported feature works.
+- Do not log secrets, tokens, private URLs, or raw production payloads.
+
+## Extension Guides
+
+- [adding-a-decoder.md](adding-a-decoder.md): add protocol understanding such as Socket.IO, GraphQL WS, or future binary formats.
+- [adding-a-filter.md](adding-a-filter.md): add packet search/filter behavior safely.
+- [adding-ai-provider.md](adding-ai-provider.md): add an optional AI provider without changing privacy defaults.
+- [plugins.md](plugins.md): group local decoders/analyzers/filters/exporters as explicit source-level plugins.
+- [extension-points.md](extension-points.md): overview of all contributor-facing contracts.
+
+## How To Run Checks
+
+Use targeted checks while developing:
 
 ```bash
 npm run typecheck
@@ -123,27 +147,47 @@ npm run test
 npm run build
 ```
 
-Full local check:
+Run the full repository check before opening a pull request:
 
 ```bash
 npm run check
 ```
 
-Manual smoke test:
+If your change touches Rust/Tauri, Proxy Mode, native commands, native file dialogs, or desktop packaging, also run:
 
-1. Start `npm run dev`.
-2. Start Investor Demo.
-3. Select a packet and inspect Pretty/Raw/Metadata.
-4. Start `npm run dev:echo`.
-5. Connect Direct Mode to `ws://127.0.0.1:17787`.
-6. Send `{"command":"ping"}`.
-7. Confirm outbound and inbound packets appear.
-8. In desktop mode, test Proxy Mode only if Rust/Tauri prerequisites are installed.
+```bash
+cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
+npm run dev:desktop
+```
 
-## Good First Issues
+Use [manual-qa.md](manual-qa.md) for release-style validation.
 
-- Add tests for packet decoder edge cases.
-- Improve one UI panel without changing stores.
+## How To Open A PR
+
+1. Choose one focused change.
+2. Keep the branch small enough to review.
+3. Add or update tests when shared logic changes.
+4. Update docs only when setup, commands, behavior, privacy, file formats, or extension contracts change.
+5. Run `npm run check`.
+6. Include screenshots or recordings for UI changes.
+7. Describe known limitations honestly.
+
+PR description should include:
+
+```text
+What changed:
+How I tested:
+Screenshots/recordings:
+Known limitations:
+```
+
+## Good First Contributions
+
+- Add tests for decoder fallback behavior.
+- Improve one confusing empty state or validation message.
 - Add a small packet analyzer rule.
-- Add a safe export adapter.
-- Improve docs where current commands or architecture are unclear.
+- Improve a docs page with exact commands and expected results.
+- Add missing translations for existing UI.
+- Add a safe export adapter with tests.
+
+Avoid starting with cloud sync, accounts, telemetry, marketplace plugins, broad proxy rewrites, or enterprise policy systems.
