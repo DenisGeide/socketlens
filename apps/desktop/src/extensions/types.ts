@@ -117,3 +117,19 @@ export type ReplayStrategy = {
   label: string;
   prepare: (input: ReplayStrategyInput) => ReplayStrategyResult;
 };
+
+export type SocketLensPluginCapabilities = {
+  analyzers?: PacketAnalyzer[];
+  decoders?: PacketDecoder[];
+  exporters?: ExportAdapter[];
+  filters?: FilterEngine[];
+};
+
+export type SocketLensPlugin = {
+  capabilities: SocketLensPluginCapabilities;
+  description?: string;
+  enabledByDefault: boolean;
+  id: ExtensionId;
+  label: string;
+  source: "local";
+};

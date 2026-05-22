@@ -12,6 +12,8 @@ export type {
   ReplayStrategy,
   ReplayStrategyInput,
   ReplayStrategyResult,
+  SocketLensPlugin,
+  SocketLensPluginCapabilities,
 } from "@/extensions/types";
 
 export {
@@ -27,6 +29,13 @@ export {
 } from "@/extensions/export-adapter";
 export { defaultFilterEngine } from "@/extensions/filter-engine";
 export { defaultPacketAnalyzer } from "@/extensions/packet-analyzer";
+export {
+  createPluginRegistry,
+  defaultPluginRegistry,
+  PluginRegistry,
+  socketLensCorePlugin,
+  type PluginRegistryOptions,
+} from "@/extensions/plugin-registry";
 export {
   binaryPacketDecoder,
   BinaryDecoder,

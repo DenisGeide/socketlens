@@ -8,7 +8,7 @@ Extension contracts live in:
 apps/desktop/src/extensions
 ```
 
-These are explicit TypeScript extension points. SocketLens does not have runtime plugin loading yet. New extensions are added to the codebase, tested, then wired into the relevant service/store.
+These are explicit TypeScript extension points. SocketLens does not have runtime remote plugin loading. New extensions are added to the codebase, tested, and registered through local source-level extension/plugin registries.
 
 ## Current Extension Points
 
@@ -18,8 +18,42 @@ These are explicit TypeScript extension points. SocketLens does not have runtime
 | Packet analyzer | `PacketAnalyzer` | `packet-analyzer.ts` | Classify packets as auth, chat, error, notification, heartbeat, or ok. |
 | Filter engine | `FilterEngine` | `filter-engine.ts` | Apply search, direction, JSON/error, ping/pong, size, and session filters. |
 | Export adapter | `ExportAdapter` | `export-adapter.ts` | Create serialized session/packet export files. |
+| Local plugin | `SocketLensPlugin`, `PluginRegistry` | `plugin-registry.ts` | Group decoders, analyzers, filters, and exporters behind explicit local enablement. |
 | AI provider | `AIProvider` | `ai-provider.ts` | Register optional AI providers without making AI required. |
 | Replay strategy | `ReplayStrategy` | `replay-strategy.ts` | Prepare replay payloads and replay history records. |
+
+## Local Plugins
+
+Use a local plugin when a contribution should register several extension capabilities together.
+
+Current scope:
+
+- local source-level registration only,
+- explicit enable/disable,
+- no remote code execution,
+- no marketplace,
+- no automatic discovery from installed packages.
+
+Core types:
+
+```ts
+export type SocketLensPlugin = {
+  id: string;
+  label: string;
+  source: "local";
+  enabledByDefault: boolean;
+  capabilities: {
+    decoders?: PacketDecoder[];
+    analyzers?: PacketAnalyzer[];
+    exporters?: ExportAdapter[];
+    filters?: FilterEngine[];
+  };
+};
+```
+
+`PluginRegistry` can compose enabled plugin capabilities and create a `DecoderRegistry` from enabled decoders. The built-in `socketLensCorePlugin` exposes the default SocketLens decoders, analyzer, filters, and exporters through the same shape.
+
+Full guide: [docs/plugins.md](plugins.md).
 
 ## PacketDecoder
 
