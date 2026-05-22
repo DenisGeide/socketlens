@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import {
   AlertCircle,
   ArrowDownLeft,
+  ArrowRight,
   ArrowUpRight,
   Bell,
   Bookmark,
@@ -42,7 +43,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PanelContent, PanelHeader, PanelTitle } from "@/components/ui/panel";
-import { formatBytes, formatTime } from "@/lib/format";
+import { formatBytes, formatDuration, formatTime } from "@/lib/format";
+import type { FlowAnalysis, PacketFlow, PacketFlowKind } from "@/lib/flow-analysis";
 import { groupTimelinePackets, type PacketTimelineGroup, type PacketTimelineItem } from "@/lib/packet-grouping";
 import {
   getPacketDemoMetadata,
@@ -70,6 +72,7 @@ const overscanRows = 8;
 
 type PacketTimelineProps = {
   filterState: FilterState;
+  flowAnalysis: FlowAnalysis | null;
   isConnected: boolean;
   connectionStatus: ConnectionStatus;
   onClearPackets: () => void;
@@ -86,6 +89,7 @@ type PacketTimelineProps = {
 export function PacketTimeline({
   connectionStatus,
   filterState,
+  flowAnalysis,
   isConnected,
   onClearPackets,
   onResetFilters,
@@ -109,6 +113,7 @@ export function PacketTimeline({
   const [expandedGroupIds, setExpandedGroupIds] = useState<ReadonlySet<string>>(() => new Set());
   const [eventDraft, setEventDraft] = useState(filterState.eventQuery);
   const [searchDraft, setSearchDraft] = useState(filterState.searchQuery);
+  const [showFlowGraph, setShowFlowGraph] = useState(false);
   const [smartDraft, setSmartDraft] = useState(filterState.smartQuery);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(560);
@@ -547,6 +552,14 @@ export function PacketTimeline({
           </Button>
         </div>
       </PanelHeader>
+      {flowAnalysis && flowAnalysis.flows.length > 0 ? (
+        <FlowSummaryPanel
+          flowAnalysis={flowAnalysis}
+          showGraph={showFlowGraph}
+          onSelectPacket={onSelectPacket}
+          onToggleGraph={() => setShowFlowGraph((value) => !value)}
+        />
+      ) : null}
       <PanelContent ref={scrollRef} className="min-h-0 flex-1 overflow-auto p-2" onScroll={handleScroll}>
         {packets.length === 0 ? (
           <TimelineEmptyState
@@ -652,6 +665,138 @@ function FilterPresetChip({ onApply, onDelete, onToggleFavorite, preset }: Filte
         <Trash2 className="h-3.5 w-3.5" />
       </button>
     </span>
+  );
+}
+
+type FlowSummaryPanelProps = {
+  flowAnalysis: FlowAnalysis;
+  onSelectPacket: (packetId: string) => void;
+  onToggleGraph: () => void;
+  showGraph: boolean;
+};
+
+function FlowSummaryPanel({ flowAnalysis, onSelectPacket, onToggleGraph, showGraph }: FlowSummaryPanelProps) {
+  const { t } = useTranslation();
+  const topFlows = flowAnalysis.flows.slice(0, 4);
+  const graphFlows = [...flowAnalysis.flows]
+    .sort((left, right) => left.firstTimestamp - right.firstTimestamp)
+    .slice(0, 6);
+
+  return (
+    <section className="border-b border-border/70 bg-[linear-gradient(180deg,hsl(var(--panel)/0.74),hsl(var(--background)/0.48))] px-2 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            <GitBranch className="h-3.5 w-3.5 text-primary" />
+            {t("flows.title")}
+          </p>
+          <p className="mt-0.5 text-[0.72rem] leading-4 text-muted-foreground">{t("flows.description")}</p>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <Badge variant="secondary">{t("flows.count", { count: flowAnalysis.stats.total })}</Badge>
+          {flowAnalysis.stats.explicit > 0 ? (
+            <Badge variant="outline">{t("flows.explicit", { count: flowAnalysis.stats.explicit })}</Badge>
+          ) : null}
+          {flowAnalysis.stats.inferred > 0 ? (
+            <Badge variant="outline">{t("flows.inferred", { count: flowAnalysis.stats.inferred })}</Badge>
+          ) : null}
+          <Button variant={showGraph ? "secondary" : "ghost"} size="sm" onClick={onToggleGraph}>
+            <GitBranch className="h-4 w-4" />
+            {showGraph ? t("flows.graph.hide") : t("flows.graph.show")}
+          </Button>
+        </div>
+      </div>
+      <div className="mt-2 grid gap-2 lg:grid-cols-2 2xl:grid-cols-4">
+        {topFlows.map((flow) => (
+          <FlowSummaryCard key={flow.id} flow={flow} onSelectPacket={onSelectPacket} />
+        ))}
+      </div>
+      {showGraph ? (
+        <div className="mt-2 rounded-md border border-border/70 bg-background/45 p-2">
+          <p className="mb-2 text-[0.72rem] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            {t("flows.graph.title")}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            {graphFlows.map((flow, index) => (
+              <span key={flow.id} className="inline-flex items-center gap-2">
+                {index > 0 ? <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60" /> : null}
+                <button
+                  type="button"
+                  className="max-w-[14rem] truncate rounded-md border border-border/70 bg-muted/20 px-2 py-1 text-left text-[0.72rem] font-semibold text-foreground hover:border-primary/40 hover:bg-primary/10"
+                  title={flow.title}
+                  onClick={() => {
+                    const packetId = flow.packetIds[0];
+
+                    if (packetId) {
+                      onSelectPacket(packetId);
+                    }
+                  }}
+                >
+                  {t(getFlowKindLabelKey(flow.kind))}: {flow.title}
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function FlowSummaryCard({ flow, onSelectPacket }: { flow: PacketFlow; onSelectPacket: (packetId: string) => void }) {
+  const { t } = useTranslation();
+  const FlowIcon = getFlowIcon(flow.kind);
+  const tone = getFlowTone(flow.kind);
+  const firstPacketId = flow.packetIds[0];
+  const directionSummary = t("flows.directionSummary", {
+    inbound: flow.directionCount.inbound,
+    outbound: flow.directionCount.outbound,
+  });
+
+  return (
+    <button
+      type="button"
+      className={cn(
+        "group min-w-0 rounded-md border p-2 text-left transition hover:-translate-y-px focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/70",
+        tone.card,
+      )}
+      disabled={!firstPacketId}
+      title={t("flows.openFlow")}
+      onClick={() => {
+        if (firstPacketId) {
+          onSelectPacket(firstPacketId);
+        }
+      }}
+    >
+      <span className="mb-1.5 flex min-w-0 items-center gap-1.5 overflow-hidden">
+        <Badge variant="outline" className={cn("shrink-0", tone.badge)}>
+          <FlowIcon className="h-3 w-3" />
+          {t(getFlowKindLabelKey(flow.kind))}
+        </Badge>
+        <Badge variant="outline" className="shrink-0 border-border/70 bg-background/40 text-muted-foreground">
+          {t(getFlowConfidenceLabelKey(flow.confidence))}
+        </Badge>
+        {flow.errorCount > 0 ? (
+          <Badge variant="outline" className="shrink-0 border-destructive/35 bg-destructive/10 text-destructive">
+            <AlertCircle className="h-3 w-3" />
+            {t("flows.errors", { count: flow.errorCount })}
+          </Badge>
+        ) : null}
+      </span>
+      <p className="truncate font-mono text-[0.78rem] font-semibold text-foreground" title={flow.title}>
+        {flow.title}
+      </p>
+      <p className="mt-1 line-clamp-1 text-[0.72rem] leading-4 text-muted-foreground">
+        {t(getFlowReasonLabelKey(flow.reason))}
+      </p>
+      <span className="mt-2 flex flex-wrap items-center gap-1.5 text-[0.68rem] font-medium text-muted-foreground">
+        <span>{t("flows.packetCount", { count: flow.packetCount })}</span>
+        <span className="text-muted-foreground/45">/</span>
+        <span>{directionSummary}</span>
+        <span className="text-muted-foreground/45">/</span>
+        <span>{formatDuration(flow.firstTimestamp, flow.lastTimestamp)}</span>
+      </span>
+    </button>
   );
 }
 
@@ -1063,6 +1208,124 @@ function ProtocolBadge({ label, payloadKind }: { label: string; payloadKind: Pac
       {label}
     </Badge>
   );
+}
+
+function getFlowIcon(kind: PacketFlowKind) {
+  if (kind === "auth") {
+    return KeyRound;
+  }
+
+  if (kind === "heartbeat") {
+    return HeartPulse;
+  }
+
+  if (kind === "reconnect") {
+    return RefreshCw;
+  }
+
+  if (kind === "replay") {
+    return Repeat2;
+  }
+
+  if (kind === "request-response") {
+    return GitBranch;
+  }
+
+  return Layers2;
+}
+
+function getFlowKindLabelKey(kind: PacketFlowKind) {
+  if (kind === "auth") {
+    return "flows.kind.auth";
+  }
+
+  if (kind === "heartbeat") {
+    return "flows.kind.heartbeat";
+  }
+
+  if (kind === "reconnect") {
+    return "flows.kind.reconnect";
+  }
+
+  if (kind === "replay") {
+    return "flows.kind.replay";
+  }
+
+  if (kind === "request-response") {
+    return "flows.kind.requestResponse";
+  }
+
+  return "flows.kind.repeatedEvent";
+}
+
+function getFlowReasonLabelKey(reason: PacketFlow["reason"]) {
+  if (reason === "auth-sequence") {
+    return "flows.reason.authSequence";
+  }
+
+  if (reason === "heartbeat-sequence") {
+    return "flows.reason.heartbeatSequence";
+  }
+
+  if (reason === "reconnect-sequence") {
+    return "flows.reason.reconnectSequence";
+  }
+
+  if (reason === "replay-source") {
+    return "flows.reason.replaySource";
+  }
+
+  if (reason === "request-response") {
+    return "flows.reason.requestResponse";
+  }
+
+  return "flows.reason.repeatedEvent";
+}
+
+function getFlowConfidenceLabelKey(confidence: PacketFlow["confidence"]) {
+  return confidence === "explicit" ? "flows.confidence.explicit" : "flows.confidence.inferred";
+}
+
+function getFlowTone(kind: PacketFlowKind) {
+  if (kind === "auth") {
+    return {
+      badge: "border-sky-300/25 bg-sky-300/10 text-sky-200",
+      card: "border-sky-300/20 bg-[linear-gradient(90deg,hsl(198_93%_60%/0.1),hsl(var(--panel)/0.78)_46%)] hover:border-sky-300/35",
+    };
+  }
+
+  if (kind === "heartbeat") {
+    return {
+      badge: "border-amber-300/25 bg-amber-300/10 text-amber-100",
+      card: "border-amber-300/20 bg-[linear-gradient(90deg,hsl(45_96%_58%/0.1),hsl(var(--panel)/0.78)_46%)] hover:border-amber-300/35",
+    };
+  }
+
+  if (kind === "reconnect") {
+    return {
+      badge: "border-blue-300/25 bg-blue-300/10 text-blue-200",
+      card: "border-blue-300/20 bg-[linear-gradient(90deg,hsl(215_92%_68%/0.1),hsl(var(--panel)/0.78)_46%)] hover:border-blue-300/35",
+    };
+  }
+
+  if (kind === "replay") {
+    return {
+      badge: "border-accent/35 bg-accent/10 text-accent",
+      card: "border-accent/25 bg-[linear-gradient(90deg,hsl(var(--accent)/0.1),hsl(var(--panel)/0.78)_46%)] hover:border-accent/40",
+    };
+  }
+
+  if (kind === "request-response") {
+    return {
+      badge: "border-cyan-300/25 bg-cyan-300/10 text-cyan-200",
+      card: "border-cyan-300/20 bg-[linear-gradient(90deg,hsl(187_92%_58%/0.1),hsl(var(--panel)/0.78)_46%)] hover:border-cyan-300/35",
+    };
+  }
+
+  return {
+    badge: "border-primary/25 bg-primary/10 text-primary",
+    card: "border-primary/20 bg-[linear-gradient(90deg,hsl(var(--primary)/0.1),hsl(var(--panel)/0.78)_46%)] hover:border-primary/35",
+  };
 }
 
 function getGroupIcon(kind: PacketTimelineGroup["kind"]) {

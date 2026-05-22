@@ -59,6 +59,7 @@ import {
   type ProxyStatus,
 } from "@/lib/tauri-commands";
 import { getJsonCommand } from "@/lib/json-payload";
+import { analyzePacketFlows } from "@/lib/flow-analysis";
 import { buildPacketRelationshipIndex } from "@/lib/packet-relationships";
 import { filterPackets } from "@/models";
 import {
@@ -184,6 +185,10 @@ export function App() {
   const packetRelationshipIndex = useMemo(
     () => buildPacketRelationshipIndex(currentSessionPackets),
     [currentSessionPackets],
+  );
+  const flowAnalysis = useMemo(
+    () => analyzePacketFlows(currentSessionPackets, packetRelationshipIndex),
+    [currentSessionPackets, packetRelationshipIndex],
   );
   const scopedPacketCount = useMemo(
     () => (selectedSessionId ? packets.filter((packet) => packet.sessionId === selectedSessionId).length : packets.length),
@@ -1418,6 +1423,7 @@ export function App() {
             <PacketTimeline
               connectionStatus={status}
               filterState={filterState}
+              flowAnalysis={flowAnalysis}
               isConnected={isConnected}
               packets={visiblePackets}
               relationshipIndex={packetRelationshipIndex}

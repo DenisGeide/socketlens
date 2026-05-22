@@ -153,6 +153,12 @@ Relationship tracking is intentionally conservative. SocketLens derives request/
 
 The relationship index is rebuilt from the selected session packet list with `buildPacketRelationshipIndex()`. It is used by the timeline and payload inspector only; raw packet payloads remain unchanged.
 
+## Flow Analysis
+
+Flow analysis is a derived session-level view built in `apps/desktop/src/lib/flow-analysis.ts`. It reads retained packets plus the relationship index and summarizes common patterns such as auth flows, reconnect flows, ping/pong health traffic, request/response pairs, replay links, and repeated events.
+
+Flows are labels over existing packets, not a separate source of truth. Explicit flows come from relationship metadata such as request ids or replay source ids. Inferred flows are marked as inferred and should stay conservative. The packet timeline still preserves the raw packet list so users can inspect every original frame.
+
 ## Extension Points
 
 Contributor-facing extension contracts live in `apps/desktop/src/extensions`.
