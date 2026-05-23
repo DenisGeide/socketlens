@@ -117,6 +117,27 @@ sh ./launchers/start-desktop.sh
 
 The start launchers check for `node_modules` and run `npm install` on first launch if dependencies are missing. Node.js/npm must still be installed first. Desktop mode also needs Rust/Cargo and Tauri OS prerequisites.
 
+## Downloadable Releases
+
+SocketLens is currently source-first alpha software. The most reliable public path is still:
+
+```bash
+npm install
+npm run dev
+```
+
+Unsigned desktop artifacts will be attached to GitHub Releases only after the release workflow validates the build on each target platform.
+
+Expected artifact families:
+
+- Windows: `.msi` or `.exe`
+- macOS: `.dmg` or `.app`
+- Linux: `.AppImage`, `.deb`, or `.rpm`
+
+Until code signing is configured, operating systems may show unidentified-developer warnings for downloaded desktop builds.
+
+Read: [docs/release.md](docs/release.md) and [docs/releases/v0.1.0-alpha.md](docs/releases/v0.1.0-alpha.md).
+
 ## Demo Mode
 
 Demo Mode is the fastest way to understand SocketLens without setup.
