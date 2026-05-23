@@ -1,6 +1,6 @@
 # Release Guide
 
-SocketLens is `v0.1.0-alpha`. Releases should prioritize stability, reproducible setup, honest limitations, and real screenshots from implemented behavior.
+SocketLens is `v1.0.0-alpha`. Releases should prioritize stability, reproducible setup, honest limitations, and real screenshots from implemented behavior.
 
 ## Version Files
 
@@ -42,11 +42,11 @@ apps/desktop/src-tauri/target/release/bundle
 
 ## Alpha Release Checklist
 
-- README says the project is `v0.1.0-alpha`.
+- README says the project is `v1.0.0-alpha`.
 - README explains Demo, Direct, Proxy, Echo Server, AI, Privacy, and License.
 - README links to screenshots and screenshot instructions.
 - `CHANGELOG.md` has the release entry.
-- `docs/releases/v0.1.0-alpha.md` exists.
+- `docs/releases/v1.0.0-alpha.md` exists.
 - `docs/manual-qa.md` has been run or skipped items are documented.
 - CI passes.
 - Release workflow passes before artifacts are attached.
@@ -161,8 +161,8 @@ Native installer icons live in `apps/desktop/src-tauri/icons`. Regenerate them f
 Example:
 
 ```bash
-git tag v0.1.0-alpha
-git push origin v0.1.0-alpha
+git tag v1.0.0-alpha
+git push origin v1.0.0-alpha
 ```
 
 Do not attach artifacts if any platform build fails.

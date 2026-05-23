@@ -40,7 +40,7 @@ Do not place a fake GIF or video placeholder in this folder. Add media only afte
 socketlens-demo.gif
 socketlens-v<version>-demo-<duration>-<viewport>-<locale>.mp4
 socketlens-v<version>-demo-<duration>-<viewport>-<locale>.gif
-socketlens-v0.1.0-alpha-demo-45s-1920x1080-en.mp4
+socketlens-v1.0.0-alpha-demo-45s-1920x1080-en.mp4
 ```
 
 Use `socketlens-demo.gif` only for the canonical GitHub preview GIF after it is captured from the real app.

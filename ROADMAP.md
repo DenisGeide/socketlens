@@ -16,13 +16,13 @@ SocketLens is currently an open-source alpha aimed at local development, contrib
 
 It is not yet a signed, stable, paid, hosted, or enterprise-ready product.
 
-## v0.1.0-alpha Freeze
+## v1.0.0-alpha Freeze
 
-The project is in `v0.1.0-alpha` stabilization mode. Until the alpha tag is cut, new work should focus on release blockers, bug fixes, onboarding clarity, documentation corrections, privacy/security wording, CI/release fixes, and small UI clarity improvements.
+The project is in `v1.0.0-alpha` stabilization mode. Until the alpha tag is cut, new work should focus on release blockers, bug fixes, onboarding clarity, documentation corrections, privacy/security wording, CI/release fixes, and small UI clarity improvements.
 
 Large feature work, broad refactors, new AI capabilities, cloud/account work, telemetry, billing, and enterprise proxy expansion are intentionally deferred.
 
-Freeze details and the readiness checklist live in [docs/v0.1.0-alpha-freeze.md](docs/v0.1.0-alpha-freeze.md).
+Freeze details and the readiness checklist live in [docs/v1.0.0-alpha-freeze.md](docs/v1.0.0-alpha-freeze.md).
 
 ## Known Limitations
 
@@ -35,7 +35,7 @@ Freeze details and the readiness checklist live in [docs/v0.1.0-alpha-freeze.md]
 - Experimental AsyncAPI export creates an inferred YAML draft only. It is not a validated API contract and needs manual review before sharing.
 - No telemetry, hosted sync, cloud workspace, account system, or monetized service exists today.
 
-## Completed For 0.1 Alpha
+## Completed For 1.0 Alpha
 
 - Runnable npm monorepo with desktop app, landing page, echo server, and chat demo workspaces.
 - Tauri, React, TypeScript, Vite, TailwindCSS, shadcn/ui-style primitives, and Zustand desktop foundation.
@@ -52,7 +52,7 @@ Freeze details and the readiness checklist live in [docs/v0.1.0-alpha-freeze.md]
 
 The near-term plan is to make the existing workflows more reliable before expanding scope.
 
-### 0.1 Alpha Stabilization
+### 1.0 Alpha Stabilization
 
 - Validate native Tauri builds on Windows, macOS, and Linux release runners.
 - Publish first unsigned downloadable artifacts from the GitHub release workflow.
@@ -60,7 +60,7 @@ The near-term plan is to make the existing workflows more reliable before expand
 - Commit reproducible native build metadata after validating the Tauri/Rust release environment.
 - Tighten failure-case testing around proxy disconnects, malformed frames, and imported session files.
 
-### 0.2 Debugging Workflow
+### 1.1 Alpha Debugging Workflow
 
 - Saved connection profiles with clearer grouping and recent-workflow shortcuts.
 - Stronger reconnect controls for direct mode and proxy clients.
@@ -70,7 +70,7 @@ The near-term plan is to make the existing workflows more reliable before expand
 - Binary decoder work for Protobuf, MessagePack, and BSON. MessagePack/BSON currently have documented stubs only; raw binary fallback remains the user-facing behavior until real fixture-backed decoders exist.
 - Improved diagnostics for TLS, localhost binding, CORS-like client mistakes, and server close frames.
 
-### 0.3 Advanced Realtime Tooling
+### 1.2 Alpha Realtime Tooling
 
 - Authentication helper templates for common WebSocket handshakes.
 - Request/event collections for repeatable realtime test flows.

@@ -47,10 +47,10 @@ socketlens-v<version>-<sequence>-<area>-<state>-<theme>-<viewport>-<locale>.<ext
 Examples:
 
 ```text
-socketlens-v0.1.0-alpha-01-onboarding-first-run-dark-1440x900-ru.png
-socketlens-v0.1.0-alpha-02-investor-demo-active-dark-1440x900-en.png
-socketlens-v0.1.0-alpha-03-direct-echo-connected-dark-1440x900-ru.png
-socketlens-v0.1.0-alpha-04-proxy-native-running-dark-1440x900-en.png
+socketlens-v1.0.0-alpha-01-onboarding-first-run-dark-1440x900-ru.png
+socketlens-v1.0.0-alpha-02-investor-demo-active-dark-1440x900-en.png
+socketlens-v1.0.0-alpha-03-direct-echo-connected-dark-1440x900-ru.png
+socketlens-v1.0.0-alpha-04-proxy-native-running-dark-1440x900-en.png
 ```
 
 ## Recommended Window Sizes

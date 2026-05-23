@@ -6,7 +6,7 @@ This document describes the features and functions that exist in the current Soc
 
 SocketLens is a local-first WebSocket debugging workspace for developers building realtime applications. It helps developers connect to WebSocket endpoints, inspect inbound and outbound frames, review payloads, manually send messages, replay outbound messages, save sessions, and demonstrate realistic realtime traffic without a production backend.
 
-Current project status: `v0.1.0-alpha`.
+Current project status: `v1.0.0-alpha`.
 
 Main modes:
 
@@ -1386,7 +1386,7 @@ How to add a new decoder without touching core UI:
 
 Current limitations:
 
-- SocketLens is `v0.1.0-alpha`, not stable commercial software.
+- SocketLens is `v1.0.0-alpha`, not stable commercial software.
 - Desktop builds are unsigned.
 - Proxy Mode requires the Tauri desktop runtime; browser dev mode cannot accept external proxy clients.
 - Proxy Mode is a local debugging MVP, not an enterprise proxy/gateway.

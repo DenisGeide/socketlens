@@ -55,8 +55,8 @@ packet-inspector-metadata.png
 Examples:
 
 ```text
-socketlens-v0.1.0-alpha-01-onboarding-first-run-dark-1440x900-ru.png
-socketlens-v0.1.0-alpha-05-direct-echo-connected-dark-1440x900-en.png
+socketlens-v1.0.0-alpha-01-onboarding-first-run-dark-1440x900-ru.png
+socketlens-v1.0.0-alpha-05-direct-echo-connected-dark-1440x900-en.png
 ```
 
 ## Capture Sizes

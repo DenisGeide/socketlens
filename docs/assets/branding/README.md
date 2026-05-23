@@ -13,6 +13,6 @@ These assets are original artwork for the alpha repository. Replace them with fi
 
 - Keep the dark developer-tool aesthetic.
 - Do not use third-party or copyrighted artwork.
-- Do not imply a stable commercial release; SocketLens is `v0.1.0-alpha`.
+- Do not imply a stable commercial release; SocketLens is `v1.0.0-alpha`.
 - Regenerate platform installer icons from the final brand mark before a signed release.
 - Update all README and release references when replacing assets.

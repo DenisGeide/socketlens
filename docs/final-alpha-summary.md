@@ -1,6 +1,6 @@
 # Final Alpha Summary
 
-Purpose: give maintainers, contributors, and public visitors an honest snapshot of SocketLens `v0.1.0-alpha` readiness.
+Purpose: give maintainers, contributors, and public visitors an honest snapshot of SocketLens `v1.0.0-alpha` readiness.
 
 ## What SocketLens Is
 

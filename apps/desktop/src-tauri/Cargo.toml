@@ -1,6 +1,6 @@
 [package]
 name = "socketlens"
-version = "0.1.0-alpha"
+version = "1.0.0-alpha"
 description = "A professional desktop WebSocket debugger for developers building realtime apps."
 authors = ["SocketLens contributors"]
 edition = "2021"

@@ -106,7 +106,7 @@ export const investorDemoSteps: InvestorDemoStepDefinition[] = [
           device: {
             platform: "desktop",
             timezone: "Europe/Moscow",
-            clientVersion: "0.1.0-alpha",
+            clientVersion: "1.0.0-alpha",
           },
         }),
       },

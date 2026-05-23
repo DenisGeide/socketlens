@@ -129,5 +129,5 @@ socketlens-v<version>-<sequence>-<area>-<state>-<theme>-<viewport>-<locale>.png
 Example:
 
 ```text
-socketlens-v0.1.0-alpha-03-direct-echo-connected-dark-1440x900-ru.png
+socketlens-v1.0.0-alpha-03-direct-echo-connected-dark-1440x900-ru.png
 ```

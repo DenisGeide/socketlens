@@ -6,7 +6,7 @@
 [![Release](https://github.com/DenisGeide/socketlens/actions/workflows/release.yml/badge.svg)](https://github.com/DenisGeide/socketlens/actions/workflows/release.yml)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE)
 
-**Project status: Alpha, `v0.1.0-alpha`**
+**Project status: Public Alpha, `v1.0.0-alpha`**
 
 SocketLens is a local-first WebSocket debugging workspace for developers building realtime applications.
 
@@ -43,7 +43,7 @@ Screenshots below are captured from implemented SocketLens behavior. Screenshot 
 
 ## Feature Overview
 
-What works in `v0.1.0-alpha`:
+What works in `v1.0.0-alpha`:
 
 - **Demo Mode**: simulated offline traffic clearly marked as demo data.
 - **Direct Mode**: connect directly to `ws://` or `wss://` endpoints.
@@ -136,7 +136,7 @@ Expected artifact families:
 
 Until code signing is configured, operating systems may show unidentified-developer warnings for downloaded desktop builds.
 
-Read: [docs/release.md](docs/release.md) and [docs/releases/v0.1.0-alpha.md](docs/releases/v0.1.0-alpha.md).
+Read: [docs/release.md](docs/release.md) and [docs/releases/v1.0.0-alpha.md](docs/releases/v1.0.0-alpha.md).
 
 ## Demo Mode
 

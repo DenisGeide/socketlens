@@ -42,7 +42,7 @@ describe("diagnostics bundle", () => {
       appName: appMetadata.name,
       appVersion: appMetadata.version,
       backendState: "ready",
-      backendVersion: "0.1.0-alpha",
+      backendVersion: "1.0.0-alpha",
       currentSession: session,
       currentSessionPackets: [packet],
       endpointUrl: connection.endpointUrl,

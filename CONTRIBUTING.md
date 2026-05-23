@@ -4,7 +4,7 @@ Thanks for helping build SocketLens.
 
 SocketLens is an alpha-stage open-source desktop developer tool. Contributions are welcome, especially when they make the app easier to install, safer to run, clearer to document, or more reliable for real WebSocket debugging workflows.
 
-`v0.1.0-alpha` is in release-freeze mode. Before the alpha tag, please focus on release blockers, bug fixes, onboarding clarity, docs corrections, privacy/security wording, CI/release fixes, and small UI clarity improvements. See [docs/v0.1.0-alpha-freeze.md](docs/v0.1.0-alpha-freeze.md).
+`v1.0.0-alpha` is in release-freeze mode. Before the alpha tag, please focus on release blockers, bug fixes, onboarding clarity, docs corrections, privacy/security wording, CI/release fixes, and small UI clarity improvements. See [docs/v1.0.0-alpha-freeze.md](docs/v1.0.0-alpha-freeze.md).
 
 ## License For Contributions
 

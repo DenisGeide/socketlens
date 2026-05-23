@@ -211,7 +211,7 @@ Avoid adding these until there is a clear product need:
 - telemetry pipelines,
 - enterprise policy systems.
 
-For `v0.1.0-alpha`, extension points are source-level contracts for contributors.
+For `v1.0.0-alpha`, extension points are source-level contracts for contributors.
 
 ## Related
 

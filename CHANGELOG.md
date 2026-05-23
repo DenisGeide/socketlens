@@ -4,7 +4,7 @@ All notable changes to SocketLens will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows semantic versioning after the first stable release.
 
-## [0.1.0-alpha] - 2026-05-22
+## [1.0.0-alpha] - 2026-05-22
 
 This is the first alpha release candidate for public GitHub launch. SocketLens is usable for local demo workflows, direct WebSocket debugging, session files, and native proxy testing, but it is not yet a stable `1.0` release.
 
@@ -31,8 +31,8 @@ This is the first alpha release candidate for public GitHub launch. SocketLens i
 
 - Relicensed SocketLens from MIT to GNU AGPL v3 only (`AGPL-3.0-only`).
 - Polished public launch documentation, alpha status messaging, roadmap, and release guidance.
-- Added `v0.1.0-alpha` freeze guidance and alpha readiness criteria.
-- Aligned package, Tauri, and Cargo versions for `0.1.0-alpha`.
+- Added `v1.0.0-alpha` freeze guidance and alpha readiness criteria.
+- Aligned package, Tauri, and Cargo versions for `1.0.0-alpha`.
 
 ### Known Limitations
 
