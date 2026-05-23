@@ -6,7 +6,13 @@ This folder contains release copy and future release assets for GitHub Releases 
 
 - `release-notes-template.md`: copy-ready release notes structure.
 
-Release images are not committed yet. Until final release artwork exists, use the README banner from `docs/assets/branding/banner.png` and product screenshots from `docs/assets/screenshots/`.
+Release images are not committed yet. Until final release artwork exists, use:
+
+- `docs/assets/branding/banner.png` for the repository banner;
+- `docs/assets/branding/icon.png` for launcher/app-icon presentation;
+- real product screenshots from `docs/assets/screenshots/`.
+
+Do not reference uncommitted thumbnail or installer artwork in public docs.
 
 ## Release Asset Checklist
 

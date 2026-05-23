@@ -151,12 +151,14 @@ docs/assets/
   screenshots/
   release/
   demo/
+  diagrams/
 ```
 
-- `branding/`: logo, logo mark, dark logo, banner.
-- `screenshots/`: README screenshot placeholders.
-- `release/`: release icon and thumbnail placeholders.
+- `branding/`: README banner and app/launcher icon.
+- `screenshots/`: real alpha screenshots and screenshot naming guidance.
+- `release/`: release notes template and release-asset checklist.
 - `demo/`: demo recording assets when added.
+- `diagrams/`: exported architecture diagrams if Mermaid is not enough.
 
 ## Where WebSocket Logic Lives
 
