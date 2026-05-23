@@ -47,6 +47,7 @@ Call out migrations, file-format changes, privacy implications, release risks, o
 ## Checklist
 
 - [ ] I kept the change focused and runnable.
+- [ ] I understand contributions are licensed under `AGPL-3.0-only`.
 - [ ] I did not add fake or placeholder-only product behavior.
 - [ ] I did not commit secrets, private payloads, or generated build output.
 - [ ] I updated README/docs when setup, commands, UI behavior, privacy behavior, or release behavior changed.

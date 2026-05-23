@@ -23,15 +23,15 @@ See [docs/privacy.md](docs/privacy.md) and [docs/security-model.md](docs/securit
 
 Do not open public issues for suspected vulnerabilities.
 
-Email the maintainers at `security@socketlens.dev` with:
+Use GitHub private vulnerability reporting if it is enabled for the repository. If it is not available, contact the repository owner privately through GitHub or another maintainer-published contact channel.
+
+Include:
 
 - a description of the issue
 - reproduction steps
 - potential impact
 - affected platform and SocketLens version or commit
 - any suggested mitigation
-
-If a project email is not active yet, contact the repository owner privately through the hosting platform.
 
 ## What To Report
 

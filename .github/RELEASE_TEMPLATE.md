@@ -25,7 +25,8 @@ Until code signing is configured, operating systems may warn that the app is fro
 
 ## Release Assets
 
-- Thumbnail: `docs/assets/release/socketlens-release-thumbnail.svg`
+- Banner: `docs/assets/branding/banner.png`
+- Icon: `docs/assets/branding/icon.png`
 - Screenshot guide: `docs/assets/screenshots/README.md`
 - Demo recording guide: `docs/assets/demo/README.md`
 - Asset naming convention: `socketlens-v<version>-<sequence>-<area>-<state>-<theme>-<viewport>-<locale>.<ext>`
