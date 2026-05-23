@@ -4,6 +4,14 @@
   "private": true,
   "description": "A professional desktop WebSocket debugger for developers building realtime apps.",
   "license": "AGPL-3.0-only",
+  "homepage": "https://github.com/DenisGeide/socketlens#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DenisGeide/socketlens.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DenisGeide/socketlens/issues"
+  },
   "packageManager": "npm@11.9.0",
   "workspaces": [
     "apps/desktop",
